@@ -88,10 +88,18 @@ func (s *Store) Middleware(next http.Handler) http.Handler {
 				httpx.Error(w, http.StatusUnprocessableEntity, "IDEMPOTENCY_KEY_REUSED",
 					"bu Idempotency-Key farklı bir istek için kullanılmış")
 			case prev.status == "COMPLETED" && prev.respStatus != nil:
+				// JSONB biçimlendirmeyi değiştirir (boşluk, anahtar sırası); ilk yanıtla aynı sıkışık
+				// biçimde dönmek için sıkıştırılır. İçerik anlamca birebir aynıdır.
+				body := prev.respBody
+				var compact bytes.Buffer
+				if json.Compact(&compact, body) == nil {
+					compact.WriteByte('\n')
+					body = compact.Bytes()
+				}
 				w.Header().Set("Content-Type", "application/json; charset=utf-8")
 				w.Header().Set(ReplayedHeader, "true")
 				w.WriteHeader(*prev.respStatus)
-				_, _ = w.Write(prev.respBody)
+				_, _ = w.Write(body)
 			default:
 				httpx.Error(w, http.StatusConflict, "IDEMPOTENCY_IN_PROGRESS",
 					"aynı Idempotency-Key ile bir istek hâlâ işleniyor")
