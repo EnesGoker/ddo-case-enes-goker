@@ -1,0 +1,198 @@
+openapi: 3.0.3
+info:
+  title: GüvenPoliçe API
+  version: 0.1.0
+  description: |
+    A1 kapsamı: sağlık, metrik, kimlik doğrulama ve müşteri listesi.
+    Tüm hatalar `{"error":{"code","message","details?"}}` biçimindedir.
+    Refresh token yalnızca httpOnly `gp_refresh` cookie'sinde taşınır (Path=/api/v1/auth, SameSite=Strict).
+servers:
+  - url: http://localhost:8080
+  - url: http://localhost:3000
+    description: nginx üzerinden aynı origin
+
+paths:
+  /health:
+    get:
+      summary: Servis ve veritabanı sağlığı
+      security: []
+      responses:
+        "200":
+          description: API ve veritabanı ayakta
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+              example: { status: ok, db: ok }
+        "503":
+          description: Veritabanına erişilemiyor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+              example: { status: unavailable, db: down }
+
+  /metrics:
+    get:
+      summary: Prometheus metin biçiminde metrikler
+      security: []
+      responses:
+        "200":
+          description: http_requests_total, http_request_duration_seconds_sum, auth_login_total
+          content:
+            text/plain: { schema: { type: string } }
+
+  /api/v1/auth/login:
+    post:
+      summary: E-posta + parola ile giriş
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                password: { type: string, minLength: 1, description: "En fazla 72 bayt (bcrypt sınırı)" }
+      responses:
+        "200":
+          description: Access token gövdede, refresh token Set-Cookie ile
+          headers:
+            Set-Cookie: { schema: { type: string }, description: "gp_refresh=...; HttpOnly; SameSite=Strict" }
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Session" } }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401":
+          description: INVALID_CREDENTIALS (bilinmeyen e-posta ile aynı yanıt)
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Error" } }
+
+  /api/v1/auth/refresh:
+    post:
+      summary: Refresh cookie ile yeni access token (tek kullanımlık rotasyon)
+      description: |
+        Her başarılı çağrı eski refresh token'ı iptal eder ve yenisini cookie'ye yazar.
+        Daha önce kullanılmış bir token gelirse çalınma şüphesiyle kullanıcının tüm refresh token'ları iptal edilir.
+      security: [{ refreshCookie: [] }]
+      responses:
+        "200":
+          description: Yeni oturum
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Session" } }
+        "401":
+          description: INVALID_REFRESH_TOKEN
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Error" } }
+
+  /api/v1/auth/logout:
+    post:
+      summary: Çıkış; isteği yapanın refresh token'ını iptal eder ve cookie'yi siler
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Çıkış yapıldı }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /api/v1/auth/me:
+    get:
+      summary: Oturumdaki kullanıcı
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Kullanıcı
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/User" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /api/v1/customers:
+    get:
+      summary: Müşteri listesi (keyset sayfalama)
+      description: |
+        Erişim: AGENT (yalnızca kendi müşterileri), UNDERWRITER (tümü). Diğer roller 403.
+        TCKN maskelenmiş döner.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: cursor, in: query, description: Önceki sayfanın next_cursor değeri, schema: { type: string } }
+      responses:
+        "200":
+          description: Sayfa
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, next_cursor]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Customer" } }
+                  next_cursor: { type: string, nullable: true }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    refreshCookie: { type: apiKey, in: cookie, name: gp_refresh }
+
+  responses:
+    ValidationError:
+      description: VALIDATION_ERROR (alan hataları details içinde)
+      content:
+        application/json: { schema: { $ref: "#/components/schemas/Error" } }
+    Unauthenticated:
+      description: UNAUTHENTICATED
+      content:
+        application/json: { schema: { $ref: "#/components/schemas/Error" } }
+    Forbidden:
+      description: FORBIDDEN
+      content:
+        application/json: { schema: { $ref: "#/components/schemas/Error" } }
+
+  schemas:
+    Role:
+      type: string
+      enum: [CUSTOMER, AGENT, UNDERWRITER, APPRAISER, CLAIMS_ADJUSTER, ACCOUNTING]
+    Health:
+      type: object
+      required: [status, db]
+      properties:
+        status: { type: string, enum: [ok, unavailable] }
+        db: { type: string, enum: [ok, down] }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: INVALID_CREDENTIALS }
+            message: { type: string }
+            details: { type: object, additionalProperties: { type: string } }
+    User:
+      type: object
+      required: [id, email, full_name, role]
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string }
+        full_name: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+    Session:
+      type: object
+      required: [access_token, token_type, expires_in, user]
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, enum: [Bearer] }
+        expires_in: { type: integer, description: saniye }
+        user: { $ref: "#/components/schemas/User" }
+    Customer:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        full_name: { type: string }
+        national_id_masked: { type: string, example: "*******0001" }
+        birth_date: { type: string, format: date }
+        region_code: { type: string }
+        agent_id: { type: integer, format: int64, nullable: true }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }

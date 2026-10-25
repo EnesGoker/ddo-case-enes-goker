@@ -1,0 +1,38 @@
+# GüvenPoliçe API — REST Client (VS Code) / JetBrains HTTP Client
+# Refresh token httpOnly cookie'dir; istemcinin cookie jar'ı otomatik taşır.
+@api = http://localhost:8080
+@password = Demo-Parola-2026
+
+### Sağlık
+GET {{api}}/health
+
+### Metrikler
+GET {{api}}/metrics
+
+### Giriş (acente)
+# @name login
+POST {{api}}/api/v1/auth/login
+Content-Type: application/json
+
+{"email": "acente@guvenpolice.test", "password": "{{password}}"}
+
+### Oturumdaki kullanıcı
+GET {{api}}/api/v1/auth/me
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Müşteriler (AGENT/UNDERWRITER)
+GET {{api}}/api/v1/customers?limit=2
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Refresh (cookie ile)
+POST {{api}}/api/v1/auth/refresh
+
+### Çıkış
+POST {{api}}/api/v1/auth/logout
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Yanlış parola → 401 INVALID_CREDENTIALS
+POST {{api}}/api/v1/auth/login
+Content-Type: application/json
+
+{"email": "acente@guvenpolice.test", "password": "yanlis"}

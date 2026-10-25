@@ -15,23 +15,23 @@
 ## İş sırası ve zorunlu geçiş kapıları
 
 ### A0 — Kodsuz mimari planı ve kararların kilitlenmesi (hedef 30–60 dakika)
-- [ ] Tek repo için klasör ağacı, Go/React/Postgres/Compose seçimleri önerildi ve onaylandı.
-- [ ] Basit modüler monolit mimarisi ve kritik tablo/ilişki taslağı sunuldu.
-- [ ] İlk auth + teklif + poliçe API sözleşmesinin taslağı sunuldu.
-- [ ] `DECISIONS.md` için en az 5 kararın konusu belirlendi.
-- [ ] İlk kodlama görevinin dosya listesi ve testleri kullanıcı tarafından onaylandı.
+- [x] Tek repo için klasör ağacı, Go/React/Postgres/Compose seçimleri önerildi ve onaylandı.
+- [x] Basit modüler monolit mimarisi ve kritik tablo/ilişki taslağı sunuldu.
+- [x] İlk auth + teklif + poliçe API sözleşmesinin taslağı sunuldu.
+- [x] `DECISIONS.md` için en az 5 kararın konusu belirlendi.
+- [x] İlk kodlama görevinin dosya listesi ve testleri kullanıcı tarafından onaylandı.
 
 **Çıkış kapısı:** Kod değiştirilmeden ilk uygulama paketi kesinleşti. **İlk adımda bütün sistemi yazma.**
 
 ### A1 — Docker, migration, demo seed, auth ve rol kontrolü (hedef 3 saat)
-- [ ] `docker compose up --build` frontend:3000, API:8080, DB servislerini ayağa kaldırıyor.
-- [ ] `/health` DB erişimini kontrol ediyor; servis healthcheck'leri var.
-- [ ] Migration ve 6 rol demo seed otomatik çalışıyor.
-- [ ] `Makefile` içinde `make verify` için gerçek API kontrollerine genişletilecek ilk doğrulama altyapısı kuruldu; PASS yalnızca gerçek kontrolle üretiliyor.
-- [ ] `DECISIONS.md` ve `openapi.yaml` dosyaları oluşturulmaya başlandı.
-- [ ] Parola hash, oturum/JWT, rol yetkisi sunucuda doğrulanıyor.
-- [ ] Giriş ve rol bazlı iskelet ekranlar gerçek API'ye bağlanıyor.
-- [ ] Başarılı/başarısız giriş ve 401/403 için otomatik test var.
+- [x] `docker compose up --build` frontend:3000, API:8080, DB servislerini ayağa kaldırıyor.
+- [x] `/health` DB erişimini kontrol ediyor; servis healthcheck'leri var.
+- [x] Migration ve 6 rol demo seed otomatik çalışıyor.
+- [x] `Makefile` içinde `make verify` için gerçek API kontrollerine genişletilecek ilk doğrulama altyapısı kuruldu; PASS yalnızca gerçek kontrolle üretiliyor.
+- [x] `DECISIONS.md` ve `openapi.yaml` dosyaları oluşturulmaya başlandı.
+- [x] Parola hash, oturum/JWT, rol yetkisi sunucuda doğrulanıyor.
+- [x] Giriş ve rol bazlı iskelet ekranlar gerçek API'ye bağlanıyor.
+- [x] Başarılı/başarısız giriş ve 401/403 için otomatik test var.
 
 **Çıkış kapısı:** Temiz ortamda gerçek kullanıcıyla giriş ve RBAC kanıtlanabiliyor.
 
