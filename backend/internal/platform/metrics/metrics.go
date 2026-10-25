@@ -3,6 +3,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -17,10 +18,11 @@ import (
 )
 
 type Registry struct {
-	mu       sync.Mutex
-	counters map[string]map[string]float64 // ad -> etiket dizgesi -> değer
-	help     map[string]string
-	types    map[string]string
+	mu         sync.Mutex
+	counters   map[string]map[string]float64 // ad -> etiket dizgesi -> değer
+	help       map[string]string
+	collectors []Collector
+	types      map[string]string
 }
 
 func NewRegistry() *Registry {
@@ -70,9 +72,23 @@ func escape(s string) string {
 	return strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`).Replace(s)
 }
 
+// Sample scrape anında okunan değerdir; sonraki isteğe saklanmaz.
+type Sample struct {
+	Name   string
+	Value  int64
+	Labels []string
+}
+type Collector func(context.Context) ([]Sample, error)
+
+func (r *Registry) Collect(collector Collector) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.collectors = append(r.collectors, collector)
+}
+
 // Handler GET /metrics yanıtını üretir.
 func (r *Registry) Handler() http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
 		r.mu.Lock()
 		names := make([]string, 0, len(r.counters))
 		for n := range r.counters {
@@ -96,7 +112,20 @@ func (r *Registry) Handler() http.HandlerFunc {
 				fmt.Fprintf(&b, "%s%s %s\n", n, k, strconv.FormatFloat(r.counters[n][k], 'f', -1, 64))
 			}
 		}
+		collectors := append([]Collector(nil), r.collectors...)
 		r.mu.Unlock()
+		// DB çağrıları sayaç kilidini tutmaz; her scrape güncel bir snapshot alır.
+		for _, collect := range collectors {
+			ctx, cancel := context.WithTimeout(req.Context(), 250*time.Millisecond)
+			samples, err := collect(ctx)
+			cancel()
+			if err != nil {
+				continue
+			}
+			for _, sample := range samples {
+				fmt.Fprintf(&b, "%s%s %d\n", sample.Name, labelString(sample.Labels), sample.Value)
+			}
+		}
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 		_, _ = w.Write([]byte(b.String()))
 	}
