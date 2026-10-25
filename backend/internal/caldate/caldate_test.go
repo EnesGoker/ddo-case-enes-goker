@@ -61,3 +61,19 @@ func TestOf(t *testing.T) {
 	in := time.Date(2026, 5, 6, 23, 59, 0, 0, time.UTC)
 	require.Equal(t, time.Date(2026, 5, 6, 0, 0, 0, 0, time.UTC), Of(in))
 }
+
+func TestAddMonthsClampsMonthEnd(t *testing.T) {
+	for _, c := range []struct {
+		start  string
+		months int
+		want   string
+	}{
+		{"2026-01-31", 1, "2026-02-28"}, {"2028-01-31", 1, "2028-02-29"},
+		{"2026-03-31", 1, "2026-04-30"}, {"2026-12-31", 2, "2027-02-28"},
+		{"2026-03-31", -1, "2026-02-28"}, {"2026-01-31", 2, "2026-03-31"},
+	} {
+		start, err := Parse(c.start)
+		require.NoError(t, err)
+		assert.Equal(t, c.want, Format(AddMonths(start, c.months)))
+	}
+}

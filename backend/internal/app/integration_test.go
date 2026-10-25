@@ -402,7 +402,7 @@ func TestMigrationsUpDownUp(t *testing.T) {
 	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "up")
 	v, err := goose.GetDBVersionContext(ctx, sqlDB)
 	require.NoError(t, err)
-	assert.Equal(t, int64(4), v)
+	assert.Equal(t, int64(5), v)
 
 	require.NoError(t, goose.DownToContext(ctx, sqlDB, migrationsDir, 0), "down")
 	var tables int
@@ -423,6 +423,10 @@ func TestMigrationsUpDownUp(t *testing.T) {
 	// 00003 sürüm koruma tetikleyicileri devrede
 	require.NoError(t, sqlDB.QueryRow(`SELECT count(*) FROM pg_trigger WHERE tgname IN ('policy_versions_immutable','policy_version_coverages_immutable')`).Scan(&n))
 	assert.Equal(t, 2, n)
+
+	// 00005 tek başına geri alınıp tekrar uygulanabilir
+	require.NoError(t, goose.DownToContext(ctx, sqlDB, migrationsDir, 4), "00005 down")
+	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "00005 tekrar up")
 
 	// 00004 tek başına geri alınıp tekrar uygulanabilir
 	require.NoError(t, goose.DownToContext(ctx, sqlDB, migrationsDir, 3), "00004 down")

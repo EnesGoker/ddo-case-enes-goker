@@ -49,3 +49,10 @@ func AddYear(t time.Time) time.Time {
 }
 
 func Format(t time.Time) string { return t.Format(Layout) }
+
+// AddMonths başlangıç gününü hedef ayın son gününe kırpar; ara aylar sonucu etkilemez.
+func AddMonths(t time.Time, months int) time.Time {
+	first := time.Date(t.Year(), t.Month()+time.Month(months), 1, 0, 0, 0, 0, time.UTC)
+	last := first.AddDate(0, 1, -1).Day()
+	return time.Date(first.Year(), first.Month(), min(t.Day(), last), 0, 0, 0, 0, time.UTC)
+}
