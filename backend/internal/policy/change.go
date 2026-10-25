@@ -31,9 +31,12 @@ import (
 // ile kayıt aynı koddan geçer ve aynı poliçeye eşzamanlı işlemler serileşir.
 type ChangeService struct {
 	pool *pgxpool.Pool
+	now  func() time.Time
 }
 
-func NewChangeService(pool *pgxpool.Pool) *ChangeService { return &ChangeService{pool: pool} }
+func NewChangeService(pool *pgxpool.Pool, now func() time.Time) *ChangeService {
+	return &ChangeService{pool: pool, now: now}
+}
 
 type VehicleChangeRequest struct {
 	EffectiveDate string `json:"effective_date"`
@@ -466,7 +469,7 @@ func (s *ChangeService) VehicleChange(ctx context.Context, id int64, req Vehicle
 			}
 		}
 		actor, _ := auth.FromContext(ctx)
-		cash, err := store.Adjust(ctx, tx, pl.h.ID, pl.calc.PremiumDeltaKurus, pl.date, e.ID, actor.UserID)
+		cash, err := store.Adjust(ctx, tx, pl.h.ID, pl.calc.PremiumDeltaKurus, pl.date, e.ID, actor.UserID, caldate.Today(s.now()))
 		if err != nil {
 			return err
 		}
@@ -646,7 +649,7 @@ func (s *ChangeService) CancelTx(ctx context.Context, tx pgx.Tx, id int64, req C
 		return out, err
 	}
 	p, _ := auth.FromContext(ctx)
-	cash, err := store.Adjust(ctx, tx, pl.h.ID, pl.calc.PremiumDeltaKurus, pl.date, e.ID, p.UserID)
+	cash, err := store.Adjust(ctx, tx, pl.h.ID, pl.calc.PremiumDeltaKurus, pl.date, e.ID, p.UserID, caldate.Today(s.now()))
 	if err != nil {
 		return out, err
 	}

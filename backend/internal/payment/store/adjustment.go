@@ -21,12 +21,16 @@ func PreviewAdjustment(ctx context.Context, q db.DBTX, policyID, delta int64, ef
 	return billing.Adjust(s.Rows, delta, effective)
 }
 
-func Adjust(ctx context.Context, tx pgx.Tx, policyID, delta int64, effective time.Time, endorsementID, actor int64) (int64, error) {
+func Adjust(ctx context.Context, tx pgx.Tx, policyID, delta int64, effective time.Time, endorsementID, actor int64, today time.Time) (int64, error) {
 	s, err := Load(ctx, tx, policyID)
 	if err != nil {
 		return 0, err
 	}
-	result, err := billing.Adjust(s.Rows, delta, effective)
+	due := effective
+	if delta > 0 && due.Before(today) {
+		due = today
+	}
+	result, err := billing.Adjust(s.Rows, delta, due)
 	if err != nil {
 		return 0, err
 	}

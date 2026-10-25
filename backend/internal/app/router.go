@@ -55,7 +55,7 @@ func NewRouter(d Deps) http.Handler {
 	customers := customer.NewRepo(d.Pool)
 	quotes := quote.NewHandler(quote.NewService(d.Pool, d.Now, d.UWPremiumThresholdKurus))
 	idem := idempotency.NewStore(d.Pool, d.IdempotencyStaleAfter)
-	policies := policy.NewHandler(d.Pool)
+	policies := policy.NewHandler(d.Pool, d.Now)
 	claims := claim.NewHandler(claim.NewService(d.Pool, d.Now))
 	payments := payment.NewHandler(payment.NewService(d.Pool, d.Now, d.LateInterestDailyPPM))
 

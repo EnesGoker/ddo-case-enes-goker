@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,8 +20,8 @@ type Handler struct {
 	changes *ChangeService
 }
 
-func NewHandler(pool *pgxpool.Pool) *Handler {
-	return &Handler{pool: pool, changes: NewChangeService(pool)}
+func NewHandler(pool *pgxpool.Pool, now func() time.Time) *Handler {
+	return &Handler{pool: pool, changes: NewChangeService(pool, now)}
 }
 
 func pathID(w http.ResponseWriter, r *http.Request) (int64, bool) {

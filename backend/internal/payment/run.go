@@ -84,7 +84,7 @@ func (s *Service) Run(ctx context.Context, date string) (RunResult, error) {
 				return err
 			}
 			if h.Status == "ACTIVE" && billing.Overdue30(state.Rows, asOf) {
-				_, err = policy.NewChangeService(s.pool).CancelTx(ctx, tx, id, policy.CancelRequest{
+				_, err = policy.NewChangeService(s.pool, s.now).CancelTx(ctx, tx, id, policy.CancelRequest{
 					EffectiveDate: caldate.Format(asOf), Reason: "NON_PAYMENT", Note: "30 gün ödenmeyen taksit: gün sonu",
 				})
 				if err != nil {
