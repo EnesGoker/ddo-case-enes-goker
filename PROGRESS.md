@@ -87,7 +87,7 @@ ok  	github.com/EnesGoker/guvenpolice/backend/internal/pricing	0.725s	coverage: 
 
 ## A4 (ajan: Codex)
 
-**Durum: TAMAMLANDI.** A1–A3 kalıpları ve çalışan testler korundu; 00001/00002/00003 değiştirilmedi. İlk commit yalnızca onaylı CURRENT_TASK.md oldu (`4749fbd`, `docs: A4 görev tanımı`). A5'e başlanmadı, push yapılmadı.
+**Durum: TAMAMLANDI.** A1–A3 kalıpları ve çalışan testler korundu; 00001/00002/00003 değiştirilmedi. İlk commit yalnızca onaylı CURRENT_TASK.md oldu (`3a610bb`, `docs: A4 görev tanımı`). A5'e başlanmadı, push yapılmadı.
 
 ### Yapılanlar
 
@@ -156,17 +156,17 @@ ok  	github.com/EnesGoker/guvenpolice/backend/internal/pricing	0.725s	coverage: 
 
 ### Yerel commitler
 
-- `4749fbd docs: A4 görev tanımı`
-- `fc9853e fix(policy): zeyil bağlantısını bir kez doldur ve hasarlı tarihlere değişikliği engelle`
-- `7abcdbb feat(settlement): adımlı tam sayı tazminat hesabı ve dengeli yevmiye yardımcısı`
+- `3a610bb docs: A4 görev tanımı`
+- `0b405a3 fix(policy): zeyil bağlantısını bir kez doldur ve hasarlı tarihlere değişikliği engelle`
+- `44da754 feat(settlement): adımlı tam sayı tazminat hesabı ve dengeli yevmiye yardımcısı`
 - `7890706 feat(claim): hasar, ekspertiz, limit kilitli onay ve idempotent ödeme`
-- `5e77fa8 feat(web): altı rol için hasar dosyası, ekspertiz ve tazminat akışı`
-- `c7db57e test(claim): yarış testini kilitte buluştur ve giriş/geri alma kontrollerini güçlendir`
-- `0840f50 fix(web): hasar işlemlerinden sonra dosya listesini yenile`
-- `f8754ca feat(verify): F-4 F-5 F-6 ve paralel yıllık limit kanıtları`
-- `64e2fc6 style(claim): yeni paketlerde mevcut import gruplarını uygula`
+- `9eb4a9a feat(web): altı rol için hasar dosyası, ekspertiz ve tazminat akışı`
+- `f831bef test(claim): yarış testini kilitte buluştur ve giriş/geri alma kontrollerini güçlendir`
+- `08be802 fix(web): hasar işlemlerinden sonra dosya listesini yenile`
+- `100a267 feat(verify): F-4 F-5 F-6 ve paralel yıllık limit kanıtları`
+- `a13b820 style(claim): yeni paketlerde mevcut import gruplarını uygula`
 
-Son doküman/biçim commitleri `git log 15fe058..HEAD` ve teslim raporunda yer alır; push yok.
+Son doküman/biçim commitleri `git log 4643ee6..HEAD` ve teslim raporunda yer alır; push yok.
 
 ### Sonraki görev
 
@@ -269,16 +269,16 @@ Tarayıcı (375 px): acente yeni teklifi üç taksitle çevirdi: 1.481.480 kuru�
 
 ### Yerel commitler
 
-- `fd659dc docs: A5 görev tanımı`
-- `ae55cf3 feat(billing): saf taksit, faiz, tahsis ve prim ayarı hesapları`
-- `fb0817b feat(policy): düzenleme ve zeyil iptal akışını ödeme planı ve deftere bağla`
-- `e513dff feat(payment): tahsilat, iade, gün sonu ve defter mutabakatı`
-- `07e7bf1 feat(web): taksit seçimi, ödeme iade ve mizan ekranları`
-- `eb41b35 test(verify): F-3 tahsilat ve T-4 paralel ödeme faiz mutabakat kanıtları`
+- `5776e23 docs: A5 görev tanımı`
+- `2ddbdeb feat(billing): saf taksit, faiz, tahsis ve prim ayarı hesapları`
+- `fbe7235 feat(policy): düzenleme ve zeyil iptal akışını ödeme planı ve deftere bağla`
+- `496faac feat(payment): tahsilat, iade, gün sonu ve defter mutabakatı`
+- `f577e02 feat(web): taksit seçimi, ödeme iade ve mizan ekranları`
+- `ff2ee01 test(verify): F-3 tahsilat ve T-4 paralel ödeme faiz mutabakat kanıtları`
 
-- `3fb6bea test(payment): manuel iadede faiz tahsisinin yeniden açılmasını doğrula`
+- `a30c5ea test(payment): manuel iadede faiz tahsisinin yeniden açılmasını doğrula`
 
-Son A5 doküman commitinin hash'i `git log 204fd8d..HEAD` ve teslim raporunda bulunur; push yapılmadı.
+Son A5 doküman commitinin hash'i `git log 7fa6b14..HEAD` ve teslim raporunda bulunur; push yapılmadı.
 
 ### Sonraki görev
 
