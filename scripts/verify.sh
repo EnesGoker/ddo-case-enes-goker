@@ -187,6 +187,86 @@ else
   else fail "F-1 uw-onay" "demo genç sürücü/underwriter yok"; fi
 fi
 
+# --- F-2 / T-2: zeyil, tarihte teminat, iptal ---
+# Tarih yardımcıları (BSD/macOS ve GNU date)
+to_epoch() { date -u -j -f '%Y-%m-%d %H:%M:%S' "$1 00:00:00" +%s 2>/dev/null || date -u -d "$1" +%s; }
+add_days() {
+  case "$2" in -*) v="$2" ;; *) v="+$2" ;; esac
+  date -u -j -v"${v}d" -f '%Y-%m-%d %H:%M:%S' "$1 00:00:00" +%F 2>/dev/null || date -u -d "$1 $2 days" +%F
+}
+days_between() { echo $(( ($(to_epoch "$2") - $(to_epoch "$1")) / 86400 )); }
+# Kuruşa yuvarlama: yarımı yukarı, negatifte sıfırdan uzağa (sunucudaki kuralın bağımsız tekrarı)
+round_div() { awk -v n="$1" -v d="$2" 'BEGIN { if (n >= 0) print int((2*n + d) / (2*d)); else print -int((-2*n + d) / (2*d)) }'; }
+first_count() { grep -o "$1" "$TMP/body" | wc -l | tr -d ' '; }
+
+if [ -z "$AYSE" ] || [ -z "$AGENT" ]; then
+  fail "T-2 hazirlik" "demo müşteri/acente bulunamadı"
+else
+  req POST "$API_URL/api/v1/quotes" -H "Authorization: Bearer $AGENT" -H 'Content-Type: application/json' --data "$(quote_body "$AYSE" "$START")"
+  pq="$(first_num id)"
+  req POST "$API_URL/api/v1/quotes/$pq/convert" -H "Authorization: Bearer $AGENT" -H "Idempotency-Key: verify-a3-$$-$pq"
+  PID="$(first_num id)"; PS="$(field start_date)"; PE="$(field end_date)"; A1="$(num_field annual_premium_kurus)"
+  if [ "$STATUS" != 201 ] || [ -z "$PID" ]; then
+    fail "T-2 hazirlik" "poliçe düzenlenemedi durum=$STATUS"
+  else
+    ZD="$(add_days "$PS" 100)"
+    zbody="{\"effective_date\":\"$ZD\",\"vehicle_group\":\"D\",\"plate\":\"06ABC42\",\"base_version_no\":1}"
+    req POST "$API_URL/api/v1/policies/$PID/endorsements/preview" -H "Authorization: Bearer $AGENT" -H 'Content-Type: application/json' --data "$zbody"
+    old="$(num_field old_annual_premium_kurus)"; new="$(num_field new_annual_premium_kurus)"
+    delta="$(num_field premium_delta_kurus)"; rem="$(num_field remaining_days)"; per="$(num_field period_days)"
+    want_rem="$(days_between "$ZD" "$PE")"; want_per="$(days_between "$PS" "$PE")"
+    want_delta="$(round_div $(( (new - old) * want_rem )) "$want_per")"
+    if [ "$STATUS" = 200 ] && [ "$rem" = "$want_rem" ] && [ "$per" = "$want_per" ] && [ "$delta" = "$want_delta" ]; then
+      pass "T-2 zeyil-gun-esasli" "($new − $old) × $rem / $per = $delta kuruş (bağımsız hesap: $want_delta)"
+    else fail "T-2 zeyil-gun-esasli" "durum=$STATUS kalan=$rem/$want_rem dönem=$per/$want_per delta=$delta/$want_delta"; fi
+
+    ZKEY="verify-z-$$-$PID"
+    req POST "$API_URL/api/v1/policies/$PID/endorsements" -H "Authorization: Bearer $AGENT" -H "Idempotency-Key: $ZKEY" -H 'Content-Type: application/json' --data "$zbody"
+    # Tekrar yanıtı JSONB'den gelir ve anahtar sırası değişebilir: sıradan bağımsız tekil alanlar karşılaştırılır
+    z1="$STATUS"; eid1="$(first_num endorsement_no)"; zdelta="$(num_field premium_delta_kurus)"; zver="$(first_num version_no)"
+    req POST "$API_URL/api/v1/policies/$PID/endorsements" -H "Authorization: Bearer $AGENT" -H "Idempotency-Key: $ZKEY" -H 'Content-Type: application/json' --data "$zbody" -D "$TMP/hz"
+    z2="$STATUS"; eid2="$(first_num endorsement_no)"
+    if [ "$z1" = 201 ] && [ "$z2" = 201 ] && [ "$eid1" = "$eid2" ] && [ "$zdelta" = "$delta" ] && [ "$zver" = 2 ] && grep -qi '^idempotent-replayed: true' "$TMP/hz"; then
+      pass "F-2 zeyil-kayit" "zeyil no $eid1 → sürüm 2, delta=$zdelta; aynı anahtar tekrarında aynı zeyil"
+    else fail "F-2 zeyil-kayit" "durum=$z1/$z2 zeyil=$eid1/$eid2 delta=$zdelta sürüm=$zver"; fi
+
+    req GET "$API_URL/api/v1/policies/$PID/coverage?date=$(add_days "$ZD" -1)" -H "Authorization: Bearer $AGENT"; c1="$STATUS"; v1="$(first_num version_no)"
+    req GET "$API_URL/api/v1/policies/$PID/coverage?date=$ZD" -H "Authorization: Bearer $AGENT"; c2="$STATUS"; v2="$(first_num version_no)"
+    if [ "$c1" = 200 ] && [ "$v1" = 1 ] && [ "$c2" = 200 ] && [ "$v2" = 2 ]; then
+      pass "T-2 tarihte-teminat" "$(add_days "$ZD" -1) → sürüm 1, $ZD → sürüm 2"
+    else fail "T-2 tarihte-teminat" "önceki gün=$c1/v$v1 zeyil günü=$c2/v$v2"; fi
+
+    req GET "$API_URL/api/v1/policies/$PID" -H "Authorization: Bearer $AGENT"
+    nv="$(first_count '"effective_from":"')"; ne="$(first_count '"type":"VEHICLE_CHANGE"')"
+    if [ "$STATUS" = 200 ] && [ "$nv" = 2 ] && [ "$ne" = 1 ] && grep -q "\"effective_to\":\"$ZD\"" "$TMP/body"; then
+      pass "F-2 surum-gecmisi" "2 sürüm (v1 $ZD'de kapandı), 1 zeyil"
+    else fail "F-2 surum-gecmisi" "durum=$STATUS sürüm=$nv zeyil=$ne"; fi
+
+    CD="$(add_days "$PS" 200)"
+    cbody="{\"effective_date\":\"$CD\",\"reason\":\"CUSTOMER_REQUEST\",\"note\":\"verify\",\"base_version_no\":2}"
+    elapsed="$(days_between "$PS" "$CD")"
+    # Demo seed kısa dönem tablosu (KURGUSAL): [0,31) %25, [31,91) %40, [91,181) %60, [181,271) %80, [271,367) %100
+    if [ "$elapsed" -lt 31 ]; then rate=2500; elif [ "$elapsed" -lt 91 ]; then rate=4000; elif [ "$elapsed" -lt 181 ]; then rate=6000; elif [ "$elapsed" -lt 271 ]; then rate=8000; else rate=10000; fi
+    written=$(( A1 + zdelta ))
+    earned="$(round_div $(( new * rate )) 10000)"
+    want_refund=$(( written - earned )); [ "$want_refund" -lt 0 ] && want_refund=0
+    req POST "$API_URL/api/v1/policies/$PID/cancel" -H "Authorization: Bearer $AGENT" -H "Idempotency-Key: verify-c-$$-$PID" -H 'Content-Type: application/json' --data "$cbody"
+    refund="$(num_field refund_kurus)"
+    if [ "$STATUS" = 201 ] && [ "$refund" = "$want_refund" ] && grep -q '"status":"CANCELLED"' "$TMP/body"; then
+      pass "T-2 kisa-donem-iade" "$elapsed gün → %$((rate / 100)); iade = $written − $earned = $refund kuruş"
+    else fail "T-2 kisa-donem-iade" "durum=$STATUS iade=$refund beklenen=$want_refund"; fi
+
+    req GET "$API_URL/api/v1/policies/$PID/coverage?date=$(add_days "$CD" -1)" -H "Authorization: Bearer $AGENT"; b1="$STATUS"
+    req GET "$API_URL/api/v1/policies/$PID/coverage?date=$CD" -H "Authorization: Bearer $AGENT"; b2="$STATUS"; b2code="$(field code)"
+    req POST "$API_URL/api/v1/policies/$PID/endorsements" -H "Authorization: Bearer $AGENT" -H "Idempotency-Key: verify-z2-$$-$PID" -H 'Content-Type: application/json' \
+      --data "{\"effective_date\":\"$(add_days "$CD" 5)\",\"vehicle_group\":\"A\"}"
+    b3="$STATUS"; b3code="$(field code)"
+    if [ "$b1" = 200 ] && [ "$b2" = 404 ] && [ "$b2code" = NO_COVERAGE_ON_DATE ] && [ "$b3" = 422 ] && [ "$b3code" = POLICY_CANCELLED ]; then
+      pass "F-2 iptal-sonrasi" "iptalden bir gün önce teminat var; $CD'de 404, zeyil 422"
+    else fail "F-2 iptal-sonrasi" "önce=$b1 iptal günü=$b2/$b2code zeyil=$b3/$b3code"; fi
+  fi
+fi
+
 # --- nginx üzerinden aynı origin akışı ---
 req POST "$WEB_URL/api/v1/auth/login" -H 'Content-Type: application/json' \
   --data "{\"email\":\"acente@guvenpolice.test\",\"password\":\"$DEMO_PASSWORD\"}" -D "$TMP/headers"
@@ -196,7 +276,7 @@ else fail WEB-PROXY-LOGIN "durum=$STATUS"; fi
 
 echo
 echo "Henüz uygulanmamış şartname kimlikleri (sonraki aşamalar):"
-for id in F-2 F-3 F-4 F-5 F-6 F-7 T-2 T-3 T-4 T-5; do
+for id in F-3 F-4 F-5 F-6 F-7 T-3 T-4 T-5; do
   printf '  YAPILMADI  %s\n' "$id"
 done
 
