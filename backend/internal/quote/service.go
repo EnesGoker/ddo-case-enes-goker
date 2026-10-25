@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -42,9 +41,6 @@ var validStatuses = map[string]bool{StatusCalculated: true, StatusUWReview: true
 // QuoteValidity teklifin geçerlilik süresi (varsayım).
 const QuoteValidity = 30 * 24 * time.Hour
 
-// Türk plakası: il kodu (01-81) + 1-3 harf + 2-4 rakam, boşluksuz büyük harf.
-var plateRe = regexp.MustCompile(`^(0[1-9]|[1-7][0-9]|8[01])[A-Z]{1,3}[0-9]{2,4}$`)
-
 type Request struct {
 	CustomerID   int64    `json:"customer_id"`
 	Product      string   `json:"product"`
@@ -55,13 +51,8 @@ type Request struct {
 	Coverages    []string `json:"coverages"`
 }
 
-// RiskData quotes.risk_data / policy_versions.risk_data içeriği.
-type RiskData struct {
-	pricing.Risk
-	Plate         string   `json:"plate,omitempty"`
-	BirthDate     string   `json:"birth_date"`
-	ReviewReasons []string `json:"review_reasons,omitempty"`
-}
+// RiskData quotes.risk_data içeriği (poliçe sürümüyle aynı biçim).
+type RiskData = policy.RiskData
 
 // Selection quotes.coverage_selection içeriği: seçilen teminatların limit/muafiyet/prim bilgisi.
 type Selection struct {
@@ -150,8 +141,8 @@ func (s *Service) Calculate(ctx context.Context, req Request) (Calculation, erro
 	if err != nil {
 		details["term_start"] = err.Error()
 	}
-	plate := strings.ToUpper(strings.ReplaceAll(req.Plate, " ", ""))
-	if product.IsVehicle() && !plateRe.MatchString(plate) {
+	plate, plateOK := policy.NormalizePlate(req.Plate)
+	if product.IsVehicle() && !plateOK {
 		details["plate"] = "geçerli bir plaka olmalı (ör. 34ABC123)"
 	}
 	if !product.IsVehicle() {

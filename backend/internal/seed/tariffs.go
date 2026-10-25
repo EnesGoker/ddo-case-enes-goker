@@ -7,16 +7,8 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
+	"github.com/EnesGoker/guvenpolice/backend/internal/proration"
 )
-
-// shortPeriodRates örnek kısa dönem tablosu (KURGUSAL): poliçe kaç gün yaşadıysa yıllık primin
-// yüzde kaçı kazanılmış sayılır. A3 (iptal) kullanacak.
-var shortPeriodRates = []struct {
-	from, to int
-	rateBP   int
-}{
-	{0, 31, 2_500}, {31, 91, 4_000}, {91, 181, 6_000}, {181, 271, 8_000}, {271, 367, 10_000},
-}
 
 // tariffs pricing.SampleTariffs()'ı (ürün, sürüm) yoksa ACTIVE olarak ekler.
 func tariffs(ctx context.Context, tx pgx.Tx) error {
@@ -62,10 +54,11 @@ func tariffs(ctx context.Context, tx pgx.Tx) error {
 				return err
 			}
 		}
-		for _, s := range shortPeriodRates {
+		// Kısa dönem tablosu (KURGUSAL örnek): poliçe kaç gün yaşadıysa yıllık primin yüzde kaçı kazanılmış sayılır
+		for _, b := range proration.SampleShortPeriodTable() {
 			if _, err := tx.Exec(ctx, `
 				INSERT INTO tariff_short_period_rates (tariff_version_id, days_range, rate_bp)
-				VALUES ($1, int4range($2, $3, '[)'), $4)`, id, s.from, s.to, s.rateBP); err != nil {
+				VALUES ($1, int4range($2::int, $3::int, '[)'), $4)`, id, b.FromDay, b.ToDay, b.RateBP); err != nil {
 				return err
 			}
 		}

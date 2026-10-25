@@ -3,12 +3,14 @@ package tariff
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
+	"github.com/EnesGoker/guvenpolice/backend/internal/proration"
 )
 
 // LoadActive ürünün tüm ACTIVE sürümlerini (oranları ve faktörleriyle) yükler.
@@ -20,6 +22,31 @@ func LoadActive(ctx context.Context, q db.DBTX, product pricing.Product) ([]pric
 	if err != nil {
 		return nil, err
 	}
+	return collect(ctx, q, rows)
+}
+
+var ErrNotFound = errors.New("tarife sürümü bulunamadı")
+
+// LoadByID sürümü durumundan bağımsız yükler: poliçe, düzenlendiği tarife sürümüyle yeniden
+// hesaplanır (sürüm sonradan RETIRED olsa da).
+func LoadByID(ctx context.Context, q db.DBTX, id int64) (pricing.Tariff, error) {
+	rows, err := q.Query(ctx, `
+		SELECT id, product, version_no, valid_from, valid_to FROM tariff_versions WHERE id = $1`, id)
+	if err != nil {
+		return pricing.Tariff{}, err
+	}
+	ts, err := collect(ctx, q, rows)
+	if err != nil {
+		return pricing.Tariff{}, err
+	}
+	if len(ts) == 0 {
+		return pricing.Tariff{}, ErrNotFound
+	}
+	return ts[0], nil
+}
+
+// collect sürüm satırlarını okur ve taban oranlarıyla faktörlerini ekler.
+func collect(ctx context.Context, q db.DBTX, rows pgx.Rows) ([]pricing.Tariff, error) {
 	tariffs, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (pricing.Tariff, error) {
 		var t pricing.Tariff
 		var p string
@@ -84,12 +111,8 @@ func LoadActive(ctx context.Context, q db.DBTX, product pricing.Product) ([]pric
 	return tariffs, nil
 }
 
-// ShortPeriodRate kısa dönem tablosu satırı (A3'te kullanılacak; şimdi yalnızca gösterim).
-type ShortPeriodRate struct {
-	FromDay int  `json:"from_day"`
-	ToDay   *int `json:"to_day"`
-	RateBP  int  `json:"rate_bp"`
-}
+// ShortPeriodRate kısa dönem tablosu satırı (geçen gün [from, to) → kazanılmış oran).
+type ShortPeriodRate = proration.Band
 
 func LoadShortPeriod(ctx context.Context, q db.DBTX, tariffID int64) ([]ShortPeriodRate, error) {
 	rows, err := q.Query(ctx, `
