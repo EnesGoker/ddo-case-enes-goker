@@ -121,7 +121,7 @@ func (s *Service) Approve(ctx context.Context, id int64) (*Settlement, error) {
 				return err
 			}
 		}
-		if _, err := Transition(ctx, tx, id, "APPROVED", p, "Tazminat onaylandı", c.RowVersion); err != nil {
+		if _, err := Transition(ctx, tx, id, "APPROVED", p, "Tazminat onaylandı", c.RowVersion, TransitionOptions{At: s.now(), SLA: s.workflow}); err != nil {
 			return err
 		}
 		jid, err := ledger.Post(ctx, tx, ledger.Entry{Date: caldate.Today(s.now()), Description: "Tazminat onayı " + c.ClaimNo, RefType: "CLAIM_APPROVAL", RefID: id, CreatedBy: p.UserID}, []ledger.Line{{AccountCode: "5000", DebitKurus: r.PayableKurus}, {AccountCode: "2000", CreditKurus: r.PayableKurus}})
@@ -164,7 +164,7 @@ func (s *Service) Pay(ctx context.Context, id int64) (*Settlement, error) {
 		if _, err := tx.Exec(ctx, `UPDATE claim_settlements SET status='PAID',paid_at=now(),payment_journal_entry_id=$2 WHERE id=$1`, out.ID, jid); err != nil {
 			return err
 		}
-		if _, err := Transition(ctx, tx, id, "PAID", p, "Tazminat ödendi", c.RowVersion); err != nil {
+		if _, err := Transition(ctx, tx, id, "PAID", p, "Tazminat ödendi", c.RowVersion, TransitionOptions{At: s.now(), SLA: s.workflow}); err != nil {
 			return err
 		}
 		out, err = loadSettlement(ctx, tx, id)

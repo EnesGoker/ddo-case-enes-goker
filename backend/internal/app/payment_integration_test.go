@@ -23,6 +23,11 @@ import (
 
 func billingPolicy(t *testing.T, days, count int, premium int64) map[string]any {
 	t.Helper()
+	return billingPolicyWithPlate(t, days, count, premium, fixturePlate())
+}
+
+func billingPolicyWithPlate(t *testing.T, days, count int, premium int64, plate string) map[string]any {
+	t.Helper()
 	ctx := context.Background()
 	var tariffID, agentID, actorID int64
 	require.NoError(t, pool.QueryRow(ctx, `
@@ -36,7 +41,7 @@ func billingPolicy(t *testing.T, days, count int, premium int64) map[string]any 
 			PolicyNoOverride: fmt.Sprintf("TEST-BILL-%d", time.Now().UnixNano()), ActorID: actorID,
 			Product: pricing.Kasko, CustomerID: customerID(t, ayse), AgentID: &agentID,
 			TariffVersionID: tariffID, StartDate: start, EndDate: caldate.AddYear(start),
-			Plate: strptr("34ABC123"), RiskData: []byte(`{"driver_age":38,"ncd_level":2,"region_code":"34","vehicle_group":"C","plate":"34ABC123"}`),
+			Plate: &plate, RiskData: []byte(fmt.Sprintf(`{"driver_age":38,"ncd_level":2,"region_code":"34","vehicle_group":"C","plate":%q}`, plate)),
 			AnnualPremium: premium, InstallmentCount: count, AnnualLimitKurus: 180000000,
 			Coverages: []policy.CoverageTerm{{Code: "KASKO_ANA", LimitKurus: 150000000, DeductibleType: pricing.DeductibleNone, PremiumKurus: premium}},
 		})

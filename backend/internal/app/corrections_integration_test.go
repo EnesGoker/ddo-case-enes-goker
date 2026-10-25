@@ -20,6 +20,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
 	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
 	"github.com/EnesGoker/guvenpolice/backend/internal/tariff"
+	"github.com/EnesGoker/guvenpolice/backend/internal/workflow"
 )
 
 func TestBackdatedAdditionalPremiumDueToday(t *testing.T) {
@@ -120,7 +121,7 @@ func TestFraudReviewCanReturnToAppraisal(t *testing.T) {
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT id FROM users WHERE email='hasar@guvenpolice.test'`).Scan(&actor))
 	ctx := auth.WithPrincipal(context.Background(), auth.Principal{UserID: actor, Role: auth.RoleClaimsAdjuster})
 	require.NoError(t, pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
-		result, err := claim.Transition(ctx, tx, num(c["id"]), "FRAUD_REVIEW", auth.Principal{UserID: actor, Role: auth.RoleClaimsAdjuster}, "inceleme", int(num(c["row_version"])))
+		result, err := claim.Transition(ctx, tx, num(c["id"]), "FRAUD_REVIEW", auth.Principal{UserID: actor, Role: auth.RoleClaimsAdjuster}, "inceleme", int(num(c["row_version"])), claim.TransitionOptions{At: time.Now(), SLA: workflow.DefaultConfig()})
 		c["row_version"] = float64(result.RowVersion)
 		return err
 	}))

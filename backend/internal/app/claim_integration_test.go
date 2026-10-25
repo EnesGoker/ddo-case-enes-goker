@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -19,6 +20,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+var fixturePlateSequence atomic.Int64
+
+func fixturePlate() string { return fmt.Sprintf("34TST%04d", fixturePlateSequence.Add(1)) }
+
 // Geçmiş hasarlar için yalnızca fixture poliçesi: mevcut Issue yardımı kendi transaction'ında.
 // Üretim API'sinin geriye dönük poliçe yasağı ve gelecekte hasar yasağı korunur.
 func claimPolicy(t *testing.T) map[string]any {
@@ -27,6 +32,7 @@ func claimPolicy(t *testing.T) map[string]any {
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT id FROM tariff_versions WHERE product='KASKO' AND version_no=2`).Scan(&tariffID))
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT id FROM agents ORDER BY id LIMIT 1`).Scan(&agentID))
 	start := caldate.Today(time.Now()).AddDate(0, 0, -30)
+	plate := fixturePlate()
 	var out policy.Issued
 	err := pgx.BeginFunc(context.Background(), pool, func(tx pgx.Tx) error {
 		// Gerçek teklif kaydı oluşturulur; Issue'nın quote FK'si ve benzersizliği korunur.
@@ -39,11 +45,11 @@ func claimPolicy(t *testing.T) map[string]any {
 			return err
 		}
 		var err error
-		out, err = policy.Issue(context.Background(), tx, policy.IssueInput{QuoteID: qid, Product: pricing.Kasko, CustomerID: customerID(t, ayse), AgentID: &agentID, TariffVersionID: tariffID, StartDate: start, EndDate: caldate.AddYear(start), Plate: strptr("34ABC123"), RiskData: []byte(`{"driver_age":38,"ncd_level":2,"region_code":"34","vehicle_group":"C","plate":"34ABC123"}`), AnnualPremium: 100000, AnnualLimitKurus: 1_000_000, Coverages: []policy.CoverageTerm{{Code: "KASKO_ANA", LimitKurus: 2_000_000, DeductibleType: pricing.DeductibleNone}, {Code: "CAM", LimitKurus: 500_000, DeductibleType: pricing.DeductibleFixed, DeductibleValue: 50_000}}})
+		out, err = policy.Issue(context.Background(), tx, policy.IssueInput{QuoteID: qid, Product: pricing.Kasko, CustomerID: customerID(t, ayse), AgentID: &agentID, TariffVersionID: tariffID, StartDate: start, EndDate: caldate.AddYear(start), Plate: &plate, RiskData: []byte(fmt.Sprintf(`{"driver_age":38,"ncd_level":2,"region_code":"34","vehicle_group":"C","plate":%q}`, plate)), AnnualPremium: 100000, AnnualLimitKurus: 1_000_000, Coverages: []policy.CoverageTerm{{Code: "KASKO_ANA", LimitKurus: 2_000_000, DeductibleType: pricing.DeductibleNone}, {Code: "CAM", LimitKurus: 500_000, DeductibleType: pricing.DeductibleFixed, DeductibleValue: 50_000}}})
 		return err
 	})
 	require.NoError(t, err)
-	return map[string]any{"id": float64(out.ID), "version_id": float64(out.VersionID), "start_date": out.StartDate, "end_date": out.EndDate}
+	return map[string]any{"id": float64(out.ID), "version_id": float64(out.VersionID), "start_date": out.StartDate, "end_date": out.EndDate, "plate": plate}
 }
 func strptr(s string) *string           { return &s }
 func claimPath(c map[string]any) string { return fmt.Sprintf("/api/v1/claims/%v", c["id"]) }
@@ -167,7 +173,7 @@ func TestClaimVersionSelectionAndCancellation(t *testing.T) {
 	newer := reportClaim(t, adjuster, pol, "KASKO_ANA", zdate)
 	assert.Equal(t, pol["version_id"], old["policy_version_id"])
 	assert.Equal(t, z["version"].(map[string]any)["id"], newer["policy_version_id"])
-	assert.Equal(t, "34ABC123", old["plate"])
+	assert.Equal(t, pol["plate"], old["plate"])
 	assert.Equal(t, "06ABC42", newer["plate"])
 	cancel := caldate.Format(caldate.Today(time.Now()).AddDate(0, 0, -1))
 	s, b, _ := postKey(t, agent, policyPath(pol)+"/cancel", map[string]any{"effective_date": cancel, "reason": "CUSTOMER_REQUEST"}, fmt.Sprintf("claims-c-%v", pol["id"]))

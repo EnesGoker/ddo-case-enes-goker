@@ -8,8 +8,10 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/EnesGoker/guvenpolice/backend/internal/fraud"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
+	"github.com/EnesGoker/guvenpolice/backend/internal/task"
 )
 
 type Claim struct {
@@ -66,6 +68,9 @@ type Settlement struct {
 }
 
 type Detail struct {
+	Fraud              *fraud.Result `json:"fraud,omitempty"`
+	Tasks              []task.View   `json:"tasks,omitempty"`
+	AllowedTransitions []string      `json:"allowed_transitions,omitempty"`
 	Claim
 	History    []History   `json:"history"`
 	Appraisals []Appraisal `json:"appraisals"`

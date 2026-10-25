@@ -66,6 +66,8 @@ func run() error {
 		Addr: cfg.HTTPAddr,
 		Handler: app.NewRouter(app.Deps{
 			Pool:                 pool,
+			FraudConfig:          cfg.Fraud,
+			WorkflowConfig:       cfg.Workflow,
 			LateInterestDailyPPM: cfg.LateInterestDailyPPM,
 			Logger:               logger,
 			JWTSecret:            cfg.JWTSecret,

@@ -4,6 +4,7 @@ package claim
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -15,20 +16,25 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/audit"
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
+	"github.com/EnesGoker/guvenpolice/backend/internal/fraud"
 	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/page"
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
+	"github.com/EnesGoker/guvenpolice/backend/internal/task"
+	"github.com/EnesGoker/guvenpolice/backend/internal/workflow"
 )
 
 type Service struct {
-	pool *pgxpool.Pool
-	now  func() time.Time
+	pool     *pgxpool.Pool
+	now      func() time.Time
+	fraud    fraud.Config
+	workflow workflow.Config
 }
 
-func NewService(pool *pgxpool.Pool, now func() time.Time) *Service {
-	return &Service{pool: pool, now: now}
+func NewService(pool *pgxpool.Pool, now func() time.Time, fraudConfig fraud.Config, workflowConfig workflow.Config) *Service {
+	return &Service{pool: pool, now: now, fraud: fraudConfig, workflow: workflowConfig}
 }
 
 var validStatuses = map[string]bool{"REPORTED": true, "TRIAGED": true, "APPRAISAL": true, "ADJUSTMENT": true, "FRAUD_REVIEW": true, "APPROVED": true, "REJECTED": true, "PAID": true, "CLOSED": true}
@@ -94,9 +100,6 @@ func (s *Service) Report(ctx context.Context, req ReportRequest) (Claim, error) 
 	if len(bad) > 0 {
 		return out, httpx.Invalid(bad)
 	}
-	if loss.After(caldate.Today(s.now())) {
-		return out, httpx.NewError(422, "LOSS_DATE_IN_FUTURE", "hasar tarihi gelecekte olamaz")
-	}
 	p, _ := auth.FromContext(ctx)
 	sc, err := access.Resolve(ctx, s.pool, p)
 	if err != nil {
@@ -122,6 +125,9 @@ func (s *Service) Report(ctx context.Context, req ReportRequest) (Claim, error) 
 			if !errors.Is(err, pgx.ErrNoRows) {
 				return err
 			}
+		}
+		if loss.After(caldate.Today(s.now())) {
+			return httpx.NewError(http.StatusUnprocessableEntity, "LOSS_DATE_IN_FUTURE", "hasar tarihi gelecekte olamaz")
 		}
 		v, err := policy.VersionOn(ctx, tx, h.ID, h.Product, loss)
 		if errors.Is(err, policy.ErrNoCoverage) {
@@ -149,31 +155,80 @@ func (s *Service) Report(ctx context.Context, req ReportRequest) (Claim, error) 
 				return httpx.NewError(422, "WORKSHOP_NOT_FOUND", "atölye bulunamadı")
 			}
 		}
+		plate := v.VehiclePlate
+		if plate != nil {
+			normalized, _ := policy.NormalizePlate(*plate)
+			plate = &normalized
+		}
 		var id int64
 		err = tx.QueryRow(ctx, `WITH n AS (SELECT nextval(pg_get_serial_sequence('claims','id')) AS id)
-   INSERT INTO claims (id,claim_no,policy_id,policy_version_id,coverage_code,loss_date,plate,workshop_id,description,claimed_amount_kurus,created_by,request_key)
-   OVERRIDING SYSTEM VALUE SELECT n.id,'GP-H-'||lpad(n.id::text,greatest(8,length(n.id::text)),'0'),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10 FROM n RETURNING id`, h.ID, v.ID, req.CoverageCode, loss, v.VehiclePlate, req.WorkshopID, req.Description, *req.ClaimedAmountKurus, p.UserID, idempotency.Key(ctx)).Scan(&id)
+   INSERT INTO claims (id,claim_no,policy_id,policy_version_id,coverage_code,loss_date,plate,workshop_id,description,claimed_amount_kurus,created_by,request_key,reported_at,updated_at)
+   OVERRIDING SYSTEM VALUE SELECT n.id,'GP-H-'||lpad(n.id::text,greatest(8,length(n.id::text)),'0'),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11 FROM n RETURNING id`, h.ID, v.ID, req.CoverageCode, loss, plate, req.WorkshopID, req.Description, *req.ClaimedAmountKurus, p.UserID, idempotency.Key(ctx), s.now()).Scan(&id)
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO claim_status_history(claim_id,from_status,to_status,actor_user_id,note) VALUES($1,NULL,'REPORTED',$2,'Hasar bildirildi')`, id, p.UserID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO claim_status_history(claim_id,from_status,to_status,actor_user_id,note,created_at) VALUES($1,NULL,'REPORTED',$2,'Hasar bildirildi',$3)`, id, p.UserID, s.now()); err != nil {
 			return err
 		}
 		out, err = load(ctx, tx, id, false)
 		if err != nil {
 			return err
 		}
+		result, err := s.evaluate(ctx, tx, out)
+		if err != nil {
+			return err
+		}
+		if result.Flagged {
+			note := fmt.Sprintf("Otomatik: fraud skoru %d ≥ %d", result.Score, result.Threshold)
+			options := TransitionOptions{At: s.now(), SLA: s.workflow, Automatic: true}
+			for _, to := range []string{"TRIAGED", "FRAUD_REVIEW"} {
+				out, err = Transition(ctx, tx, out.ID, to, p, note, out.RowVersion, options)
+				if err != nil {
+					return err
+				}
+			}
+		}
 		return audit.Write(ctx, tx, audit.Entry{Action: "CLAIM_REPORTED", EntityType: "claim", EntityID: id, New: out})
 	})
 	return out, idempotency.Conflict(err)
 }
+
 func (s *Service) Get(ctx context.Context, id int64) (Detail, error) {
 	c, err := s.visible(ctx, s.pool, id, false)
 	if err != nil {
 		return Detail{}, err
 	}
-	return loadDetail(ctx, s.pool, c)
+	d, err := loadDetail(ctx, s.pool, c)
+	if err != nil {
+		return d, err
+	}
+	actor, _ := auth.FromContext(ctx)
+	if actor.Role == auth.RoleClaimsAdjuster {
+		d.Fraud, err = s.fraudDetail(ctx, s.pool, id)
+		if err != nil {
+			return d, err
+		}
+		rows, err := s.pool.Query(ctx, `
+   SELECT to_status FROM claim_transitions WHERE from_status=$1
+    AND to_status=ANY($2::text[]) ORDER BY to_status`, c.Status, []string{"TRIAGED", "APPRAISAL", "ADJUSTMENT", "FRAUD_REVIEW", "REJECTED", "CLOSED"})
+		if err != nil {
+			return d, err
+		}
+		d.AllowedTransitions, err = pgx.CollectRows(rows, pgx.RowTo[string])
+		if err != nil {
+			return d, err
+		}
+	}
+	if actor.Role == auth.RoleClaimsAdjuster || actor.Role == auth.RoleAppraiser {
+		filter := task.Filter{Status: "all", ClaimID: id}
+		if actor.Role == auth.RoleAppraiser {
+			filter.AssignedTo = actor.UserID
+		}
+		d.Tasks, err = task.List(ctx, s.pool, page.Params{Limit: 100}, filter, s.now())
+	}
+	return d, err
 }
+
 func (s *Service) List(ctx context.Context, params page.Params, status string) ([]Claim, error) {
 	p, _ := auth.FromContext(ctx)
 	sc, err := access.Resolve(ctx, s.pool, p)
@@ -189,6 +244,7 @@ func (s *Service) List(ctx context.Context, params page.Params, status string) (
 	}
 	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (Claim, error) { return scanClaim(r) })
 }
+
 func (s *Service) ChangeStatus(ctx context.Context, id int64, req TransitionRequest) (Claim, error) {
 	var out Claim
 	if req.ExpectedRowVersion < 1 || len(req.Note) > 4000 {
@@ -196,7 +252,7 @@ func (s *Service) ChangeStatus(ctx context.Context, id int64, req TransitionRequ
 	}
 	req.ToStatus = strings.ToUpper(strings.TrimSpace(req.ToStatus))
 	switch req.ToStatus {
-	case "TRIAGED", "APPRAISAL", "ADJUSTMENT", "REJECTED", "CLOSED":
+	case "TRIAGED", "APPRAISAL", "ADJUSTMENT", "FRAUD_REVIEW", "REJECTED", "CLOSED":
 	default:
 		return out, httpx.NewError(409, "INVALID_TRANSITION", "bu uçtan istenen duruma geçilemez")
 	}
@@ -206,7 +262,7 @@ func (s *Service) ChangeStatus(ctx context.Context, id int64, req TransitionRequ
 		}
 		p, _ := auth.FromContext(ctx)
 		var err error
-		out, err = Transition(ctx, tx, id, req.ToStatus, p, req.Note, req.ExpectedRowVersion)
+		out, err = Transition(ctx, tx, id, req.ToStatus, p, req.Note, req.ExpectedRowVersion, TransitionOptions{At: s.now(), SLA: s.workflow})
 		return err
 	})
 	return out, err
@@ -237,6 +293,9 @@ func (s *Service) Appraise(ctx context.Context, id int64, req AppraisalRequest) 
 		out = Appraisal{AppraiserID: p.UserID, InspectedAt: inspected, DamageAmountKurus: *req.DamageAmountKurus, IsTotalLoss: req.IsTotalLoss, Notes: &req.Notes}
 		err = tx.QueryRow(ctx, `INSERT INTO appraisals (claim_id,appraiser_id,inspected_at,damage_amount_kurus,is_total_loss,notes) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,created_at`, id, p.UserID, inspected, *req.DamageAmountKurus, req.IsTotalLoss, req.Notes).Scan(&out.ID, &out.CreatedAt)
 		if err != nil {
+			return err
+		}
+		if err := task.Complete(ctx, tx, id, "APPRAISAL", "DONE", s.now()); err != nil {
 			return err
 		}
 		return audit.Write(ctx, tx, audit.Entry{Action: "CLAIM_APPRAISED", EntityType: "claim", EntityID: id, New: out})

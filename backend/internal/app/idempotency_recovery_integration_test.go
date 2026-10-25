@@ -35,12 +35,13 @@ func rawPost(t *testing.T, token, path, key string, body []byte) (int, []byte) {
 
 func financialCounts(t *testing.T) []int64 {
 	t.Helper()
-	var p, e, c, j, a int64
+	var p, e, c, j, a, f, tasks int64
 	require.NoError(t, pool.QueryRow(context.Background(), `
  SELECT (SELECT count(*) FROM payments), (SELECT count(*) FROM endorsements),
         (SELECT count(*) FROM claims), (SELECT count(*) FROM journal_entries),
-        (SELECT count(*) FROM audit_log)`).Scan(&p, &e, &c, &j, &a))
-	return []int64{p, e, c, j, a}
+        (SELECT count(*) FROM audit_log), (SELECT count(*) FROM fraud_signals),
+ (SELECT count(*) FROM claim_tasks)`).Scan(&p, &e, &c, &j, &a, &f, &tasks))
+	return []int64{p, e, c, j, a, f, tasks}
 }
 
 func TestBusinessRequestKeyRecovery(t *testing.T) {
@@ -73,7 +74,10 @@ func TestBusinessRequestKeyRecovery(t *testing.T) {
 					body = map[string]any{"effective_date": pol["start_date"], "reason": "UNDERWRITER", "base_version_no": 1}
 				}
 			case "claim":
-				pol = claimPolicy(t)
+				pol = billingPolicy(t, 5, 1, 100000)
+				for i := 0; i < 2; i++ {
+					reportClaim(t, adjuster, pol, "KASKO_ANA", caldate.Format(caldate.Today(time.Now())))
+				}
 				token = adjuster
 				path = "/api/v1/claims"
 				body = map[string]any{"policy_id": pol["id"], "coverage_code": "KASKO_ANA", "loss_date": caldate.Format(caldate.Today(time.Now())), "description": "Çökme penceresi", "claimed_amount_kurus": 1000}

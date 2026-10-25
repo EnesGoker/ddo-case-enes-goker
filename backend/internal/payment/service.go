@@ -102,9 +102,6 @@ func (s *Service) Pay(ctx context.Context, id int64, req PayRequest) (store.Paym
 			return out, httpx.Invalid(map[string]string{"payment_date": err.Error()})
 		}
 	}
-	if at.After(caldate.Today(s.now())) {
-		return out, httpx.NewError(http.StatusUnprocessableEntity, "PAYMENT_DATE_IN_FUTURE", "ödeme tarihi gelecekte olamaz")
-	}
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		h, err := s.target(ctx, tx, id, true)
 		if err != nil {
@@ -118,6 +115,9 @@ func (s *Service) Pay(ctx context.Context, id int64, req PayRequest) (store.Paym
 		if found {
 			out = previous
 			return nil
+		}
+		if at.After(caldate.Today(s.now())) {
+			return httpx.NewError(http.StatusUnprocessableEntity, "PAYMENT_DATE_IN_FUTURE", "ödeme tarihi gelecekte olamaz")
 		}
 		var issued time.Time
 		if err := tx.QueryRow(ctx, `SELECT created_at FROM policies WHERE id=$1`, id).Scan(&issued); err != nil {

@@ -2,6 +2,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/claim"
 	"github.com/EnesGoker/guvenpolice/backend/internal/customer"
+	"github.com/EnesGoker/guvenpolice/backend/internal/fraud"
 	"github.com/EnesGoker/guvenpolice/backend/internal/health"
 	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
 	"github.com/EnesGoker/guvenpolice/backend/internal/ledger"
@@ -24,9 +26,13 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
 	"github.com/EnesGoker/guvenpolice/backend/internal/quote"
 	"github.com/EnesGoker/guvenpolice/backend/internal/tariff"
+	"github.com/EnesGoker/guvenpolice/backend/internal/task"
+	"github.com/EnesGoker/guvenpolice/backend/internal/workflow"
 )
 
 type Deps struct {
+	FraudConfig          fraud.Config
+	WorkflowConfig       workflow.Config
 	LateInterestDailyPPM int64
 	Pool                 *pgxpool.Pool
 	Logger               *slog.Logger
@@ -51,6 +57,12 @@ func NewRouter(d Deps) http.Handler {
 	if d.LateInterestDailyPPM <= 0 {
 		d.LateInterestDailyPPM = 1000
 	}
+	if d.FraudConfig == (fraud.Config{}) {
+		d.FraudConfig = fraud.DefaultConfig()
+	}
+	if d.WorkflowConfig == (workflow.Config{}) {
+		d.WorkflowConfig = workflow.DefaultConfig()
+	}
 	reg := metrics.NewRegistry()
 	tokens := auth.NewTokenIssuer(d.JWTSecret, d.AccessTokenTTL)
 	authSvc := auth.NewService(d.Pool, tokens, d.RefreshTokenTTL)
@@ -59,7 +71,24 @@ func NewRouter(d Deps) http.Handler {
 	quotes := quote.NewHandler(quote.NewService(d.Pool, d.Now, d.UWPremiumThresholdKurus))
 	idem := idempotency.NewStore(d.Pool, d.IdempotencyStaleAfter)
 	policies := policy.NewHandler(d.Pool, d.Now, d.LateInterestDailyPPM)
-	claims := claim.NewHandler(claim.NewService(d.Pool, d.Now))
+	claims := claim.NewHandler(claim.NewService(d.Pool, d.Now, d.FraudConfig, d.WorkflowConfig))
+	taskService := task.NewService(d.Pool, d.Now)
+	tasks := task.NewHandler(taskService)
+	reg.Describe("guvenpolice_claim_tasks_open", "gauge", "Açık hasar görevleri")
+	reg.Describe("guvenpolice_claim_tasks_sla_breached", "gauge", "SLA süresini aşan açık hasar görevleri")
+	reg.Collect(func(ctx context.Context) ([]metrics.Sample, error) {
+		rows, err := taskService.Summary(ctx)
+		if err != nil {
+			return nil, err
+		}
+		samples := make([]metrics.Sample, 0, 2*len(rows))
+		for _, row := range rows {
+			samples = append(samples,
+				metrics.Sample{Name: "guvenpolice_claim_tasks_open", Value: row.Open, Labels: []string{"task_type", row.Type}},
+				metrics.Sample{Name: "guvenpolice_claim_tasks_sla_breached", Value: row.OpenBreached, Labels: []string{"task_type", row.Type}})
+		}
+		return samples, nil
+	})
 	payments := payment.NewHandler(payment.NewService(d.Pool, d.Now, d.LateInterestDailyPPM))
 
 	r := chi.NewRouter()
@@ -112,6 +141,9 @@ func NewRouter(d Deps) http.Handler {
 				r.With(auth.RequireRoles(auth.RoleAccounting), idem.Middleware).Post("/{id}/pay", claims.Pay)
 			})
 
+			r.With(auth.RequireRoles(auth.RoleClaimsAdjuster, auth.RoleAppraiser)).Get("/claim-tasks", tasks.List)
+			r.With(auth.RequireRoles(auth.RoleClaimsAdjuster)).Get("/claim-tasks/workload", tasks.Workload)
+			r.With(auth.RequireRoles(auth.RoleClaimsAdjuster)).Get("/claim-tasks/sla-summary", tasks.Summary)
 			accounting := auth.RequireRoles(auth.RoleAccounting)
 			r.With(accounting, idem.Middleware).Post("/payments/{id}/refund", payments.Refund)
 			r.With(accounting).Post("/billing/run", payments.Run)

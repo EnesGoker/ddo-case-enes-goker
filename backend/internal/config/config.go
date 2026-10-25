@@ -7,9 +7,14 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/EnesGoker/guvenpolice/backend/internal/fraud"
+	"github.com/EnesGoker/guvenpolice/backend/internal/workflow"
 )
 
 type Config struct {
+	Fraud                fraud.Config
+	Workflow             workflow.Config
 	LateInterestDailyPPM int64
 	HTTPAddr             string
 	DatabaseURL          string
@@ -68,6 +73,46 @@ func Load() (Config, error) {
 			return c, fmt.Errorf("UW_PREMIUM_THRESHOLD_KURUS geçersiz: %q", v)
 		}
 		c.UWPremiumThresholdKurus = n
+	}
+
+	c.Fraud = fraud.DefaultConfig()
+	for _, setting := range []struct {
+		key    string
+		target *int
+	}{
+		{"FRAUD_THRESHOLD", &c.Fraud.Threshold},
+		{"FRAUD_EARLY_DAYS", &c.Fraud.EarlyDays},
+		{"FRAUD_EARLY_POINTS", &c.Fraud.EarlyPoints},
+		{"FRAUD_REPEAT_DAYS", &c.Fraud.RepeatDays},
+		{"FRAUD_REPEAT_MINIMUM", &c.Fraud.RepeatMinimum},
+		{"FRAUD_REPEAT_POINTS", &c.Fraud.RepeatPoints},
+		{"FRAUD_WORKSHOP_DAYS", &c.Fraud.WorkshopDays},
+		{"FRAUD_WORKSHOP_MINIMUM", &c.Fraud.WorkshopMinimum},
+		{"FRAUD_WORKSHOP_POINTS", &c.Fraud.WorkshopPoints},
+	} {
+		if raw := os.Getenv(setting.key); raw != "" {
+			n, err := strconv.Atoi(raw)
+			if err != nil {
+				return c, fmt.Errorf("%s tam sayı olmalı", setting.key)
+			}
+			*setting.target = n
+		}
+	}
+	if err := c.Fraud.Validate(); err != nil {
+		return c, err
+	}
+	defaults := workflow.DefaultConfig()
+	if c.Workflow.Appraisal, err = duration("SLA_APPRAISAL", defaults.Appraisal); err != nil {
+		return c, err
+	}
+	if c.Workflow.Adjustment, err = duration("SLA_ADJUSTMENT", defaults.Adjustment); err != nil {
+		return c, err
+	}
+	if c.Workflow.FraudReview, err = duration("SLA_FRAUD_REVIEW", defaults.FraudReview); err != nil {
+		return c, err
+	}
+	if err := c.Workflow.Validate(); err != nil {
+		return c, err
 	}
 
 	if c.DatabaseURL == "" {
