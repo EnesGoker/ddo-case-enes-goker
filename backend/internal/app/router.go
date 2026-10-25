@@ -25,6 +25,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/metrics"
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
 	"github.com/EnesGoker/guvenpolice/backend/internal/quote"
+	"github.com/EnesGoker/guvenpolice/backend/internal/report"
 	"github.com/EnesGoker/guvenpolice/backend/internal/tariff"
 	"github.com/EnesGoker/guvenpolice/backend/internal/task"
 	"github.com/EnesGoker/guvenpolice/backend/internal/workflow"
@@ -144,6 +145,7 @@ func NewRouter(d Deps) http.Handler {
 			r.With(auth.RequireRoles(auth.RoleClaimsAdjuster, auth.RoleAppraiser)).Get("/claim-tasks", tasks.List)
 			r.With(auth.RequireRoles(auth.RoleClaimsAdjuster)).Get("/claim-tasks/workload", tasks.Workload)
 			r.With(auth.RequireRoles(auth.RoleClaimsAdjuster)).Get("/claim-tasks/sla-summary", tasks.Summary)
+			r.With(auth.RequireRoles(auth.RoleAccounting, auth.RoleUnderwriter)).Get("/reports/production", report.ProductionHandler(d.Pool))
 			accounting := auth.RequireRoles(auth.RoleAccounting)
 			r.With(accounting, idem.Middleware).Post("/payments/{id}/refund", payments.Refund)
 			r.With(accounting).Post("/billing/run", payments.Run)
