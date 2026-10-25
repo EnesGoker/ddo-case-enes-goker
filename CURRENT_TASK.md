@@ -1,352 +1,209 @@
 # CURRENT_TASK — Sadece aktif ve onaylı iş
 
-**Aktif aşama:** A6 — A4/A5 inceleme düzeltmeleri + T-5 (fraud skoru, inceleme kuyruğu, SLA, atama) + F-7 (prim üretimi, hasar/prim oranı)
+**Aktif aşama:** A7 — Gün sonu ölçeklemesi + simülatör (100.000 poliçe, 5 yıl) + canlılık göstergesi + 6 rol ekranlarının gözden geçirilmesi
 
-**Durum:** ONAYLI. A7'ye geçmek için yeni onay gerekir.
+**Durum:** ONAYLI. A8'e geçmek için yeni onay gerekir.
 
-**Ajan notu:** A5'i yapan ajan devam ediyor. Kurallar aynı:
-- `AGENTS.md` (§8 commit mesajı kuralı dahil), `PROGRESS.md` ve `DECISIONS.md`'yi oku.
-- Mevcut kalıpları **yeniden kullan**: `claim.Transition` (tek durum noktası), `policy.LoadHeader(…, true)`, `store.Adjust`/`Accrue`, `ledger.Post`, `idempotency`, `audit`, `access`, `page`, `caldate`, `proration.RoundDiv`, `platform/metrics.Registry`, test yardımcıları ve gate yarış testi tekniği.
-- Kopyalama ve refactor yok.
-- Yeni kod A1–A3 kalıbında yazılır: `http.StatusX` sabitleri, fonksiyonlar arasında boş satır, çok satırlı SQL.
-- `PROGRESS.md`'ye "A6 (ajan: Codex)" bölümü yaz.
-- İlk commit: `docs: A6 görev tanımı`.
+**Ajan notu:** A6'yı yapan ajan devam ediyor. Kurallar aynı (`AGENTS.md` §8 dahil).
+- Mevcut kalıpları yeniden kullan:
+  - `policy.Issue` (`PolicyNoOverride`, `ActorID`),
+  - ödeme servisi ve `store`,
+  - `claim` servisleri ve `Transition`,
+  - `task` ve `fraud`,
+  - enjekte saat ve seed kalıbı,
+  - `ledger`, `page`, `platform/metrics`.
+- Simülatör iş verisini **yalnızca servis koduyla** üretir.
+- Refactor yok. Yeni kod A1–A3 kalıbında yazılır.
+- `PROGRESS.md`'ye "A7 (ajan: Codex)" başlığı açılır.
+- İlk commit: `docs: A7 görev tanımı`.
 
-**Süre kutusu:** ~5 saat üst sınır; 0. bölüm en fazla 1,5 saat.
+**Süre kutusu:** ~4 saat.
 
-**Kapı:** 0. bölüm bitince şunlar yeşil olmadan T-5'e geçme:
+**Kapı:** 0. bölüm bitince şunlar yeşil olmadan simülatöre geçme:
 - `make test`
 - entegrasyon testleri
-- yarış testleri (`-count=10 -race`)
+- yarış testleri `-count=10 -race`
 - `make verify`
 
-**Süre aşılırsa kesme sırası:**
-1. Frontend'de iş yükü paneli ve rapor gruplama seçimi.
-2. `/metrics` gauge'ları.
-3. CUSTOMER/AGENT yanıtında fraud alanlarını gizleme.
-4. Yetişmeyen frontend sayfaları A7'ye devredilir.
+**Kesme sırası** (süre yetmezse önce bunlar kesilir):
+1. Canlı mod.
+2. Sistem sayfasındaki dakikalık grafik (üst çubuk göstergesi kalır).
+3. Rol ekranlarında engelleyici olmayan iyileştirmeler.
 
-Kesilen maddenin testi ve verify satırı da düşer; raporda ve `PROGRESS.md`'de `YAPILMADI` olarak yaz. Şunlar kesilmez: 0. bölüm, backend testleri ve diğer verify satırları.
+Kesilen her madde `YAPILMADI` olarak yazılır. 100k hedefi süre yüzünden tutmazsa varsayılan değeri düşürme; ölçülen değeri `KISMEN` olarak yaz.
 
-## 0. Düzeltmeler (önce bunlar, her madde ayrı commit)
+## 0. Gün sonu ölçeklemesi (Opus #7)
 
-Kaynak: Opus'un A4/A5 incelemesi (numaralar oradaki) ve koordinatör bulguları.
+- **Aday seçimi.**
+  - Yalnızca vadesi `as_of`'tan önce olan açık taksiti ya da açık faizi bulunan poliçeler seçilir.
+  - İptal adımı yalnızca `ACTIVE` poliçelere uygulanır.
+  - Sorgu indeksli olmalı. Yoksa `00009` içinde `installments (due_date) WHERE status IN ('PENDING','PARTIAL')` eklenir.
+- **Parçalı çalışma.**
+  - İstek: `{as_of, after_policy_id?, limit?}`. `limit` varsayılan 500, en fazla 2000.
+  - ~8 saniyelik bütçe dolunca yeni poliçeye başlanmaz.
+  - Yanıt: mevcut alanlar + `next_after_policy_id` ve `done`.
+  - Aynı `as_of` ile tekrar çalıştırma zaten idempotent.
+- **Hata yalıtımı.**
+  - Beyaz liste dışındaki poliçe hatası `failed [{policy_id, code}]` listesine yazılır, koşu devam eder.
+  - Sistemik hatada (context iptali, bağlantı hatası) koşu durur.
+- **Döngü.** UI'daki "Gün sonu çalıştır" düğmesi `done` olana kadar döngüde çalışır ve ilerlemeyi gösterir. Verify de döngüye geçer.
+- **Testler.**
+  - Küçük `limit` ile 3 parçalık koşu, tek koşuyla aynı sonucu verir.
+  - Test kancasıyla bir poliçede hata zorlanır → diğer poliçeler işlenir, hata `failed` listesinde görünür.
+  - `after_policy_id` sınırı doğru işler.
 
-1. **Geriye dönük ek prim (Opus #1, KRİTİK).**
-   - `store.Adjust`, `delta > 0` için eşik ve vade tarihi olarak `D = max(etki, bugün)` geçirir.
-   - Ek prim, vadesi `≥ D` olan açık taksitlere dağılır. Böyle taksit yoksa vadesi `D` olan yeni taksit açılır.
-   - Saf `billing.Adjust` değişmez.
-   - Regresyon testleri:
-     - (a) Faiziyle tamamen ödenmiş poliçeye 40 gün geriye ek prim girilir → yeni taksitin vadesi bugündür; gün sonu faiz yazmaz ve poliçeyi iptal etmez.
-     - (b) Vadesi geçmiş açık taksiti olan poliçede ek prim o taksite eklenmez.
-2. **Ayar öncesi faiz (Opus #2).**
-   - `store.Adjust` başında, Pay/Refund/Run ile aynı kuralla `Accrue(…, min(etki, bugün))` çağrılır.
-   - `to ≤ son tahakkuk to'su` ise çağrı hiçbir şey yapmaz; negatif faiz yok.
-   - Faiz oranı tek kaynaktan (config) parametre olarak gelir.
-   - Test: aynı senaryoda, aynı gün yapılan underwriter iptali ile gün sonu `NON_PAYMENT` iptali aynı faiz tutarını üretir. Beklenen tutar elle hesaplanıp yorumda yazılır.
-   - `payment_integration_test.go` içindeki iptal sonrası testi (~388. satır) faiz tutarını da doğrular.
-   - Geriye dönük iptalde, etki tarihinden sonrası için **önceden** tahakkuk etmiş faiz geri alınmaz. Bunu ADR'ye bilinen sınırlama olarak yaz.
-3. **Yevmiye tarihi = işlem tarihi (Opus #5 genişletilmiş hali; F-7 buna dayanır).**
-   - İşlem günü (bugün) tarihli olacaklar:
-     - zeyil/iptal prim ayarı yevmiyesi,
-     - otomatik nakit iade (`paid_at` ve `REFUND` yevmiyesi),
-     - 2. maddedeki ayar öncesi faiz tahakkukunun yevmiyesi (faiz kaydının `from`/`to` aralığı değişmez).
-   - Etki tarihi kayıtta ve açıklamada kalır.
-   - Açık iş tarihi taşıyanlar aynen kalır: ödeme `payment_date`, gün sonu `as_of` tarihli.
-   - Gerekçe: dönem raporu kapanmış bir dönemi sonradan değiştirmemeli.
-   - Test: 10-25'te 10-10 etkili iptal → nakit iade ve yevmiyeler 10-25 tarihli.
-   - Bu kural mevcut testleri değiştiriyorsa raporda listele.
-4. **Reddedilip kapanan hasar (Opus #3).**
-   - `policy/change.go:715` koruması, geçmişinde `REJECTED` olan hasarları hariç tutar: `NOT EXISTS (… claim_status_history … to_status = 'REJECTED')`.
-   - `TestClaimsBlockBackdatedPolicyChanges`'e CLOSED adımı eklenir.
-5. **Hasar durum makinesi çıkmazı.**
-   - Bugünkü durum:
-     - `FRAUD_REVIEW` yalnızca `ADJUSTMENT` ya da `REJECTED`'a gidebiliyor.
-     - Ekspertiz yalnızca `APPRAISAL` durumunda girilebiliyor.
-     - Onay ekspertiz istiyor (`APPRAISAL_REQUIRED`).
-   - Sonuç: ekspertizden önce kuyruğa düşüp temize çıkan dosya bir daha onaylanamaz.
-   - Düzeltme:
-     - `00008` ile `('FRAUD_REVIEW','APPRAISAL')` geçişi eklenir.
-     - Ekspertiz yoksa `FRAUD_REVIEW → ADJUSTMENT` 409 `APPRAISAL_REQUIRED` döner.
-6. **İdempotans çökme penceresi (`00006`).** Bugün iş transaction'ı commit edildikten sonra yanıt ayrı bir transaction'da saklanıyor. Arada çökme olursa, bayat kayıt devralındığında iş ikinci kez işleniyor.
-   - **Şema:** `payments`, `endorsements` ve `claims` tablolarına `request_key TEXT` + `UNIQUE (created_by, request_key) WHERE request_key IS NOT NULL`.
-   - **Anahtarın taşınması:** middleware anahtarı context'e koyar, servisler oradan okur.
-   - **Anahtarı yazan yollar:**
-     - ödeme ve manuel iade (`payments`),
-     - zeyil ve iptal (`endorsements`),
-     - hasar bildirimi (`claims`).
+## 1. Kararlar (`DECISIONS.md`, ADR-19'dan devam)
 
-     Otomatik `REFUND` satırlarında anahtar `NULL` kalır.
-   - **Sıra:**
-     - Kilit alındıktan hemen sonra, **bütün iş doğrulamalarından önce** (`STALE_VERSION`, `OVERPAYMENT`, durum kontrolleri) `request_key` ile kayıt aranır.
-     - Kayıt varsa yan etki olmadan, özgün durum koduyla o kaydın kanonik yanıtı döner.
-     - UNIQUE ihlali kilit nedeniyle oluşmamalı; oluşursa 409 `IDEMPOTENCY_CONFLICT`.
-   - **Yanıt saklama:** `idempotency_keys.response_body` sütunu `bytea` olur. Normal tekrar bayt bayt aynı döner; anahtar sırası sorunu da kapanır.
-   - **Gövde kontrolü:** bayat `IN_PROGRESS` devralınırken `request_hash` karşılaştırılıyor mu, doğrula. Karşılaştırılmıyorsa düzelt: farklı gövde → 422.
-   - **Zaten korunan uçlar:** çevirme ve tazminat onay/ödeme, durum kontrolü ya da UNIQUE ile korunuyor; ek iş yok. ADR'ye uç → koruma tablosu yaz.
-   - **Test (her yazan yol için):**
-     - İstek → idempotency kaydını bayat `IN_PROGRESS`'e çek → aynı anahtarla tekrar → aynı kaynak id, tek kayıt, yevmiye sayısı değişmemiş, mutabakat tutuyor.
-     - Aynı anahtar + farklı gövde → 422.
-     - Normal tekrar → bayt bayt aynı gövde.
-7. **Zeyil bağlantı tetikleyicisi (Opus #6, `00007`).**
-   - `00004` dalına iki koşul eklenir: zeyil aynı poliçeye ait olmalı ve bu sürümü üreten zeyil olmalı.
-   - Opus'un önerisi: `e.id = NEW.endorsement_id AND e.to_version_id = NEW.id`. Kolon adlarını şemadan doğrula; `policy_id` eşitliğini de ekle.
-   - Test: Opus'un iki SQL denemesi hata vermeli (kapalı v1'e kendi iptal zeyli; başka poliçenin zeyli).
-8. **Seed (Opus #4 + eksikler).**
-   - Tüm seed poliçe primleri `pricing.Calculate` ile tarifeden hesaplanır.
-   - Plakalar uygulamanın plaka kuralına uyar (`34DEMO55` geçersiz).
-   - Eklenecekler:
-     - kurgusal adlı 3 atölye (farklı bölgeler),
-     - ikinci eksper `eksper2@guvenpolice.test`,
-     - ikinci hasar uzmanı `hasar2@guvenpolice.test` (aynı demo parolası).
-   - T-5 senaryosu 3. bölümde.
-9. **Küçük düzeltmeler.**
-   - **Ödeme tarihi alt sınırı (Opus #10):** `payment_date ≥ least(start_date, düzenleme günü)`, değilse 422 `PAYMENT_DATE_BEFORE_POLICY`. Yalnızca `start_date` sınırı yanlış olur, çünkü başlangıçtan önce yapılan peşin ödeme meşrudur.
-   - **Salt okunur uçlar kilit almaz (Opus #11):**
-     - GET billing tek bir `REPEATABLE READ READ ONLY` snapshot'ta okur.
-     - Zeyil/iptal önizlemeleri kilitsiz çalışır; kayıt yolu zaten kilit + `base_version_no` ile korunuyor.
-   - **Verify seed B (Opus #9):** `policy_status` şartı kalkar, yalnızca faiz kayıtları doğrulanır.
-   - **Testler (Opus #8):**
-     - `TestConcurrentRefunds`'a gate ve mutasyon eklenir: kilidi kaldır → test kırılmalı ya da CHECK yakalamalı. Hangisinin yakaladığını raporla, kilidi geri koy.
-     - Negatif zeyil testinde taksit ve nakit iade tutarları doğrulanır.
-10. **PROGRESS hash'leri.**
-    - `filter-branch` sonrası `PROGRESS.md`'deki eski hash'ler (4749fbd, fc9853e, 7abcdbb, 7890706 vb.) artık geçmişte yok.
-    - Her birini commit mesajından eşleyip güncelle; eşlenemeyeni kaldır.
+- **ADR-19 Simülatör.**
+  - İş verisi doğrudan SQL'le değil, servis katmanıyla üretilir. Böylece defter dengesi, 1200 mutabakatı ve tetikleyiciler yapı gereği korunur; fraud sinyalleri gerçek motordan gelir.
+  - Hız için çalışan havuzu kullanılır; simülatör oturumlarında `synchronous_commit=off`. Çökmede son işlemler kaybolabilir ama tutarlılık bozulmaz.
+  - Hasar evresi tek iş parçacıklıdır, çünkü fraud sayımı ve atama sıraya bağlıdır.
+  - Determinizm tanımı: aynı tohum + aynı anchor + taze DB → aynı parmak izi.
+- **ADR-20 Demo/simülasyon ayrımı.**
+  - Acente, müşteri, atölye, uzman ve plaka uzayları ayrıdır; poliçe numaraları `SIM-` önekli.
+  - Demo hesapları ve demo senaryoları etkilenmez.
+  - Atama havuzu ortaktır (simülasyon uzmanları da dahil).
+  - `make reset-demo` simülasyon verisini de siler.
+- **ADR-21 Gün sonu.** Aday seçimi, parçalı çalışma ve hata yalıtımı.
+- **ADR-22 Canlılık.** Kaynaklar: `audit_log` zaman damgaları (yalnızca sayılar, içerik yok) ve `simulation_runs`.
 
-## 1. Kararlar (`DECISIONS.md`, ADR-14'ten devam)
+## 2. Simülatör
 
-- **ADR-14 — İdempotans çökme penceresi.** İçerik:
-  - `request_key` ve ön kontrolün sırası,
-  - kanonik yanıt (aynı kaynak ve aynı durum kodu; bayt bayt değil),
-  - `bytea` yanıt saklama,
-  - uç → koruma tablosu.
-- **ADR-15 — Faturalama düzeltmeleri.** İçerik:
-  - ek prim vadesi `max(etki, bugün)`,
-  - ayar öncesi `Accrue(min(etki, bugün))`,
-  - yevmiye tarihi = işlem tarihi,
-  - sınırlama: geriye dönük iptalde önceden tahakkuk etmiş faiz geri alınmaz.
-- **ADR-16 — Fraud skoru (kurgusal).** İçerik:
-  - kurallar, puanlar, eşik ve pencereler,
-  - değerlendirme yalnızca bildirimde ve hasar tarihine göre yapılır (deterministik, `now()` yok),
-  - eşik üstü dosya otomatik kuyruğa girer,
-  - eşzamanlı bildirimlerde sayım READ COMMITTED görüntüsüne göredir; ±1 kaçırma kabul edilir, sinyal danışma amaçlıdır.
-- **ADR-17 — Görev, SLA, atama.** İçerik:
-  - durum girişinde görev açılır,
-  - atama: en az açık görev, eşitlikte küçük id,
-  - rol başına advisory kilit,
-  - SLA takvim saatiyle hesaplanır (mesai takvimi yok),
-  - ihlal tanımı.
-- **ADR-18 — Raporlar.** İçerik:
-  - yazılan net prim = 4000 hareketi (işlem tarihi),
-  - tahakkuk eden tazminat = 5000 hareketi (onay tarihi),
-  - oran baz puan olarak, yarımı yukarı yuvarlanır,
-  - sınırlama: kazanılmış prim, muallak ve IBNR yok.
+**Çalıştırma ve kayıt**
+- **Binary ve compose.**
+  - `cmd/simulator`, aynı backend imajında ikinci binary olarak derlenir (root olmayan kullanıcı).
+  - Compose'ta `simulator` servisi `profiles: ["sim"]` ile tanımlanır. Böylece varsayılan `docker compose up` ve 5 dakika hedefi etkilenmez.
+  - `depends_on: api (service_healthy)`.
+  - `make simulate` hedefi eklenir.
+- **Env** (`.env.example`'a da eklenir):
 
-## 2. Saf paketler (DB'siz, kapsam ≥ %70)
+  | Değişken | Varsayılan |
+  |---|---|
+  | `SIM_SEED` | 42 |
+  | `SIM_POLICIES` | 100000 |
+  | `SIM_YEARS` | 5 |
+  | `SIM_WORKERS` | 8 |
+  | `SIM_ANCHOR_DATE` | bugün |
+  | `SIM_LIVE` | false |
 
-1. **`internal/fraud`** — `Evaluate(girdi, cfg) Sonuç`. Varsayılan değerler kurgusaldır ve env ile değişir (ör. `FRAUD_THRESHOLD`; tam liste `.env.example`'da).
+- **`simulation_runs` tablosu (`00009`).**
+  - Alanlar: tohum, parametreler, durum, aşama, işlenen/hedef, başlangıç/bitiş, parmak izi, özet JSON.
+  - Aynı tohum ve parametrelerle tamamlanmış bir koşu varsa yeniden üretim yapılmaz; durum log'a yazılır, çıkılır.
+  - İlerleme yaklaşık her 1.000 işlemde bir güncellenir.
 
-   | Kod | Koşul | Puan |
-   |---|---|---|
-   | `EARLY_CLAIM` | `loss_date − policy.start_date < 15` gün | 40 |
-   | `REPEAT_PLATE` | aynı plakada, bu dosya hariç, hasar tarihi `[loss − 365, loss]` aralığında ≥ 2 hasar | 35 |
-   | `WORKSHOP_CONCENTRATION` | aynı atölyede, bu dosya hariç, hasar tarihi `[loss − 30, loss]` aralığında ≥ 4 hasar | 30 |
+**Referans veri** (doğrudan SQL serbest; iş tablolarına değil)
+- **Kayıtlar.**
+  - ~20 acente.
+  - Müşteriler: çoğu tek poliçeli, bir kısmı çok poliçeli.
+  - 30 atölye.
+  - 5 eksper + 8 hasar uzmanı.
+  - İşlemlerin aktörü olacak, rol başına simülasyon kullanıcıları.
+- **Simülasyon kullanıcıları.** Parolaları kullanılamaz (rastgele hash); `is_active` (atama havuzunda yer alırlar).
+- **Kimlik alanları.** Açıkça kurgusal ve mevcut doğrulamalara uygun.
+- **Plakalar.** Demo ve verify plakalarıyla çakışmayan ayrık bir uzayda üretilir.
+- **Tarife.** Anchor − `SIM_YEARS` tarihinden itibaren her ürün için geçerli tarife yoksa `00009`'a kurgusal bir tarihsel sürüm eklenir (v1 faktörleri, taban fiyatlar × 0,85). T-1 testleri bozulmamalı.
 
-   - **Skor:** kuralların toplamı; `fraud_flagged = skor ≥ 60`. Tek sinyal kuyruğa sokmaz, iki sinyal sokar.
-   - **Uygulanmayan kurallar:** plakasız (KONUT) dosyada plaka kuralı, atölyesiz dosyada atölye kuralı uygulanmaz.
-   - **Plaka:** karşılaştırma normalize biçimde yapılır.
-   - **Pencere sınırları:** tek yerde hesaplanır (`Window(loss, gün)`); SQL bu değerleri kullanır.
-   - **`detail`:** her sinyal sayıları (gün farkı, eşik, önceki dosya numaraları, pencere) ve Türkçe bir `explanation` metnini taşır.
-   - **Altın örnekler:**
-     - `EARLY_CLAIM`: 14 gün → var, 15 → yok, 0 → var.
-     - Pencere: 365. gün içeride, 366. gün dışarıda.
-     - `REPEAT_PLATE`: önceki 1 hasar → yok, 2 → var.
-     - `WORKSHOP_CONCENTRATION`: atölyede 3 hasar → yok, 4 → var.
-     - Skor: 40 + 35 = 75 işaretli; tek başına 40 işaretsiz; 35 + 30 = 65 işaretli.
-     - Özel eşikle tam sınır: skor = eşik → işaretli.
-2. **`internal/claimtask`** (saf):
-   - `DueAt(oluşturma, tip, cfg)`: `APPRAISAL` 72 sa, `ADJUSTMENT` 48 sa, `FRAUD_REVIEW` 24 sa (kurgusal, env ile değişir).
-   - `Breached(görev, şimdi)`:
-     - açık görevde `şimdi > sla_due_at` → ihlal,
-     - kapanmış görevde `completed_at > sla_due_at` → geç kapanmış.
-   - `PickAssignee(yükler)`: en az yük, eşitlikte küçük id; havuz boşsa atamasız.
-   - Altın örnekler: eşitlik, boş havuz, tam `sla_due_at` anı (ihlal değil).
-3. **`internal/report`** (saf kısım):
-   - `LossRatioBP(tazminat, prim) *int64`: yarımı yukarı baz puan; `prim ≤ 0` → `nil`.
-   - Altın örnekler: 1/3 → 3333, 2/3 → 6667, 0/x → 0, x/0 → nil.
+**Faz 1 — poliçe ve tahsilat** (paralel; her varlığın RNG'si `SIM_SEED`'den türetilir, bu yüzden paralellik içeriği değiştirmez)
+- **Poliçeler.** Ürün dağılımı KASKO %50, TRAFİK %35, KONUT %15. Başlangıç tarihi `[anchor − 5 yıl, anchor − 15 gün]` aralığında. Taksit sayısı 1/3/6/12. Numaralar `SIM-000001…`.
+- **Tahsilat.**
+  - Her işlemde servis saati olayın tarihine ayarlanır.
+  - Vadesi gelen taksitler vadesinde ya da birkaç gün gecikmeyle ödenir. Gecikmede faizi servis tahakkuk ettirir; ödeme tutarı servisten okunan açık bakiyeye göre belirlenir.
+  - Son 60 günde vadesi gelen taksitlerin ~%5'i ödenmez. Bunların birkaç düzinesi 30 gün kuralına girer; böylece gün sonunun gerçek işi olur.
+- **İptal.** Hasar planı olmayan poliçelerin ~%3'ü, tarihsel saatle, müşteri talebiyle iptal edilir.
+- **Zeyil.** Yok.
 
-## 3. Akışlara bağlama ve seed
+**Faz 2 — hasar** (tek iş parçacığı, olay zamanı sırasıyla)
+- **Üretim.**
+  - Yıllık sıklık: KASKO %12, TRAFİK %6, KONUT %4.
+  - Hasar tarihi poliçe döneminde ve ≤ anchor.
+  - İşlemleri uygun roldeki simülasyon kullanıcısı yapar; servislerin yetki ve kapsam kuralları atlanmaz.
+- **Yaşam döngüsü** (servislerle): bildirim → triaj → ekspertiz → ayar → onay → ödeme → kapanış.
+  - ~%8 red.
+  - Geçişler arasında rastgele gün farkı var; bir kısmı SLA'yı aşar.
+  - Son 30 gündeki hasarlar farklı açık aşamalarda bırakılır.
+- **Kasıtlı şüpheli kalıplar.**
+  - Başlangıçtan sonraki 15 gün içinde hasar.
+  - Yılda ≥ 3 hasarlı plakalar.
+  - Atölye patlamaları (30 günde ≥ 5 hasar).
 
-- **Bildirim (`Report`).** Aynı transaction içinde, `request_key` ön kontrolü ve claim INSERT'inden sonra:
-  1. Fraud girdileri toplanır ve `fraud.Evaluate` çağrılır.
-  2. `fraud_signals`'a kural başına bir satır yazılır; `claims.fraud_score` ve `fraud_flagged` güncellenir.
-  3. İşaretli dosya `Transition` ile `REPORTED → TRIAGED → FRAUD_REVIEW` olur. Bu bir sistem geçişidir:
-     - `actor_user_id NULL`,
-     - not: `Otomatik: fraud skoru 75 ≥ 60`,
-     - audit `New` içinde `auto: true`.
+  Skorlar gerçek fraud motorundan gelir. İşaretli tarihsel dosyalar incelenip kapatılır (çoğu red); son 30 gündekiler kuyrukta kalır.
 
-  Yeniden değerlendirme yok; dosyada plaka/atölye güncelleme ucu yok.
-- **Görevler `Transition` içinde (tek nokta).**
-  - Hedef durum `APPRAISAL`, `ADJUSTMENT` veya `FRAUD_REVIEW` ise aynı tipte görev açılır ve atanır.
-  - Kaynak durumun açık görevi kapanır: hedef `REJECTED` ise `CANCELLED`, değilse `DONE`.
-  - `Appraise`, açık `APPRAISAL` görevini `DONE` yapar; böylece eksperin SLA'sı kendi işine bağlı kalır.
-  - `IN_PROGRESS` durumu ve görev başlatma ucu yok.
-  - `Transition` imzası değişecekse en küçük haliyle değişsin.
-- **Atama.**
-  - Havuz: `APPRAISAL → APPRAISER`; `ADJUSTMENT` ve `FRAUD_REVIEW → CLAIMS_ADJUSTER`. Yalnızca `is_active` kullanıcılar.
-  - Yük: kullanıcının açık (`OPEN`/`IN_PROGRESS`) görev sayısı, tüm tipler birlikte.
-  - Kilit: sayımdan önce rol başına `pg_advisory_xact_lock(<sabit>, hashtext(rol))`.
-  - `created_at` ve `sla_due_at` servis saatinden alınır; böylece seed geçmiş tarihli görev kurabilir.
-- **Manuel geçiş.**
-  - `ChangeStatus` hedeflerine `FRAUD_REVIEW` eklenir; not zorunludur (422 `FRAUD_REVIEW_REASON_REQUIRED`).
-  - 0.5'teki kural geçerlidir.
-- **Mevcut akışlar bozulmamalı.**
-  - API ile açılan poliçede ilk 15 gündeki her hasar `EARLY_CLAIM` alır; aynı plakadaki 3. hasar işaretlenir.
-  - Mevcut test veya verify senaryolarında aynı plakada ≥ 3 hasar açan yer varsa farklı poliçeye taşı.
-  - Eşiği ya da env'i değiştirerek susturmak yok.
-- **İndeksler (`00008`, yoksa ekle):**
-  - `claims (plate, loss_date)`,
-  - `claims (workshop_id, loss_date)`,
-  - açık görevler için `claim_tasks (assigned_to)` kısmi indeksi,
-  - `journal_entries (entry_date)`.
-- **Seed senaryosu.** Kurallar:
-  - servis koduyla kurulur,
-  - sabit `policy_no` sayesinde tekrar çalıştırmaya dayanıklıdır,
-  - primler tarifeden gelir,
-  - tarihlerin bugüne göre olduğu `TESTING.md`'de yazılır.
+**Faz 3 — özet ve parmak izi**
+- **Özet.**
+  - Poliçe sayıları (ürün ve durum bazında).
+  - Taksit durumları ve ödemeler.
+  - Hasar durumları ve işaretli dosya sayısı.
+  - Açık ve ihlalli görevler.
+  - Yazılan prim, tahsilat, tazminat.
+  - Mizan dengesi ve 1200 mutabakatı.
+- **Parmak izi.** İş özniteliklerinin sıralı SHA-256'sı. Surrogate id, hasar no ve sistem zaman damgaları hariç.
+- **Sistem zaman damgaları** (`created_at`, `reported_at` gibi now() varsayılanlı alanlar). Planında ikisinden birini öner:
+  - servis saatine bağlamak,
+  - üretim sonunda tek UPDATE ile tarihselleştirmek.
 
-  | Adım | Veri | Beklenen |
-  |---|---|---|
-  | FP-1 | KASKO, plaka P, başlangıç bugün − 300, başlangıç tarihli tam ödeme | faiz yok |
-  | FP-1 hasarları | hasar tarihleri bugün − 250 ve bugün − 40 | skor 0, işaretsiz |
-  | SLA ihlali | bugün − 40 hasarı, saati bugün − 4 gün olan servisle `APPRAISAL`'a geçirilir | açık `APPRAISAL` görevi, `sla_due_at` geçmiş |
-  | FP-1 iptali | müşteri talebi, etki bugün − 6 | — |
-  | FP-2 | KASKO, aynı plaka P, başlangıç bugün − 5, tam ödeme | — |
-  | Şüpheli hasar | FP-2'de, hasar tarihi bugün − 2 | `EARLY_CLAIM` 40 + `REPEAT_PLATE` 35 = 75 → `FRAUD_REVIEW`; görev, yükü en az hasar uzmanına |
+  `audit_log`'a dokunma.
 
-## 4. Uç noktalar
+**Canlı mod** (`SIM_LIVE=true`)
+- Yaklaşık 5 saniyede bir, gerçek saatle poliçe düzenleme veya tahsilat yapar.
+- Hasar üretmez; kuyruk ve atama kontrollerini oynatmasın.
+- Deterministik değildir (belgelenir).
+- `simulation_runs.status = LIVE` iken `make verify` açık bir mesajla, başlamadan durur.
 
-- **`GET /api/v1/claim-tasks`**
-  - Erişim: CLAIMS_ADJUSTER tüm görevleri görür; APPRAISER yalnızca kendine atananları (sunucuda zorlanır).
-  - Filtreler: `status=open|done|all` (varsayılan `open`), `task_type`, `breached=true`, `claim_id`, `assigned_to=me`. Sayfalama keyset.
-  - Satır alanları: `id`, `claim_id`, `claim_no`, `task_type`, `status`, `assigned_to {id, full_name} | null`, `created_at`, `sla_due_at`, `completed_at`, `breached`, `remaining_seconds` (gecikmede negatif).
-  - `FRAUD_REVIEW` satırında ek olarak `fraud_score` ve sinyal kodları gelir.
-  - **Fraud kuyruğu = `task_type=FRAUD_REVIEW&status=open`.** Ayrı uç yok.
-- **`GET /api/v1/claim-tasks/workload`** — CLAIMS_ADJUSTER. Her havuz (APPRAISER, CLAIMS_ADJUSTER) için kullanıcılar ve açık görev sayıları.
-- **`GET /api/v1/claim-tasks/sla-summary`** — CLAIMS_ADJUSTER. Görev tipi başına `open`, `open_breached`, `done`, `done_late`, `on_time_bp`.
-- **`GET /metrics`**
-  - Yeni gauge'lar: `guvenpolice_claim_tasks_open{task_type}` ve `guvenpolice_claim_tasks_sla_breached{task_type}`.
-  - `Registry`'ye scrape anında çalışan toplayıcı desteği eklenir: tek sorgu, kısa timeout.
-  - Sorgu hata verirse bu metrikler atlanır; uç 500 dönmez.
-- **`GET /api/v1/claims/{id}`**
-  - CLAIMS_ADJUSTER görür:
-    - `fraud {score, threshold, flagged, signals[{rule_code, points, detail, explanation}]}`,
-    - `tasks[]`,
-    - `allowed_transitions[]` (`claim_transitions` ∩ rolün manuel hedefleri).
-  - APPRAISER: `tasks[]`.
-  - CUSTOMER/AGENT: hasar yanıtlarında (liste ve detay) `fraud_score`, `fraud_flagged` ve sinyaller yer almaz.
-- **`POST /api/v1/claims/{id}/transition`** — 3. bölümdeki ek hedef ve kurallar.
-- **`GET /api/v1/reports/production?from=YYYY-MM-DD&to=YYYY-MM-DD&group_by=month|product|agent`**
-  - Erişim: ACCOUNTING, UNDERWRITER.
-  - Dönem `[from, to)`, yevmiyenin `entry_date`'ine göre. `from` ve `to` isteğe bağlıdır; verilmeyen sınır açık kalır.
-  - Biçim hatası veya `from ≥ to` → 422 `INVALID_PERIOD`.
-  - Satır alanları:
-    - anahtar + etiket,
-    - `written_premium_kurus`: 4000 hesabının net alacağı; `POLICY_ISSUE` ve `ENDORSEMENT` ref'leri poliçeye bağlanır,
-    - `policy_count`: dönemdeki düzenlemeler,
-    - `incurred_claims_kurus`: 5000 hesabının net borcu; A4 onay yevmiyesi, ref → hasar → poliçe,
-    - `loss_ratio_bp | null`.
-  - Yanıtta ayrıca toplam satırı bulunur.
-  - Acentesiz poliçeler `agent` gruplamasında ayrı satırdır; satırlar toplamı her zaman genel toplama eşittir.
+**Testler** (entegrasyon, küçük N; ör. 1.000 poliçe)
+- İki taze DB'de aynı tohum → aynı parmak izi. Farklı tohum → farklı parmak izi.
+- Koşu sonrasında mizan dengede, 1200 mutabakatı tutuyor, her hasar geçmişi `claim_transitions`'a uygun ve en az bir işaretli dosya var.
+- Demo müşteri, acente, atölye ve kullanıcılarına bağlı simülasyon kaydı yok; plaka uzayları çakışmıyor.
+- Tamamlanmış bir koşu tekrar çalıştırılınca yeni kayıt üretmez.
 
-## 5. Testler ve kabul kriterleri
+**Gerçek ölçekte kabul**
+- `make simulate` (100k) çalıştırılır. Süre, DB boyutu ve özet `PROGRESS.md`/`TESTING.md`'ye yazılır.
+- Ardından `make verify` çalıştırılır:
+  - tüm satırlar PASS,
+  - süre 15 dakikanın altında (süre raporda),
+  - F-7 raporu 5 yıla yayılıyor,
+  - fraud kuyruğunda simülasyon dosyaları var,
+  - gün sonu birden çok parçada tamamlanıyor.
 
-**Entegrasyon (gerçek PostgreSQL):**
-- **Kurallar.** Her kural tek başına ve birlikte denenir; doğru `fraud_signals` satırları (kod, puan, detay), skor ve bayrak kontrol edilir.
-  - İşaretli dosyanın geçmişinde `REPORTED → TRIAGED → FRAUD_REVIEW` (aktör `NULL`) ve atanmış açık bir `FRAUD_REVIEW` görevi bulunur.
-  - Pencere sınırı (365. ve 366. gün) bir entegrasyon testinde de doğrulanır.
-- **Çıkmaz regresyonu.**
-  - Ekspertizsiz `FRAUD_REVIEW → ADJUSTMENT` → 409 `APPRAISAL_REQUIRED`.
-  - `→ APPRAISAL → ekspertiz → ADJUSTMENT → onay → ödeme` uçtan uca çalışır.
-- **Görev yaşam döngüsü.**
-  - Durum girişinde açılır.
-  - `Appraise` ile ve durumdan çıkışta kapanır (`REJECTED` → `CANCELLED`).
-  - `sla_due_at = created_at + tip süresi`.
-  - Havuz boşsa görev atamasız kalır.
-- **Yarış (zorunlu, gate tekniğiyle).**
-  - Kurulum: 3 hasar uzmanı, eşit başlangıç yükü, 20 eşzamanlı atama (her biri ayrı transaction).
-  - Gate rol kilidini tutarken hepsi `pg_stat_activity`'de bekler.
-  - Beklenen: yükler 7/7/6; fazlası küçük id'lerde.
-  - `-count=10 -race` ile koşulur.
-  - **Mutasyon:** advisory kilidi geçici olarak kaldır → test kırılmalı. Sonucu raporla, kilidi geri koy.
-- **SLA.** Enjekte saatle ihlal listesi, özet sayıları ve `/metrics` çıktısı doğrulanır.
-- **RBAC.**
-  - CUSTOMER/AGENT görev ve özet uçlarında 403 alır.
-  - APPRAISER başkasının görevini görmez.
-  - CUSTOMER/AGENT hasar yanıtında fraud alanı yoktur.
-  - AGENT/CUSTOMER rapor ucunda 403 alır.
-- **Bildirim çökme penceresi (0.6).** Tekrar istek fraud'u yeniden değerlendirmez (sinyal sayısı aynı kalır) ve ikinci görev açmaz.
-- **Rapor altın veri seti.**
-  - İçerik: iki ürün; iki acente + acentesiz poliçe; + ve − zeyil; iptal; onaylanmış bir tazminat. Kayıtlar iki ayrı aya düşer (enjekte saat).
-  - Beklenen satırlar elle hesaplanıp yorumda yazılır.
-  - Her gruplamada: satırlar toplamı = toplam = defterdeki 4000/5000 hareketi.
-  - `to` günündeki kayıt dışarıda kalır.
-- **Her senaryonun sonunda** A5'in ortak yardımcısı çağrılır: defter dengede, mutabakat tutuyor.
+## 3. Canlılık
 
-**`make verify`** (`F-7` ve `T-5` satırları gerçek API ile; ayrıca bir `T-4` eki):
+- **`GET /api/v1/system/activity`** (giriş yapmış tüm roller). Yanıt alanları:
+  - `db_ok`, `last_event_at`,
+  - son 30 dakikanın dakikalık olay sayıları (`audit_log`, yalnızca sayı),
+  - `simulation {status, phase, done, target, seed, fingerprint, started_at, finished_at}`.
 
-| Satır | Kontrol |
-|---|---|
-| `F-7 prim-delta` | `[bugün, yarın)` raporu alınır → yeni poliçe düzenlenir → toplam tam olarak bu poliçenin primi kadar artar. |
-| `F-7 defter-mutabakati` | Sınırsız dönem raporunda yazılan prim = mizandaki 4000 net alacak; tazminat = 5000 net borç. |
-| `F-7 boyut-toplami` | Ay, ürün ve acente gruplamalarının her birinde satırlar toplamı = toplam. |
-| `F-7 oran` | `loss_ratio_bp`, awk ile hesaplanan `round_div(tazminat × 10000, prim)` değerine eşit. |
-| `T-5 seed-supheli` | FP-2'nin sabit `policy_no`'su üzerinden bulunan dosya `FRAUD_REVIEW`'da; skor 75 (`EARLY_CLAIM` 40 + `REPEAT_PLATE` 35); açık ve atanmış görev var. |
-| `T-5 esik` | Bugün başlayan, bu çalıştırmaya özgü geçerli plakalı yeni poliçede aynı gün üç hasar: ilk ikisi 40 ve işaretsiz (`REPORTED`), üçüncüsü 75 → `FRAUD_REVIEW`. |
-| `T-5 atama` | Üçüncü hasardan önce yükler `workload`'dan alınır; görev en az yüklü uzmana (eşitlikte küçük id) gitmiş olmalı. |
-| `T-5 paralel-atama` | Farklı plakalı iki poliçede (poliçe kilidi paralelliği bozmasın) aynı anda işaretli hasar açılır (curl arka planda + `wait`). Atananlar, önceki yüklerden açgözlü sırayla hesaplanan beklenen kümeye eşit olmalı. |
-| `T-5 inceleme` | Ekspertizsiz `→ ADJUSTMENT` 409 `APPRAISAL_REQUIRED`; `→ APPRAISAL` 200 ve eksper görevi açılmış. |
-| `T-5 sla` | FP-1 dosyasının ihlal görevi `claim_id` filtresiyle `breached=true` dönüyor; `/metrics` çıktısında `guvenpolice_claim_tasks_sla_breached` var. |
-| `T-5 yetki` | CUSTOMER görev listesinde 403 alır. |
-| `T-4 idem-bayt` | Aynı anahtarla tekrar ödeme yanıtının gövdesi, ilk yanıtla `cmp` ile bayt bayt aynı. |
+  Gerekirse `00009`'a `audit_log (created_at)` indeksi eklenir.
+- **Üst çubuk göstergesi** (tüm roller): yeşil/kırmızı nokta + "Son olay: 12 sn önce". 15 saniyede bir yoklama; bağlantı hatası durumu da gösterilir.
+- **Sistem sayfası:** dakikalık olay çubukları, simülasyon ilerleme çubuğu ve özet.
+- **Yeni verify satırları:**
+  - `SYS canlilik`: `db_ok` doğru; verify'ın kendi işlemlerinden sonra `last_event_at` güncel.
+  - `T-4 gun-sonu-parcali`: küçük `limit` ile en az 2 parça, sonunda `done`.
 
-## 6. Frontend (en küçük hali)
+## 4. 6 rol ekranlarının gözden geçirilmesi
 
-- **Hasar uzmanı:**
-  - **Fraud kuyruğu:** skor, sinyal kodları, atanan, SLA rozeti.
-  - **Görevler:** tüm görevler, "yalnızca ihlal" filtresi, uzman iş yükü paneli.
-- **Eksper:** **Görevlerim** (SLA rozetli).
-- **Hasar detayı (uzman görünümü):**
-  - fraud paneli: skor/eşik, her sinyalin açıklaması ve puanı,
-  - görevler,
-  - `allowed_transitions`'tan gelen butonlar.
-
-  Red ve fraud incelemesine gönderme için not zorunlu.
-- **SLA rozeti:** ihlal (kırmızı), son %25 (sarı), zamanında (yeşil).
-- **Muhasebe ve underwriter — Raporlar sayfası:** from/to, gruplama seçimi, toplam satırlı tablo, TL biçimi, yüzde oran. Tablonun altında tek satırlık not: "Yazılan prim bazlı; kazanılmış prim ve muallak yok (kurgusal model)".
-- **Genel:** yükleniyor/boş/hata durumları, 375 px. Cila yok.
+- Her rolün `TESTING.md`'deki uçtan uca akışı tarayıcıda, 375 px'te ve simülasyon verisi yüklüyken denenir. Kontrol edilenler:
+  - yükleniyor/boş/hata durumları,
+  - menüden erişim,
+  - gerçek API kullanımı.
+- Büyük listeler keyset ile sınırlı sayfalarda gösterilir; tam tablo sayımı yapılmaz.
+- Bitiş tarihi geçmiş `ACTIVE` poliçeye UI'da "Süresi doldu" etiketi eklenir; durum değişmez.
+- A6'da çalıştırılmayan sarı SLA rozeti senaryosu burada denenir.
+- Bulunan sorunlar en küçük düzeltmeyle giderilir; yeniden tasarım yok.
+- Çıktı: `TESTING.md`'de rol × akış × sonuç tablosu (PASS / FAIL / YAPILMADI).
 
 ## Dokümanlar
 
 - `openapi.yaml`
-- `DECISIONS.md`: ADR-14…18
-- `TESTING.md`: F-7/T-5 deneme yolları ve kanıt komutları, yeni demo hesapları, seed fraud ve SLA senaryosu, tarih notu
+- `DECISIONS.md` (ADR-19…22)
+- `TESTING.md`: simülatörün çalıştırılması, ölçümler, rol tablosu, canlı modun verify öncesi durdurulması
 - `requests.http`
-- `.env.example`: fraud ve SLA ayarları, kurgusal oldukları notuyla
-- `ROADMAP.md`: kanıt matrisi (F-7, T-5) ve A6 kutuları
+- `.env.example` (`SIM_*`)
+- `ROADMAP.md` A7 kutuları
 - `PROGRESS.md`
 
 ## Kapsam dışı
 
-- **A7'ye kalanlar:** Opus #7 (gün sonunun ölçeklenmesi ve hatada devam) — simülatör verisiyle birlikte ele alınır.
-- **A8'e kalanlar:** Opus #12 (okunabilirlik turu).
-- **Yapılmayacaklar:**
-  - kazanılmış prim/UPR, muallak ve IBNR,
-  - mesai takvimli SLA,
-  - manuel atama ve yeniden atama,
-  - görev başlatma,
-  - fraud yeniden skorlama,
-  - acente performans panosu (bonus),
-  - geriye dönük iptalde faiz iadesi,
-  - simülatör,
-  - `git push`.
+- Simülasyonda zeyil.
+- `EXPIRED` durum geçişi.
+- k6, CI, kaos, EXPLAIN ve README: A8'e kalıyor. EXPLAIN ve k6 ölçümleri simülasyon verisiyle yapılacak.
+- A6'nın bağımsız incelemesi: ayrı tur.
+- `git push`.
