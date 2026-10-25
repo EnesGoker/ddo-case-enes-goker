@@ -36,3 +36,37 @@ export function errorText(e: unknown): string {
   }
   return 'Beklenmeyen bir hata oluştu.'
 }
+
+// Takvim günü yardımcıları (YYYY-MM-DD, saat dilimi etkisi olmadan)
+export function todayISO(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+export function addDays(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const t = new Date(Date.UTC(y, m - 1, d + n))
+  return t.toISOString().slice(0, 10)
+}
+
+export function maxISO(a: string, b: string): string {
+  return a > b ? a : b
+}
+
+export const cancelReasonLabels: Record<string, string> = {
+  CUSTOMER_REQUEST: 'Müşteri talebi (kısa dönem)',
+  UNDERWRITER: 'Underwriter kararı (gün esaslı)',
+  NON_PAYMENT: 'Ödenmeme (gün esaslı)',
+  OTHER: 'Diğer şirket kaynaklı (gün esaslı)',
+}
+
+export const methodLabels: Record<string, string> = {
+  PRO_RATA: 'Gün esaslı',
+  SHORT_PERIOD: 'Kısa dönem',
+}
+
+export function newIdempotencyKey(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}

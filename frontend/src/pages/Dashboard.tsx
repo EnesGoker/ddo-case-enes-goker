@@ -54,7 +54,7 @@ export function Dashboard({ user }: { user: User }) {
           </RequireRole>
         )}
         {current.key === 'quotes' && <QuotesPage role={user.role} />}
-        {current.key === 'policies' && <PoliciesPage />}
+        {current.key === 'policies' && <PoliciesPage role={user.role} />}
         {!current.ready && (
           <div className="notice">Bu ekran {current.phase} aşamasında eklenecek; henüz uygulanmadı.</div>
         )}

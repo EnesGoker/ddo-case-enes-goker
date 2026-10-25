@@ -116,3 +116,108 @@ export interface IssuedPolicy {
   end_date: string
   annual_premium_kurus: number
 }
+
+export interface VersionView {
+  id: number
+  version_no: number
+  effective_from: string
+  effective_to: string | null
+  tariff_version_id: number
+  tariff_version_no: number
+  vehicle_plate: string | null
+  risk: { driver_age?: number; ncd_level?: number; region_code?: string; vehicle_group?: string; plate?: string }
+  annual_premium_kurus: number
+  annual_limit_kurus: number | null
+  endorsement_no: number | null
+  coverages: CoverageSpec[]
+}
+
+export interface CalcDetail {
+  kind: 'VEHICLE_CHANGE' | 'CANCELLATION'
+  method: 'PRO_RATA' | 'SHORT_PERIOD'
+  reason?: string
+  period_days: number
+  leap_day_in_period: boolean
+  elapsed_days: number
+  remaining_days: number
+  premium_delta_kurus: number
+  refund_kurus?: number
+  version_closed?: boolean
+  note?: string
+  steps: string[]
+}
+
+export interface EndorsementView {
+  id: number
+  endorsement_no: number
+  type: 'VEHICLE_CHANGE' | 'CANCELLATION' | 'COVERAGE_CHANGE' | 'OTHER'
+  effective_date: string
+  from_version_id: number
+  to_version_id: number | null
+  premium_delta_kurus: number
+  calc_detail: CalcDetail
+  created_at: string
+}
+
+export interface LimitBalance {
+  coverage_code: string | null
+  period_start: string
+  period_end: string
+  limit_kurus: number
+  used_kurus: number
+}
+
+export interface PolicyDetail {
+  id: number
+  policy_no: string
+  product: Product
+  customer_id: number
+  customer_name: string
+  start_date: string
+  end_date: string
+  period_days: number
+  status: 'ACTIVE' | 'CANCELLED' | 'EXPIRED'
+  cancel_effective_date: string | null
+  cancel_reason: string | null
+  premium: {
+    initial_premium_kurus: number
+    endorsement_deltas_kurus: number
+    written_premium_kurus: number
+    cancellation_refund_kurus: number
+    net_premium_kurus: number
+  }
+  versions: VersionView[]
+  endorsements: EndorsementView[]
+  limit_balances: LimitBalance[]
+}
+
+export interface CoverageOnDate {
+  policy_id: number
+  date: string
+  version: VersionView
+}
+
+export interface VehicleChangePreview {
+  effective_date: string
+  base_version_no: number
+  new_version_no: number
+  old_annual_premium_kurus: number
+  new_annual_premium_kurus: number
+  premium_delta_kurus: number
+  vehicle_plate: string
+  vehicle_group: string
+  coverages: CoverageSpec[]
+  lines: PremiumLine[]
+  calc_detail: CalcDetail
+}
+
+export interface CancelPreview {
+  effective_date: string
+  reason: string
+  method: 'PRO_RATA' | 'SHORT_PERIOD'
+  base_version_no: number
+  written_premium_kurus: number
+  refund_kurus: number
+  closes_version: boolean
+  calc_detail: CalcDetail
+}

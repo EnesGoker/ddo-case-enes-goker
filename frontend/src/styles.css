@@ -153,3 +153,13 @@ button.danger { background: var(--danger-text); border-color: var(--danger-text)
   tfoot td { display: block; border: 0; }
   tfoot td::before { content: none; }
 }
+
+/* A3: poliçe detayı, zeyil ve iptal */
+.panel h4 { margin: 16px 0 8px; font-size: 15px; }
+details.endorsement { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; }
+details.endorsement summary { cursor: pointer; font-weight: 600; }
+.calc ol { margin: 6px 0 0; padding-left: 20px; }
+.calc li { margin-bottom: 4px; font-size: 14px; }
+.inline-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.inline-form input { width: auto; margin: 0; }
+.coverage-query { margin-top: 12px; }
