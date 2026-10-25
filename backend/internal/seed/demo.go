@@ -28,6 +28,8 @@ var DemoUsers = []DemoUser{
 	{"eksper@guvenpolice.test", "Murat Ekinci", auth.RoleAppraiser},
 	{"hasar@guvenpolice.test", "Deniz Hasat", auth.RoleClaimsAdjuster},
 	{"muhasebe@guvenpolice.test", "Ece Mutlu", auth.RoleAccounting},
+	{"eksper2@guvenpolice.test", "Bora Örnek", auth.RoleAppraiser},
+	{"hasar2@guvenpolice.test", "Derya Örnek", auth.RoleClaimsAdjuster},
 }
 
 type demoCustomer struct {
@@ -112,6 +114,13 @@ func Demo(ctx context.Context, pool *pgxpool.Pool, password string) error {
 		}
 		if err := tariffs(ctx, tx); err != nil {
 			return err
+		}
+		for _, w := range []struct{ name, region string }{{"Kurgusal Marmara Atölyesi", "34"}, {"Kurgusal Başkent Atölyesi", "06"}, {"Kurgusal Ege Atölyesi", "35"}} {
+			if _, err := tx.Exec(ctx, `
+    INSERT INTO workshops(name,region_code) SELECT $1,$2
+     WHERE NOT EXISTS (SELECT 1 FROM workshops WHERE name=$1 AND region_code=$2)`, w.name, w.region); err != nil {
+				return err
+			}
 		}
 		return billingPolicies(ctx, tx, agentID, ids["acente@guvenpolice.test"])
 	})

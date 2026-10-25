@@ -4,6 +4,7 @@ package app_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -17,6 +18,8 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
 	"github.com/EnesGoker/guvenpolice/backend/internal/claim"
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
+	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
+	"github.com/EnesGoker/guvenpolice/backend/internal/tariff"
 )
 
 func TestBackdatedAdditionalPremiumDueToday(t *testing.T) {
@@ -132,4 +135,41 @@ func TestFraudReviewCanReturnToAppraisal(t *testing.T) {
 	require.Equal(t, http.StatusCreated, s, b)
 	s, b, _ = postKey(t, account, claimPath(c)+"/pay", nil, fmt.Sprintf("review-pay-%v", c["id"]))
 	require.Equal(t, http.StatusOK, s, b)
+}
+
+func TestSeedPoliciesUsePricingAndValidPlates(t *testing.T) {
+	defer assertBillingInvariant(t)
+	ctx := context.Background()
+	rows, err := pool.Query(ctx, `
+  SELECT v.tariff_version_id,v.risk_data,v.annual_premium_kurus,v.vehicle_plate
+    FROM policies p JOIN policy_versions v ON v.policy_id=p.id AND v.version_no=1
+   WHERE p.policy_no IN ('GP-DEMO-OVERDUE-A','GP-DEMO-OVERDUE-B')`)
+	require.NoError(t, err)
+	type item struct {
+		tid     int64
+		risk    []byte
+		premium int64
+		plate   string
+	}
+	samples, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (item, error) {
+		var v item
+		err := r.Scan(&v.tid, &v.risk, &v.premium, &v.plate)
+		return v, err
+	})
+	require.NoError(t, err)
+	require.Len(t, samples, 2)
+	for _, v := range samples {
+		_, ok := policy.NormalizePlate(v.plate)
+		assert.True(t, ok)
+		var risk policy.RiskData
+		require.NoError(t, json.Unmarshal(v.risk, &risk))
+		tr, err := tariff.LoadByID(ctx, pool, v.tid)
+		require.NoError(t, err)
+		result, err := pricing.Calculate(tr, pricing.Input{Product: pricing.Kasko, Risk: risk.Risk, Coverages: []string{"KASKO_ANA"}})
+		require.NoError(t, err)
+		assert.Equal(t, result.TotalKurus, v.premium)
+	}
+	var workshops int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM workshops WHERE name LIKE 'Kurgusal %'`).Scan(&workshops))
+	assert.Equal(t, 3, workshops)
 }

@@ -240,7 +240,7 @@ func TestBillingRunSeedAndBoundary(t *testing.T) {
 	assert.Equal(t, "ACTIVE", b["policy_status"])
 	interest := b["interest"].([]any)
 	require.Len(t, interest, 1)
-	assert.Equal(t, int64(2000), num(interest[0].(map[string]any)["amount_kurus"]), "100000×1000×20/1e6")
+	assert.Equal(t, int64(9481), num(interest[0].(map[string]any)["amount_kurus"]), "1422222/3=474074; 474074×1000×20/1e6=9481.48→9481")
 	s, again := newClient(t).do(http.MethodPost, "/api/v1/billing/run", account, nil)
 	require.Equal(t, http.StatusOK, s, again)
 	assert.Zero(t, num(again["accrual_count"]))
