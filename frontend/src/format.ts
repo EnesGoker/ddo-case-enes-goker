@@ -12,6 +12,13 @@ export function formatBP(bp: number): string {
 }
 
 export const statusLabels: Record<string, string> = {
+  REPORTED: 'Bildirildi',
+  TRIAGED: 'Ön incelemede',
+  APPRAISAL: 'Ekspertizde',
+  ADJUSTMENT: 'Tazminat değerlendirmesinde',
+  FRAUD_REVIEW: 'İncelemede',
+  PAID: 'Ödendi',
+  CLOSED: 'Kapandı',
   CALCULATED: 'Hesaplandı',
   UW_REVIEW: 'Underwriter onayında',
   APPROVED: 'Onaylandı',

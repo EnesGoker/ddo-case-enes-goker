@@ -221,3 +221,45 @@ export interface CancelPreview {
   closes_version: boolean
   calc_detail: CalcDetail
 }
+
+export type ClaimStatus = 'REPORTED' | 'TRIAGED' | 'APPRAISAL' | 'ADJUSTMENT' | 'FRAUD_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID' | 'CLOSED'
+export interface ClaimItem {
+  id: number
+  claim_no: string
+  policy_id: number
+  policy_no: string
+  policy_version_id: number
+  coverage_code: string
+  loss_date: string
+  reported_at: string
+  plate: string | null
+  description: string
+  claimed_amount_kurus: number
+  status: ClaimStatus
+  row_version: number
+}
+export interface SettlementStep {
+  code: string
+  input_kurus: number
+  output_kurus: number
+  clipped_kurus: number
+  description: string
+  skipped: boolean
+}
+export interface SettlementPreview {
+  gross_damage_kurus: number
+  deductible_kurus: number
+  payable_kurus: number
+  calc_steps: SettlementStep[]
+}
+export interface ClaimSettlement extends SettlementPreview {
+  id: number
+  status: 'APPROVED' | 'PAID'
+  paid_at: string | null
+  payment_journal_entry_id: number | null
+}
+export interface ClaimDetail extends ClaimItem {
+  history: { id: number; from_status: string | null; to_status: string; note: string | null; created_at: string }[]
+  appraisals: { id: number; appraiser_id: number; damage_amount_kurus: number; is_total_loss: boolean; notes: string | null; inspected_at: string }[]
+  settlement: ClaimSettlement | null
+}

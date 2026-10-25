@@ -3,6 +3,7 @@ import { api, ApiError } from '../api/client'
 import type { Role } from '../api/client'
 import type { CoverageOnDate, PolicyDetail } from '../api/types'
 import { cancelReasonLabels, errorText, formatTL, statusLabels, todayISO } from '../format'
+import { ReportClaimForm } from './ClaimForms'
 import { CalcSteps } from './CalcSteps'
 import { CancelForm, VehicleChangeForm } from './PolicyChangeForms'
 import { ErrorBox, Loading } from './States'
@@ -44,7 +45,7 @@ export function PolicyDetailLoader({ id, role, onChanged }: { id: number; role: 
 }
 
 function PolicyDetailView({ policy, role, reload }: { policy: PolicyDetail; role: Role; reload: () => void }) {
-  const [action, setAction] = useState<'none' | 'vehicle' | 'cancel'>('none')
+  const [action, setAction] = useState<'none' | 'vehicle' | 'cancel' | 'claim'>('none')
   const canChange = (role === 'AGENT' || role === 'UNDERWRITER') && policy.status === 'ACTIVE'
   const isVehicle = policy.product !== 'KONUT'
   const current = policy.versions[policy.versions.length - 1]
@@ -119,6 +120,8 @@ function PolicyDetailView({ policy, role, reload }: { policy: PolicyDetail; role
 
       <CoverageQuery policy={policy} />
 
+      {(role === 'CUSTOMER' || role === 'AGENT' || role === 'CLAIMS_ADJUSTER') && <div className="actions"><button onClick={() => setAction(action === 'claim' ? 'none' : 'claim')}>Hasar bildir</button></div>}
+      {action === 'claim' && <ReportClaimForm policyID={policy.id} onDone={() => setAction('none')} />}
       {canChange && (
         <div className="actions">
           {isVehicle && (
