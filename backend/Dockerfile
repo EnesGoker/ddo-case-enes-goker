@@ -5,9 +5,11 @@ COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ ./
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/simulator ./cmd/simulator
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/api /app/api
+COPY --from=build /out/simulator /app/simulator
 COPY db/migrations /app/migrations
 ENV MIGRATIONS_DIR=/app/migrations \
     HTTP_ADDR=:8080

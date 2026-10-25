@@ -21,7 +21,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    environment:
+    environment: &api-environment
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET .env içinde olmalı}
       ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
@@ -57,6 +57,27 @@ services:
       start_period: 10s
       retries: 12
     restart: unless-stopped
+
+  simulator:
+    image: guvenpolice-api
+    profiles: ["sim"]
+    entrypoint: ["/app/simulator"]
+    environment:
+      <<: *api-environment
+      SEED_DEMO: "false"
+      SIM_SEED: ${SIM_SEED:-42}
+      SIM_POLICIES: ${SIM_POLICIES:-100000}
+      SIM_YEARS: ${SIM_YEARS:-5}
+      SIM_WORKERS: ${SIM_WORKERS:-8}
+      SIM_ANCHOR_DATE: ${SIM_ANCHOR_DATE:-}
+      SIM_LIVE: ${SIM_LIVE:-false}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    restart: "no"
+    stop_grace_period: 15s
 
   web:
     build: ./frontend

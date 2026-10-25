@@ -6,6 +6,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Canlı/batch simülatör veri temizliği sırasında yeniden kayıt eklememeli.
+if [ "$(docker inspect -f '{{.State.Running}}' guvenpolice-simulator 2>/dev/null || true)" = true ]; then
+  docker stop -t 15 guvenpolice-simulator >/dev/null
+fi
+
 KEEP="'goose_db_version','accounts','claim_transitions'"
 
 docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<SQL

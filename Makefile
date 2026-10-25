@@ -2,10 +2,10 @@
 GO      ?= go
 COMPOSE ?= docker compose
 
-.PHONY: help env up down logs ps test test-integration lint build verify reset-demo
+.PHONY: help env up down logs ps test test-integration lint build verify reset-demo simulate
 
 help:
-	@echo "make up | down | logs | ps | test | test-integration | lint | build | verify | reset-demo"
+	@echo "make up | down | logs | ps | test | test-integration | lint | build | verify | reset-demo | simulate"
 
 env:
 	@test -f .env || (cp .env.example .env && echo ".env, .env.example'dan oluşturuldu")
@@ -41,3 +41,6 @@ verify:
 
 reset-demo:
 	./scripts/reset-demo.sh
+
+simulate: env
+	$(COMPOSE) --profile sim run --rm --name guvenpolice-simulator --use-aliases simulator
