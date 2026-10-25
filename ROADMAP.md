@@ -45,10 +45,10 @@
 **Çıkış kapısı:** Aynı teklifin aynı tarife sürümüyle iki hesabı eşit, kalem toplamı nihai prime eşit.
 
 ### A3 — T-2 + F-2: Poliçe sürümleri, zeyil ve iptal (hedef 3 saat)
-- [ ] Başlangıç/bitiş tarihleri ve sürüm geçmişi korunuyor.
-- [ ] Pro-rata iade, kısa dönem tarife örneği ve artık yıl sınır testi var.
-- [ ] Belirli tarihte geçerli teminat ve poliçe sürümü sorgulanıyor.
-- [ ] İptal sonrası durum ve kayıt geçmişi tutarlı; audit olayı oluşuyor.
+- [x] Başlangıç/bitiş tarihleri ve sürüm geçmişi korunuyor.
+- [x] Pro-rata iade, kısa dönem tarife örneği ve artık yıl sınır testi var.
+- [x] Belirli tarihte geçerli teminat ve poliçe sürümü sorgulanıyor.
+- [x] İptal sonrası durum ve kayıt geçmişi tutarlı; audit olayı oluşuyor.
 
 **Çıkış kapısı:** Örnek tarih aralığı için beklenen teminat/sürüm ve kuruş tutarları otomatik testle kanıtlanıyor.
 
@@ -115,14 +115,14 @@
 | Kimlik | Durum | Kanıt (test veya komut) |
 |---|---|---|
 | F-1 | PASS | `make verify` (F-1 teklif-kaydet-oku, police-cevir, cift-cevirme, uw-onay); `TestConvertCreatesPolicyAndIsIdempotent` |
-| F-2 | BEKLEMEDE | — |
+| F-2 | PASS | `make verify` (F-2 zeyil-kayit, surum-gecmisi, iptal-sonrasi); `TestVehicleChangeEndorsementAndCoverageOnDate`, `TestShortPeriodCancellationAfterEndorsement` |
 | F-3 | BEKLEMEDE | — |
 | F-4 | BEKLEMEDE | — |
 | F-5 | BEKLEMEDE | — |
 | F-6 | BEKLEMEDE | — |
 | F-7 | BEKLEMEDE | — |
 | T-1 | PASS | `TestGoldenKasko`, `TestGoldenKonut`, `TestBreakdownSumEqualsTotal`, `TestSelectTariffByStartDate`; `make verify` T-1 satırları |
-| T-2 | BEKLEMEDE | — |
+| T-2 | PASS | `TestGoldenVehicleChange`, `TestGoldenShortPeriodCancellation`, `TestCancellationOnLeapDay`; `make verify` T-2 satırları; eşzamanlılık `TestConcurrentEndorsements` |
 | T-3 | BEKLEMEDE | — |
 | T-4 | BEKLEMEDE | — |
 | T-5 | BEKLEMEDE | — |

@@ -90,3 +90,57 @@ Authorization: Bearer {{uw.response.body.access_token}}
 Content-Type: application/json
 
 {"decision": "APPROVE", "note": "uygun"}
+
+### --- A3: poliçe detayı, zeyil, iptal (poliçe id'sini listeden alın) ---
+
+### Poliçe detayı (sürümler, teminatlar, zeyiller, prim özeti)
+GET {{api}}/api/v1/policies/1
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Tarihte geçerli teminat (dönem dışı veya iptal sonrası → 404 NO_COVERAGE_ON_DATE)
+GET {{api}}/api/v1/policies/1/coverage?date=2027-01-15
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Araç değişikliği önizleme (kaydetmez)
+POST {{api}}/api/v1/policies/1/endorsements/preview
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{"effective_date": "2027-02-10", "vehicle_group": "D", "plate": "06ABC42", "base_version_no": 1}
+
+### Araç değişikliği zeyli (aynı anahtarla tekrar → aynı yanıt)
+POST {{api}}/api/v1/policies/1/endorsements
+Authorization: Bearer {{login.response.body.access_token}}
+Idempotency-Key: demo-zeyil-1
+Content-Type: application/json
+
+{"effective_date": "2027-02-10", "vehicle_group": "D", "plate": "06ABC42", "base_version_no": 1}
+
+### Limit düşürme (kullanılanın altına → 422 LIMIT_BELOW_USAGE)
+POST {{api}}/api/v1/policies/1/endorsements/preview
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{"effective_date": "2027-03-01", "coverage_limits": {"KASKO_ANA": 120000000}}
+
+### İptal önizleme — müşteri talebi (kısa dönem)
+POST {{api}}/api/v1/policies/1/cancel/preview
+Authorization: Bearer {{login.response.body.access_token}}
+Content-Type: application/json
+
+{"effective_date": "2027-05-15", "reason": "CUSTOMER_REQUEST", "note": "araç satıldı"}
+
+### İptal — acente yalnızca CUSTOMER_REQUEST (UNDERWRITER gerekçesi → 403)
+POST {{api}}/api/v1/policies/1/cancel
+Authorization: Bearer {{login.response.body.access_token}}
+Idempotency-Key: demo-iptal-1
+Content-Type: application/json
+
+{"effective_date": "2027-05-15", "reason": "CUSTOMER_REQUEST", "note": "araç satıldı"}
+
+### İptal önizleme — underwriter, şirket kaynaklı (gün esaslı)
+POST {{api}}/api/v1/policies/1/cancel/preview
+Authorization: Bearer {{uw.response.body.access_token}}
+Content-Type: application/json
+
+{"effective_date": "2027-05-15", "reason": "UNDERWRITER"}

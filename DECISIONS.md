@@ -1,6 +1,6 @@
 # Mimari Karar Kayıtları
 
-A0'da onaylanan beş karar ve A2'de eklenen iki karar. Uygulanmayan kısımlar ilgili aşamada kanıtla doldurulacak.
+A0'da onaylanan beş karar, A2'de (ADR-6/7) ve A3'te (ADR-8/9) eklenenler. Uygulanmayan kısımlar ilgili aşamada kanıtla doldurulacak.
 
 ## ADR-1 — Modüler monolit, katmanlı paketler
 
@@ -19,7 +19,7 @@ A0'da onaylanan beş karar ve A2'de eklenen iki karar. Uygulanmayan kısımlar i
 
 **Karar:** Tüm aralıklar yarı açık. Pro-rata, poliçe döneminin gerçek gün sayısıyla (365/366) hesaplanır; kısa dönem oranı tarife tablosundan.
 **Gerekçe:** Sınır günlerinin iki dilime birden düşmesini engeller; PostgreSQL `daterange '[)'` ve EXCLUDE kısıtlarıyla uyumlu.
-**Durum:** A3'te test edilecek (29 Şubat, yıl sonu).
+**Durum:** A3'te uygulandı ve test edildi (ADR-9; `internal/proration`: 2027-06-01→2028-06-01 = 366 gün, 2028-02-29 tarihli zeyil/iptal, yıl sonu).
 
 ## ADR-4 — Eşzamanlılık ve idempotans
 
@@ -47,6 +47,33 @@ A0'da onaylanan beş karar ve A2'de eklenen iki karar. Uygulanmayan kısımlar i
 **Karar:** Teklif için tarife, istek anına göre değil `term_start` gününe göre seçilir: `status = 'ACTIVE' AND valid_from <= term_start < valid_to` (valid_to NULL = süresiz). Seçim tek bir saf fonksiyonda (`pricing.SelectTariff`); veritabanındaki EXCLUDE kısıtı aynı üründe çakışan iki ACTIVE sürümü zaten engeller.
 **Gerekçe:** Prim, sigortanın başladığı günün tarifesiyle hesaplanmalı; istek saati teklifin tekrar hesaplanmasında sonucu değiştirmemeli (determinizm).
 **Kanıt:** `TestSelectTariffByStartDate` (valid_to günü yeni sürüm, bir gün önce eski), entegrasyonda `TestQuoteUsesTariffValidOnTermStart`, `make verify` `T-1 tarife-tarihi`.
+
+## ADR-8 — Poliçe sürümleri değişmez (A3)
+
+**Karar:** `policy_versions` ve `policy_version_coverages` değiştirilemez/silinemez; tek izinli değişiklik açık sürümün `effective_to` alanının bir kez NULL → tarih olarak kapatılmasıdır. `00003_policy_version_guard.sql` ile veritabanında da zorlanır (BEFORE UPDATE/DELETE tetikleyicisi; `to_jsonb(NEW) - 'effective_to' = to_jsonb(OLD) - 'effective_to'` karşılaştırması sonradan eklenecek kolonları da kapsar). Zeyil: açık sürüm zeyil tarihinde kapanır, aynı tarihte yeni sürüm açılır; iptal: açık sürüm iptal tarihinde kapanır, yeni sürüm açılmaz. Hepsi tek transaction, poliçe satırı `FOR UPDATE`.
+**Gerekçe:** "Geçmiş bir tarihte geçerli teminat" sorusunun cevabı hiçbir zaman değişmemeli; hasar (A4) bağlandığı sürümün sonradan değişmediğine güvenebilmeli. Uygulama hatası bile geçmişi bozamaz.
+**Bedel / sonuçlar:**
+- `policy_versions.endorsement_id` kullanılmaz (NULL kalır): şemadaki döngüsel FK'ler ertelenebilir değil ve araç değişikliğinde `endorsements.to_version_id` zorunlu (CHECK); bağı doldurmanın tek yolu sürümü sonradan UPDATE etmek olurdu, bu da kurala aykırı. Sürüm ↔ zeyil bağı `endorsements.from_version_id/to_version_id` ile tutulur.
+- **Geriye dönük zincir yok:** zeyil tarihi açık sürümün başlangıcından sonra olmalı; son zeyilden önceki bir tarihe zeyil yapılamaz (422 `INVALID_EFFECTIVE_DATE`).
+- **Sıfır uzunlukta sürüm yok:** `CHECK (effective_to > effective_from)` (00001). İptal tarihi açık sürümün başlangıç günüyse (ör. başlangıçtan iptal) sürüm kapatılamaz; açık kalır ve teminat poliçe düzeyindeki `cancel_effective_date` ile sona erer. Bu yüzden "tarihte teminat" sorgusu her zaman poliçe sınırlarını da uygular (`policy.VersionOn`: [start_date, end_date) ve iptal tarihinden önce) — son sürümün `effective_to`'su zaten NULL olduğundan bu kırpma her durumda gerekli.
+**Kanıt:** `TestPolicyVersionsAreImmutable` (doğrudan SQL ile UPDATE/DELETE → 55000), `TestMigrationsUpDownUp` (00003 dahil Up/Down/Up), `TestProRataCancellationOnStartDay`.
+
+## ADR-9 — Zeyil ve iptalde prim hesabı (A3)
+
+**Karar:** Saf `internal/proration` paketi (DB/saat yok, tam sayı). Dönem gün sayısı = `end − start` (gerçek gün; 29 Şubat varsa 366), geçen = `tarih − start`, kalan = `end − tarih`, aralıklar `[)`.
+- **Araç değişikliği:** yeni yıllık prim, poliçenin **orijinal tarife sürümüyle** (`policy_versions.tariff_version_id`) ve yalnızca araç alanları değişmiş risk girdisiyle T-1 motorundan hesaplanır (sözleşme şartları düzenleme anında sabitlenir). `delta = (yeni − eski) × kalan / dönem`.
+- **İptal (KURGUSAL iş varsayımı):** müşteri talebi → kısa dönem (kazanılmış = açık sürüm yıllık primi × oran(geçen gün), iade = yazılmış − kazanılmış, ≥ 0); şirket kaynaklı (UNDERWRITER, NON_PAYMENT, OTHER) → gün esaslı (iade = yıllık × kalan / dönem, yazılmış primle sınırlı). Yazılmış prim = ilk prim + tüm zeyil farkları. Tahsilatla mahsup A5'te; iade şimdilik yalnızca `endorsements.premium_delta_kurus` (negatif) ve `calc_detail`'e yazılır.
+- **Yuvarlama:** kuruşa yarımı yukarı; negatif tutarlarda mutlak değer üzerinden (sıfırdan uzağa, `HALF_AWAY_FROM_ZERO`). Böylece +X ve −X yıllık fark aynı büyüklükte delta üretir (−2,5 → −3).
+- `calc_detail` adım adım: dönem günü, artık yıl, geçen/kalan gün, kullanılan oran/bant, eski/yeni yıllık prim, pay/payda, yuvarlama öncesi (4 ondalık) ve sonrası, okunur Türkçe adımlar.
+**Gerekçe:** Hesap ile veri erişimini ayırmak artık yıl/sınır/yuvarlama durumlarını DB'siz ve deterministik test etmeyi sağlar; önizleme ve kayıt aynı plan fonksiyonundan geçer (önizlenen = kaydedilen).
+**Kanıt:** `TestGoldenVehicleChange` (199.670 kuruş), `TestGoldenShortPeriodCancellation` (250.150 kuruş), `TestProRataCancellation` (721.924 kuruş), `TestCancellationOnLeapDay`, `TestCancellationBoundaries`; `make verify` T-2 satırları (beklenen tutarlar betikte bağımsız yeniden hesaplanır).
+
+## Ek notlar (A3)
+
+- **İyimser sürüm kontrolü:** zeyil/iptal isteğinde isteğe bağlı `base_version_no`; önizlemeden sonra poliçe değiştiyse 409 `STALE_VERSION` (önizlenen tutar ile kaydedilenin farklı çıkmasını önler). Arayüz her zaman gönderir.
+- **İkinci savunma hattı:** kilit atlanırsa sürüm/zeyil benzersizlik ve dışlama kısıtları 409 `CONCURRENT_MODIFICATION`'a, `policies.quote_id` 409 `QUOTE_ALREADY_CONVERTED`'a çevrilir (`db.Violates`); açık sürümü kapatma ve poliçeyi iptal etme koşullu UPDATE'tir (`WHERE effective_to IS NULL`, `WHERE status = 'ACTIVE'`).
+- **Limit değişikliği** zeyilde katalog limitine kadar düşürülebilir/geri yükseltilebilir; prim etkilenmez (örnek tarifede prim teminat başına sabit tabandan hesaplanır). Kullanılan tutarın altına düşemez (422 `LIMIT_BELOW_USAGE`; bakiyede koşullu UPDATE `used_kurus <= yeni limit`).
+- **Rol kuralı:** zeyil AGENT/UNDERWRITER; iptalde AGENT yalnızca `CUSTOMER_REQUEST` (diğer gerekçeler 403), `NON_PAYMENT` elle yalnızca UNDERWRITER (otomatik kural A5'te).
 
 ## Ek notlar (A2)
 

@@ -1,9 +1,10 @@
 openapi: 3.0.3
 info:
   title: GüvenPoliçe API
-  version: 0.2.0
+  version: 0.3.0
   description: |
-    A1–A2 kapsamı: sağlık, metrik, kimlik doğrulama, müşteri listesi, tarife, teklif (F-1/T-1), poliçe listesi.
+    A1–A3 kapsamı: sağlık, metrik, kimlik doğrulama, müşteri listesi, tarife, teklif (F-1/T-1),
+    poliçe listesi/detayı, tarihte teminat, araç değişikliği zeyli ve iptal (F-2/T-2).
     Para alanları kuruş cinsinden tam sayıdır (`*_kurus`); oranlar bp (10000 = ×1).
     Erişim kuralı: rol uca hiç erişemiyorsa 403; erişebiliyor ama kayıt kapsam dışındaysa 404.
     Listeler keyset sayfalıdır: `?limit=` (1–100) ve önceki yanıttaki opak `next_cursor`.
@@ -270,7 +271,7 @@ paths:
         "400": { description: IDEMPOTENCY_KEY_REQUIRED, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
-        "409": { description: QUOTE_NOT_CONVERTIBLE veya IDEMPOTENCY_IN_PROGRESS, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "409": { description: QUOTE_NOT_CONVERTIBLE, QUOTE_ALREADY_CONVERTED (benzersizlik ikinci savunma hattı) veya IDEMPOTENCY_IN_PROGRESS, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "422": { description: QUOTE_EXPIRED, TERM_START_IN_PAST veya IDEMPOTENCY_KEY_REUSED, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
   /api/v1/policies:
@@ -293,6 +294,157 @@ paths:
                   next_cursor: { type: string, nullable: true }
         "400": { $ref: "#/components/responses/ValidationError" }
         "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/policies/{id}:
+    get:
+      summary: Poliçe detayı — tüm sürümler, teminatlar, zeyiller, limit bakiyeleri, prim özeti
+      description: Erişim poliçe listesiyle aynı (CUSTOMER/AGENT kendi; UNDERWRITER, CLAIMS_ADJUSTER, ACCOUNTING tümü; APPRAISER 403). Kapsam dışı → 404.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200":
+          description: Poliçe
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/PolicyDetail" } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/policies/{id}/coverage:
+    get:
+      summary: Verilen tarihte geçerli sürüm ve teminatlar
+      description: |
+        Sürüm aralığı [effective_from, effective_to) ve poliçe sınırları birlikte uygulanır:
+        tarih [start_date, end_date) içinde ve (iptal varsa) cancel_effective_date'ten önce olmalı.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: date, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: O gün geçerli sürüm
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  policy_id: { type: integer, format: int64 }
+                  policy_no: { type: string }
+                  policy_status: { type: string }
+                  date: { type: string, format: date }
+                  version: { $ref: "#/components/schemas/PolicyVersion" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "404": { description: "NOT_FOUND (poliçe yok/kapsam dışı) veya NO_COVERAGE_ON_DATE (dönem dışı ya da iptal sonrası)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/policies/{id}/endorsements/preview:
+    post:
+      summary: Araç değişikliği zeyli önizlemesi — kaydetmez (AGENT, UNDERWRITER)
+      description: |
+        Yeni yıllık prim poliçenin ORİJİNAL tarife sürümüyle (T-1 motoru) hesaplanır; yalnızca araç grubu/plaka değişir.
+        Fark = (yeni − eski yıllık) × kalan gün / dönem günü, kuruşa yarımı yukarı (negatifte sıfırdan uzağa).
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/VehicleChangeRequest" } }
+      responses:
+        "200":
+          description: Hesap dökümü
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/VehicleChangePreview" } }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: STALE_VERSION (base_version_no güncel değil), content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: "INVALID_EFFECTIVE_DATE, POLICY_CANCELLED, POLICY_NOT_ACTIVE, NOT_A_VEHICLE_POLICY, NO_CHANGE, LIMIT_BELOW_USAGE", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/policies/{id}/endorsements:
+    post:
+      summary: Araç değişikliği zeyli (AGENT, UNDERWRITER; Idempotency-Key zorunlu)
+      description: |
+        Tek transaction, poliçe satırı FOR UPDATE: açık sürüm effective_to = zeyil tarihi ile kapanır, effective_from = zeyil
+        tarihi olan yeni sürüm açılır, zeyil (endorsement_no sıradaki) ve audit yazılır. Limit değişikliği bakiyeye
+        koşullu UPDATE ile yansır (used ≤ yeni limit). Zeyil tarihi açık sürümün başlangıcından sonra ve poliçe bitişinden önce olmalı.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 255 } }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/VehicleChangeRequest" } }
+      responses:
+        "201":
+          description: Zeyil ve yeni sürüm
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  endorsement: { $ref: "#/components/schemas/Endorsement" }
+                  version: { $ref: "#/components/schemas/PolicyVersion" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: "STALE_VERSION, CONCURRENT_MODIFICATION, IDEMPOTENCY_IN_PROGRESS", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: "Önizlemeyle aynı iş hataları; IDEMPOTENCY_KEY_REUSED", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/policies/{id}/cancel/preview:
+    post:
+      summary: İptal önizlemesi — iade tutarı ve adımlar, kaydetmez
+      description: |
+        CUSTOMER_REQUEST → kısa dönem (kazanılmış = yıllık × oran(geçen gün); iade = yazılmış − kazanılmış, ≥ 0).
+        UNDERWRITER / NON_PAYMENT / OTHER → gün esaslı (iade = yıllık × kalan / dönem, ≤ yazılmış).
+        AGENT yalnızca CUSTOMER_REQUEST verebilir (diğerleri 403); UNDERWRITER her gerekçeyi.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/CancelRequest" } }
+      responses:
+        "200":
+          description: İade hesabı
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/CancelPreview" } }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: STALE_VERSION, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: "INVALID_EFFECTIVE_DATE, POLICY_CANCELLED, POLICY_NOT_ACTIVE, SHORT_PERIOD_RATE_MISSING", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/policies/{id}/cancel:
+    post:
+      summary: Poliçe iptali (AGENT yalnızca CUSTOMER_REQUEST, UNDERWRITER her gerekçe; Idempotency-Key zorunlu)
+      description: |
+        Açık sürüm iptal tarihinde kapanır (yeni sürüm açılmaz); poliçe CANCELLED, cancel_effective_date ve cancel_reason dolar;
+        iade CANCELLATION zeyline premium_delta (negatif) ve calc_detail olarak yazılır. Tahsilat mahsubu A5'te.
+        İptal tarihi açık sürümün başlangıç günüyse (ör. başlangıçtan iptal) sürüm kapatılamaz (sıfır uzunlukta aralık
+        CHECK ile yasak); teminat poliçe düzeyindeki iptal tarihiyle sona erer.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 255 } }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/CancelRequest" } }
+      responses:
+        "201":
+          description: İptal zeyli ve güncel poliçe
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  endorsement: { $ref: "#/components/schemas/Endorsement" }
+                  policy: { type: object }
+                  refund_kurus: { type: integer, format: int64 }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: "STALE_VERSION, CONCURRENT_MODIFICATION, IDEMPOTENCY_IN_PROGRESS", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: "Önizlemeyle aynı iş hataları; IDEMPOTENCY_KEY_REUSED", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
 components:
   parameters:
@@ -501,3 +653,142 @@ components:
         status: { type: string }
         annual_premium_kurus: { type: integer, format: int64 }
         vehicle_plate: { type: string, nullable: true }
+    PolicyVersion:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        version_no: { type: integer }
+        effective_from: { type: string, format: date }
+        effective_to: { type: string, format: date, nullable: true, description: "null = açık (son sürüm); bitiş poliçeden gelir" }
+        tariff_version_id: { type: integer, format: int64 }
+        tariff_version_no: { type: integer }
+        vehicle_plate: { type: string, nullable: true }
+        risk: { type: object }
+        annual_premium_kurus: { type: integer, format: int64 }
+        annual_limit_kurus: { type: integer, format: int64, nullable: true }
+        recorded_at: { type: string, format: date-time }
+        endorsement_no: { type: integer, nullable: true, description: Bu sürümü açan zeyil (ilk sürümde null) }
+        coverages: { type: array, items: { $ref: "#/components/schemas/Coverage" } }
+    CalcDetail:
+      type: object
+      description: Adım adım hesap kaydı (endorsements.calc_detail)
+      properties:
+        kind: { type: string, enum: [VEHICLE_CHANGE, CANCELLATION] }
+        method: { type: string, enum: [PRO_RATA, SHORT_PERIOD] }
+        reason: { type: string }
+        period_start: { type: string, format: date }
+        period_end: { type: string, format: date }
+        period_days: { type: integer }
+        leap_day_in_period: { type: boolean }
+        effective_date: { type: string, format: date }
+        elapsed_days: { type: integer }
+        remaining_days: { type: integer }
+        old_annual_premium_kurus: { type: integer, format: int64 }
+        new_annual_premium_kurus: { type: integer, format: int64 }
+        annual_difference_kurus: { type: integer, format: int64 }
+        annual_premium_kurus: { type: integer, format: int64 }
+        written_premium_kurus: { type: integer, format: int64 }
+        short_period_band: { type: object, properties: { from_day: { type: integer }, to_day: { type: integer, nullable: true }, rate_bp: { type: integer } } }
+        earned_premium_kurus: { type: integer, format: int64 }
+        refund_kurus: { type: integer, format: int64 }
+        numerator: { type: integer, format: int64 }
+        denominator: { type: integer, format: int64 }
+        unrounded_kurus: { type: string, example: "199670.0712" }
+        rounded_kurus: { type: integer, format: int64 }
+        rounding: { type: string, enum: [HALF_AWAY_FROM_ZERO] }
+        premium_delta_kurus: { type: integer, format: int64, description: "+ ek prim, − iade" }
+        steps: { type: array, items: { type: string } }
+        tariff_version_id: { type: integer, format: int64 }
+        from_version_no: { type: integer }
+        to_version_no: { type: integer }
+        version_closed: { type: boolean }
+        note: { type: string }
+    Endorsement:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        endorsement_no: { type: integer }
+        type: { type: string, enum: [VEHICLE_CHANGE, CANCELLATION] }
+        effective_date: { type: string, format: date }
+        from_version_id: { type: integer, format: int64 }
+        to_version_id: { type: integer, format: int64, nullable: true }
+        premium_delta_kurus: { type: integer, format: int64 }
+        calc_detail: { $ref: "#/components/schemas/CalcDetail" }
+        created_by: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+    PolicyDetail:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        policy_no: { type: string }
+        product: { $ref: "#/components/schemas/Product" }
+        customer_id: { type: integer, format: int64 }
+        customer_name: { type: string }
+        agent_id: { type: integer, format: int64, nullable: true }
+        quote_id: { type: integer, format: int64, nullable: true }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date }
+        period_days: { type: integer }
+        status: { type: string, enum: [ACTIVE, CANCELLED, EXPIRED] }
+        cancelled_at: { type: string, format: date-time, nullable: true }
+        cancel_effective_date: { type: string, format: date, nullable: true }
+        cancel_reason: { type: string, nullable: true }
+        premium:
+          type: object
+          properties:
+            initial_premium_kurus: { type: integer, format: int64 }
+            endorsement_deltas_kurus: { type: integer, format: int64 }
+            written_premium_kurus: { type: integer, format: int64 }
+            cancellation_refund_kurus: { type: integer, format: int64 }
+            net_premium_kurus: { type: integer, format: int64 }
+        versions: { type: array, items: { $ref: "#/components/schemas/PolicyVersion" } }
+        endorsements: { type: array, items: { $ref: "#/components/schemas/Endorsement" } }
+        limit_balances: { type: array, items: { type: object } }
+    VehicleChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [effective_date]
+      properties:
+        effective_date: { type: string, format: date }
+        vehicle_group: { type: string, description: Boşsa değişmez }
+        plate: { type: string, description: Boşsa değişmez }
+        coverage_limits: { type: object, additionalProperties: { type: integer, format: int64 }, description: "teminat → yeni limit (kuruş); 1 ≤ limit ≤ katalog limiti; kullanılanın altına düşemez" }
+        base_version_no: { type: integer, description: "Önizlenen açık sürüm; değiştiyse 409 STALE_VERSION" }
+    VehicleChangePreview:
+      type: object
+      properties:
+        policy_id: { type: integer, format: int64 }
+        type: { type: string, enum: [VEHICLE_CHANGE] }
+        effective_date: { type: string, format: date }
+        base_version_no: { type: integer }
+        new_version_no: { type: integer }
+        old_annual_premium_kurus: { type: integer, format: int64 }
+        new_annual_premium_kurus: { type: integer, format: int64 }
+        premium_delta_kurus: { type: integer, format: int64 }
+        vehicle_plate: { type: string }
+        vehicle_group: { type: string }
+        coverages: { type: array, items: { $ref: "#/components/schemas/Coverage" } }
+        lines: { type: array, items: { $ref: "#/components/schemas/PremiumLine" } }
+        calc_detail: { $ref: "#/components/schemas/CalcDetail" }
+    CancelRequest:
+      type: object
+      additionalProperties: false
+      required: [effective_date, reason]
+      properties:
+        effective_date: { type: string, format: date }
+        reason: { type: string, enum: [CUSTOMER_REQUEST, UNDERWRITER, NON_PAYMENT, OTHER] }
+        note: { type: string, maxLength: 1000 }
+        base_version_no: { type: integer }
+    CancelPreview:
+      type: object
+      properties:
+        policy_id: { type: integer, format: int64 }
+        effective_date: { type: string, format: date }
+        reason: { type: string }
+        method: { type: string, enum: [PRO_RATA, SHORT_PERIOD] }
+        base_version_no: { type: integer }
+        written_premium_kurus: { type: integer, format: int64 }
+        refund_kurus: { type: integer, format: int64 }
+        premium_delta_kurus: { type: integer, format: int64 }
+        closes_version: { type: boolean }
+        calc_detail: { $ref: "#/components/schemas/CalcDetail" }
