@@ -15,6 +15,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/audit"
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
+	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/page"
@@ -110,6 +111,18 @@ func (s *Service) Report(ctx context.Context, req ReportRequest) (Claim, error) 
 		if err != nil {
 			return err
 		}
+		if key := idempotency.Key(ctx); key != nil {
+			var existing int64
+			err := tx.QueryRow(ctx, `
+    SELECT id FROM claims WHERE created_by=$1 AND request_key=$2 AND policy_id=$3`, p.UserID, key, h.ID).Scan(&existing)
+			if err == nil {
+				out, err = load(ctx, tx, existing, false)
+				return err
+			}
+			if !errors.Is(err, pgx.ErrNoRows) {
+				return err
+			}
+		}
 		v, err := policy.VersionOn(ctx, tx, h.ID, h.Product, loss)
 		if errors.Is(err, policy.ErrNoCoverage) {
 			return httpx.NewError(422, "NO_COVERAGE_ON_DATE", "hasar tarihinde geçerli teminat yok")
@@ -138,8 +151,8 @@ func (s *Service) Report(ctx context.Context, req ReportRequest) (Claim, error) 
 		}
 		var id int64
 		err = tx.QueryRow(ctx, `WITH n AS (SELECT nextval(pg_get_serial_sequence('claims','id')) AS id)
-   INSERT INTO claims (id,claim_no,policy_id,policy_version_id,coverage_code,loss_date,plate,workshop_id,description,claimed_amount_kurus,created_by)
-   OVERRIDING SYSTEM VALUE SELECT n.id,'GP-H-'||lpad(n.id::text,greatest(8,length(n.id::text)),'0'),$1,$2,$3,$4,$5,$6,$7,$8,$9 FROM n RETURNING id`, h.ID, v.ID, req.CoverageCode, loss, v.VehiclePlate, req.WorkshopID, req.Description, *req.ClaimedAmountKurus, p.UserID).Scan(&id)
+   INSERT INTO claims (id,claim_no,policy_id,policy_version_id,coverage_code,loss_date,plate,workshop_id,description,claimed_amount_kurus,created_by,request_key)
+   OVERRIDING SYSTEM VALUE SELECT n.id,'GP-H-'||lpad(n.id::text,greatest(8,length(n.id::text)),'0'),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10 FROM n RETURNING id`, h.ID, v.ID, req.CoverageCode, loss, v.VehiclePlate, req.WorkshopID, req.Description, *req.ClaimedAmountKurus, p.UserID, idempotency.Key(ctx)).Scan(&id)
 		if err != nil {
 			return err
 		}
@@ -152,7 +165,7 @@ func (s *Service) Report(ctx context.Context, req ReportRequest) (Claim, error) 
 		}
 		return audit.Write(ctx, tx, audit.Entry{Action: "CLAIM_REPORTED", EntityType: "claim", EntityID: id, New: out})
 	})
-	return out, err
+	return out, idempotency.Conflict(err)
 }
 func (s *Service) Get(ctx context.Context, id int64) (Detail, error) {
 	c, err := s.visible(ctx, s.pool, id, false)

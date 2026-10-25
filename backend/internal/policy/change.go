@@ -16,6 +16,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/audit"
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
+	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
 	"github.com/EnesGoker/guvenpolice/backend/internal/payment/store"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
@@ -414,7 +415,25 @@ func (s *ChangeService) PreviewVehicleChange(ctx context.Context, id int64, req 
 func (s *ChangeService) VehicleChange(ctx context.Context, id int64, req VehicleChangeRequest) (VehicleChangeResult, error) {
 	var out VehicleChangeResult
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		pl, err := s.planVehicle(ctx, tx, id, req, true)
+		detail, prior, err := s.replayChange(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if prior != nil {
+			out.Endorsement = *prior
+			var calc CalcDetail
+			if err := json.Unmarshal(prior.CalcDetail, &calc); err != nil {
+				return err
+			}
+			out.CashRefundKurus = calc.CashRefundKurus
+			for _, v := range detail.Versions {
+				if prior.ToVersionID != nil && v.ID == *prior.ToVersionID {
+					out.Version = v
+				}
+			}
+			return nil
+		}
+		pl, err := s.planVehicle(ctx, tx, id, req, false)
 		if err != nil {
 			return err
 		}
@@ -626,7 +645,18 @@ func (s *ChangeService) Cancel(ctx context.Context, id int64, req CancelRequest)
 // HTTP rol kuralı router'da kalır; sistem çağrısında aktör ACCOUNTING kullanıcısıdır.
 func (s *ChangeService) CancelTx(ctx context.Context, tx pgx.Tx, id int64, req CancelRequest) (CancelResult, error) {
 	var out CancelResult
-	pl, err := s.planCancel(ctx, tx, id, req, true)
+	detail, prior, err := s.replayChange(ctx, tx, id)
+	if err != nil {
+		return out, err
+	}
+	if prior != nil {
+		var calc CalcDetail
+		if err := json.Unmarshal(prior.CalcDetail, &calc); err != nil {
+			return out, err
+		}
+		return CancelResult{Endorsement: *prior, Policy: detail.Header, RefundKurus: -prior.PremiumDelta, CashRefundKurus: calc.CashRefundKurus}, nil
+	}
+	pl, err := s.planCancel(ctx, tx, id, req, false)
 	if err != nil {
 		return out, err
 	}
@@ -695,16 +725,17 @@ func insertEndorsement(ctx context.Context, tx pgx.Tx, policyID int64, typ strin
 		PremiumDelta: delta, CalcDetail: calcJSON, CreatedBy: p.UserID}
 	err = tx.QueryRow(ctx, `
 		INSERT INTO endorsements (policy_id, endorsement_no, type, effective_date, from_version_id, to_version_id,
-		                          premium_delta_kurus, calc_detail, created_by)
+		                          premium_delta_kurus, calc_detail, created_by, request_key)
 		VALUES ($1, (SELECT COALESCE(max(endorsement_no), 0) + 1 FROM endorsements WHERE policy_id = $1),
-		        $2, $3, $4, $5, $6, $7, $8)
+		        $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, endorsement_no, created_at`,
-		policyID, typ, at, fromVersion, toVersion, delta, calcJSON, p.UserID).Scan(&e.ID, &e.EndorsementNo, &e.CreatedAt)
+		policyID, typ, at, fromVersion, toVersion, delta, calcJSON, p.UserID, idempotency.Key(ctx)).Scan(&e.ID, &e.EndorsementNo, &e.CreatedAt)
 	return e, err
 }
 
 // concurrentChange kilit atlanırsa devreye girecek kısıt ihlallerini 409'a çevirir (ikinci savunma hattı).
 func concurrentChange(err error) error {
+	err = idempotency.Conflict(err)
 	if db.Violates(err, "policy_versions_policy_id_version_no_key", "policy_versions_policy_id_daterange_excl",
 		"endorsements_policy_id_endorsement_no_key") {
 		return httpx.NewError(http.StatusConflict, "CONCURRENT_MODIFICATION",

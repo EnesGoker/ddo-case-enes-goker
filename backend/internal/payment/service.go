@@ -17,6 +17,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/billing"
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
+	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
 	"github.com/EnesGoker/guvenpolice/backend/internal/payment/store"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
@@ -66,6 +67,7 @@ func accrualDate(h policy.Header, at time.Time) time.Time {
 }
 
 func concurrencyError(err error) error {
+	err = idempotency.Conflict(err)
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) && pg.Code == "23514" && (pg.TableName == "installments" || pg.TableName == "late_interest_charges") {
 		return httpx.NewError(http.StatusConflict, "CONCURRENT_PAYMENT", "ödenmiş tutar eşzamanlı değişti; güncel bakiyeyi okuyun")
@@ -108,6 +110,15 @@ func (s *Service) Pay(ctx context.Context, id int64, req PayRequest) (store.Paym
 		if err != nil {
 			return err
 		}
+
+		previous, found, err := store.FindPayment(ctx, tx, h.ID, p.UserID, idempotency.Key(ctx))
+		if err != nil {
+			return err
+		}
+		if found {
+			out = previous
+			return nil
+		}
 		state, err := store.Load(ctx, tx, id)
 		if err != nil {
 			return err
@@ -133,7 +144,7 @@ func (s *Service) Pay(ctx context.Context, id int64, req PayRequest) (store.Paym
 		if err != nil {
 			return err
 		}
-		out, err = store.InsertPayment(ctx, tx, id, "PAYMENT", *req.AmountKurus, req.Method, nil, at, p.UserID, "Prim tahsilatı")
+		out, err = store.InsertPayment(ctx, tx, id, "PAYMENT", *req.AmountKurus, req.Method, nil, at, p.UserID, "Prim tahsilatı", idempotency.Key(ctx))
 		if err != nil {
 			return err
 		}
@@ -171,6 +182,15 @@ func (s *Service) Refund(ctx context.Context, id int64, req RefundRequest) (stor
 		h, err := s.target(ctx, tx, policyID, true)
 		if err != nil {
 			return err
+		}
+
+		previous, found, err := store.FindPayment(ctx, tx, h.ID, p.UserID, idempotency.Key(ctx))
+		if err != nil {
+			return err
+		}
+		if found {
+			out = previous
+			return nil
 		}
 		if h.Status != "ACTIVE" {
 			return httpx.NewError(http.StatusConflict, "REFUND_REQUIRES_ACTIVE_POLICY", "manuel iade yalnızca ACTIVE poliçede yapılabilir")
@@ -225,7 +245,7 @@ func (s *Service) Refund(ctx context.Context, id int64, req RefundRequest) (stor
 		if err != nil {
 			return err
 		}
-		out, err = store.InsertPayment(ctx, tx, policyID, "REFUND", *req.AmountKurus, method, &id, at, p.UserID, req.Reason)
+		out, err = store.InsertPayment(ctx, tx, policyID, "REFUND", *req.AmountKurus, method, &id, at, p.UserID, req.Reason, idempotency.Key(ctx))
 		if err != nil {
 			return err
 		}

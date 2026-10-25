@@ -22,12 +22,12 @@ type Payment struct {
 	Reference      string    `json:"reference"`
 }
 
-func InsertPayment(ctx context.Context, tx pgx.Tx, policyID int64, kind string, amount int64, method string, refundOf *int64, at time.Time, actor int64, reference string) (Payment, error) {
+func InsertPayment(ctx context.Context, tx pgx.Tx, policyID int64, kind string, amount int64, method string, refundOf *int64, at time.Time, actor int64, reference string, requestKey *string) (Payment, error) {
 	p := Payment{PolicyID: policyID, Kind: kind, AmountKurus: amount, Method: method, RefundOf: refundOf, PaidAt: at, Reference: reference}
 	err := tx.QueryRow(ctx, `
   INSERT INTO payments
-         (policy_id, kind, amount_kurus, method, refund_of_payment_id, paid_at, created_by, reference)
-  VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, policyID, kind, amount, method, refundOf, at, actor, reference).Scan(&p.ID)
+         (policy_id, kind, amount_kurus, method, refund_of_payment_id, paid_at, created_by, reference, request_key)
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`, policyID, kind, amount, method, refundOf, at, actor, reference, requestKey).Scan(&p.ID)
 	if err != nil {
 		return p, err
 	}

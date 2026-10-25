@@ -110,7 +110,7 @@ func CashRefund(ctx context.Context, tx pgx.Tx, policyID, amount int64, at time.
 		if part <= 0 {
 			continue
 		}
-		if _, err := InsertPayment(ctx, tx, policyID, "REFUND", part, p.Method, &p.ID, at, actor, fmt.Sprintf("Prim azalışından nakit iade (etki %s)", caldate.Format(effective))); err != nil {
+		if _, err := InsertPayment(ctx, tx, policyID, "REFUND", part, p.Method, &p.ID, at, actor, fmt.Sprintf("Prim azalışından nakit iade (etki %s)", caldate.Format(effective)), nil); err != nil {
 			return err
 		}
 		remaining -= part

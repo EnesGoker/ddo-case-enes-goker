@@ -4,9 +4,8 @@
 // saklanır (5xx'te kayıt silinir, tekrar denenebilir). Aynı anahtar + aynı istek → saklı yanıt
 // aynen döner; aynı anahtar + farklı istek → 422; işlem sürerken → 409.
 //
-// Bilinen sınır: handler'ın iş transaction'ı ile yanıtın COMPLETED yazılması ayrı adımlardır.
-// Arada süreç çökerse kayıt IN_PROGRESS kalır; staleAfter süresinden sonra istek yeniden işlenir
-// ve iş kuralları (ör. teklif zaten CONVERTED) ikinci etkiyi engeller.
+// İş transactionı ile yanıt saklama ayrıdır; iş tablosundaki request_key veya mevcut
+// durum/benzersizlik koruması bayat kaydın devralınmasında ikinci etkiyi engeller.
 package idempotency
 
 import (
@@ -14,7 +13,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -88,14 +86,7 @@ func (s *Store) Middleware(next http.Handler) http.Handler {
 				httpx.Error(w, http.StatusUnprocessableEntity, "IDEMPOTENCY_KEY_REUSED",
 					"bu Idempotency-Key farklı bir istek için kullanılmış")
 			case prev.status == "COMPLETED" && prev.respStatus != nil:
-				// JSONB biçimlendirmeyi değiştirir (boşluk, anahtar sırası); ilk yanıtla aynı sıkışık
-				// biçimde dönmek için sıkıştırılır. İçerik anlamca birebir aynıdır.
 				body := prev.respBody
-				var compact bytes.Buffer
-				if json.Compact(&compact, body) == nil {
-					compact.WriteByte('\n')
-					body = compact.Bytes()
-				}
 				w.Header().Set("Content-Type", "application/json; charset=utf-8")
 				w.Header().Set(ReplayedHeader, "true")
 				w.WriteHeader(*prev.respStatus)
@@ -115,7 +106,7 @@ func (s *Store) Middleware(next http.Handler) http.Handler {
 				panic(v)
 			}
 		}()
-		next.ServeHTTP(rec, r)
+		next.ServeHTTP(rec, r.WithContext(WithKey(r.Context(), key)))
 		if rec.status == 0 {
 			rec.status = http.StatusOK
 		}
@@ -183,13 +174,9 @@ func (s *Store) acquire(ctx context.Context, userID int64, key, method, path, ha
 }
 
 func (s *Store) complete(ctx context.Context, userID int64, key string, status int, body []byte) error {
-	var stored any
+	var stored []byte
 	if len(body) > 0 {
-		if json.Valid(body) {
-			stored = json.RawMessage(body)
-		} else {
-			stored = string(body)
-		}
+		stored = body
 	}
 	_, err := s.pool.Exec(ctx, `
 		UPDATE idempotency_keys
