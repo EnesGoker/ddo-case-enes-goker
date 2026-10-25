@@ -125,6 +125,15 @@ func TestBillingInterestAllocationRefundAndDates(t *testing.T) {
 	s, r, _ = postKey(t, account, fmt.Sprintf("/api/v1/payments/%v/refund", p2["id"]), map[string]any{"amount_kurus": 100, "reason": "yeniden aç"}, fmt.Sprintf("reopen-%v", p2["id"]))
 	require.Equal(t, http.StatusCreated, s, r)
 	assert.Equal(t, int64(100), num(billingDetail(t, account, pol)["open_balance_kurus"]))
+	// Sadece faize tahsis edilmiş ödemede iade de faizin paid alanını geri açar.
+	interestOnly := billingPolicy(t, 20, 1, 100000)
+	interestPayment := payBilling(t, account, interestOnly, 100, "interest-only")
+	s, r, _ = postKey(t, account, fmt.Sprintf("/api/v1/payments/%v/refund", interestPayment["id"]), map[string]any{"amount_kurus": 50, "reason": "faiz tahsisini geri al"}, fmt.Sprintf("interest-refund-%v", interestPayment["id"]))
+	require.Equal(t, http.StatusCreated, s, r)
+	interestPlan := billingDetail(t, account, interestOnly)
+	assert.Equal(t, int64(50), num(interestPlan["interest"].([]any)[0].(map[string]any)["paid_kurus"]))
+	assert.Zero(t, num(interestPlan["installments"].([]any)[0].(map[string]any)["paid_kurus"]))
+
 }
 
 func TestBillingPaymentIdempotency(t *testing.T) {
