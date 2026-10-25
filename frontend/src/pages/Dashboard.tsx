@@ -4,6 +4,9 @@ import { useAuth } from '../auth/useAuth'
 import { RequireRole } from '../components/RequireRole'
 import { menuFor, roleLabels } from '../roles'
 import { CustomersPage } from './CustomersPage'
+import { PoliciesPage } from './PoliciesPage'
+import { QuoteFormPage } from './QuoteFormPage'
+import { QuotesPage } from './QuotesPage'
 
 export function Dashboard({ user }: { user: User }) {
   const { logout } = useAuth()
@@ -45,6 +48,13 @@ export function Dashboard({ user }: { user: User }) {
             <CustomersPage />
           </RequireRole>
         )}
+        {current.key === 'new-quote' && (
+          <RequireRole roles={['AGENT']}>
+            <QuoteFormPage />
+          </RequireRole>
+        )}
+        {current.key === 'quotes' && <QuotesPage role={user.role} />}
+        {current.key === 'policies' && <PoliciesPage />}
         {!current.ready && (
           <div className="notice">Bu ekran {current.phase} aşamasında eklenecek; henüz uygulanmadı.</div>
         )}

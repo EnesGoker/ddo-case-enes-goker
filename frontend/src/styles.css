@@ -124,3 +124,32 @@ th { font-size: 13px; color: var(--muted); }
   td { display: flex; justify-content: space-between; border: 0; padding: 4px 12px; }
   td::before { content: attr(data-label); color: var(--muted); font-size: 13px; }
 }
+
+/* A2: form, döküm ve detay */
+.num { text-align: right; white-space: nowrap; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin: 14px 0; }
+.panel h3 { margin: 0 0 10px; font-size: 17px; }
+tfoot td { font-weight: 600; }
+.total-row td { font-size: 16px; border-top: 2px solid var(--text); }
+.base-row td { background: #f8fafc; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover, tr.selected { background: #eef4fc; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; align-items: end; }
+.form-grid label, .review label { display: grid; gap: 4px; font-size: 14px; }
+.form-grid .coverages, .form-grid .actions, .form-grid .notice { grid-column: 1 / -1; }
+select, textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); width: 100%; }
+fieldset.coverages { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: grid; gap: 8px; }
+label.check { display: flex; gap: 8px; align-items: center; }
+label.check input { width: auto; margin: 0; }
+label.inline { display: inline-flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+label.inline select { width: auto; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+button.danger { background: var(--danger-text); border-color: var(--danger-text); }
+.notice.success { background: #e9f7ef; color: #1d5e36; border-color: transparent; }
+.notice.warn { background: #fff6e0; color: #6b4b00; border-color: transparent; }
+@media (max-width: 720px) {
+  tfoot tr { display: flex; justify-content: space-between; }
+  tfoot td { display: block; border: 0; }
+  tfoot td::before { content: none; }
+}

@@ -21,9 +21,10 @@ export interface MenuItem {
 // Rol bazlı menü. Sunucu her uçta ayrıca yetki denetler; bu liste yalnızca gezinme içindir.
 export const menu: MenuItem[] = [
   { key: 'profile', label: 'Profilim', roles: ['CUSTOMER', 'AGENT', 'UNDERWRITER', 'APPRAISER', 'CLAIMS_ADJUSTER', 'ACCOUNTING'], ready: true },
+  { key: 'new-quote', label: 'Yeni teklif', roles: ['AGENT'], ready: true },
+  { key: 'quotes', label: 'Teklifler', roles: ['AGENT', 'UNDERWRITER', 'CUSTOMER'], ready: true },
+  { key: 'policies', label: 'Poliçeler', roles: ['CUSTOMER', 'AGENT', 'UNDERWRITER', 'CLAIMS_ADJUSTER', 'ACCOUNTING'], ready: true },
   { key: 'customers', label: 'Müşteriler', roles: ['AGENT', 'UNDERWRITER'], ready: true },
-  { key: 'quotes', label: 'Teklifler', roles: ['AGENT', 'UNDERWRITER', 'CUSTOMER'], ready: false, phase: 'A2' },
-  { key: 'policies', label: 'Poliçeler', roles: ['CUSTOMER', 'AGENT', 'UNDERWRITER', 'CLAIMS_ADJUSTER', 'ACCOUNTING'], ready: false, phase: 'A2–A3' },
   { key: 'claims', label: 'Hasar Dosyaları', roles: ['CUSTOMER', 'CLAIMS_ADJUSTER', 'APPRAISER'], ready: false, phase: 'A4' },
   { key: 'appraisals', label: 'Ekspertiz', roles: ['APPRAISER'], ready: false, phase: 'A4' },
   { key: 'payments', label: 'Tahsilat ve Defter', roles: ['ACCOUNTING', 'CUSTOMER'], ready: false, phase: 'A5' },
