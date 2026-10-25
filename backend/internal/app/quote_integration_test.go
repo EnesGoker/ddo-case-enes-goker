@@ -86,8 +86,11 @@ func TestTariffActiveByDate(t *testing.T) {
 	assert.Len(t, body["coverages"], 3)
 	assert.Len(t, body["short_period_rates"], 5)
 
-	status, _ = c.do(http.MethodGet, "/api/v1/tariffs/active?product=KASKO&date=2024-01-01", agent, nil)
-	assert.Equal(t, 404, status)
+	status, body = c.do(http.MethodGet, "/api/v1/tariffs/active?product=KASKO&date=2024-01-01", agent, nil)
+	require.Equal(t, http.StatusOK, status, body)
+	assert.Zero(t, body["version_no"])
+	status, _ = c.do(http.MethodGet, "/api/v1/tariffs/active?product=KASKO&date=0000-12-31", agent, nil)
+	assert.Equal(t, http.StatusNotFound, status)
 	status, _ = c.do(http.MethodGet, "/api/v1/tariffs/active?product=UZAY", agent, nil)
 	assert.Equal(t, 400, status)
 	status, _ = c.do(http.MethodGet, "/api/v1/tariffs/active?product=KASKO", tokenFor(t, "musteri@guvenpolice.test"), nil)
@@ -190,7 +193,7 @@ func TestQuoteValidation(t *testing.T) {
 		details, _ := body["error"].(map[string]any)["details"].(map[string]any)
 		assert.Contains(t, details, field, field)
 	}
-	b := kaskoBody(t, ayse, "2024-06-01")
+	b := kaskoBody(t, ayse, "0000-12-31")
 	status, body := c.do(http.MethodPost, "/api/v1/quotes/preview", agent, b)
 	assert.Equal(t, 422, status)
 	assert.Equal(t, "NO_TARIFF", errCode(body))
