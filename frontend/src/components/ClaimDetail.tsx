@@ -47,7 +47,7 @@ function ClaimView({ claim: c, role, reload }: { claim: ClaimDetail; role: Role;
     {role === 'APPRAISER' && c.status === 'APPRAISAL' && <AppraisalForm claimID={c.id} onDone={reload} />}
     {role === 'CLAIMS_ADJUSTER' && (c.allowed_transitions?.length ?? 0) > 0 && <div>
       <label>Geçiş notu (red ve fraud incelemesi için zorunlu)<textarea maxLength={4000} value={note} onChange={(e) => setNote(e.target.value)} disabled={busy} /></label>
-      <div className="actions">{c.allowed_transitions?.map((to) => <button key={to} disabled={busy || (['REJECTED', 'FRAUD_REVIEW'].includes(to) && !note.trim())} onClick={() => void act('/transition', { to_status: to, note, expected_row_version: c.row_version })}>{statusLabels[to]}</button>)}</div>
+      <div className="actions">{c.allowed_transitions?.map((to) => <button key={to} disabled={busy || (to === 'ADJUSTMENT' && c.appraisals.length === 0) || (['REJECTED', 'FRAUD_REVIEW'].includes(to) && !note.trim())} onClick={() => void act('/transition', { to_status: to, note, expected_row_version: c.row_version })}>{statusLabels[to]}</button>)}</div>
     </div>}
     {role === 'CLAIMS_ADJUSTER' && c.status === 'ADJUSTMENT' && <div className="actions"><button disabled={busy} onClick={() => void act('/settlement/preview')}>Tazminat önizle</button></div>}
     {(preview || c.settlement) && <SettlementSteps result={(c.settlement ?? preview)!} />}

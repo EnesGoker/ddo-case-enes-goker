@@ -665,7 +665,9 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Error"
       description: İzinli geçiş claim_transitions tablosundan doğrulanır; REJECTED için
-        note zorunlu; FRAUD_REVIEW için de note gerekir. Ekspertizsiz FRAUD_REVIEW → ADJUSTMENT 409 APPRAISAL_REQUIRED; → APPRAISAL izinlidir. Claim kilidi + expected_row_version; durum, geçmiş, görev ve audit tek
+        note zorunlu; FRAUD_REVIEW için de note gerekir. ADJUSTMENT'a her girişte
+        ekspertiz gerekir (APPRAISAL ve FRAUD_REVIEW dahil); eksikse 409 APPRAISAL_REQUIRED.
+        FRAUD_REVIEW → APPRAISAL izinlidir. Claim kilidi + expected_row_version; durum, geçmiş, görev ve audit tek
         transaction. APPROVED ve PAID yalnızca mali uçlardan atanır.
       parameters:
       - "$ref": "#/components/parameters/ID"

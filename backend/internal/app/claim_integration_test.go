@@ -330,9 +330,8 @@ func TestClaimValidationAndLedgerRollback(t *testing.T) {
 	assert.Equal(t, 409, s, b)
 	c := transitionClaim(t, adjuster, first, "TRIAGED")
 	c = transitionClaim(t, adjuster, c, "APPRAISAL")
-	c = transitionClaim(t, adjuster, c, "ADJUSTMENT")
-	s, b = newClient(t).do(http.MethodPost, claimPath(c)+"/settlement/preview", adjuster, nil)
-	assert.Equal(t, 422, s, b)
+	s, b = newClient(t).do(http.MethodPost, claimPath(c)+"/transition", adjuster, map[string]any{"to_status": "ADJUSTMENT", "expected_row_version": c["row_version"]})
+	assert.Equal(t, http.StatusConflict, s, b)
 	assert.Equal(t, "APPRAISAL_REQUIRED", errCode(b))
 	var uid int64
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT id FROM users WHERE role='ACCOUNTING' LIMIT 1`).Scan(&uid))
