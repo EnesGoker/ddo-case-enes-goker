@@ -1,9 +1,12 @@
 openapi: 3.0.3
 info:
   title: GüvenPoliçe API
-  version: 0.1.0
+  version: 0.2.0
   description: |
-    A1 kapsamı: sağlık, metrik, kimlik doğrulama ve müşteri listesi.
+    A1–A2 kapsamı: sağlık, metrik, kimlik doğrulama, müşteri listesi, tarife, teklif (F-1/T-1), poliçe listesi.
+    Para alanları kuruş cinsinden tam sayıdır (`*_kurus`); oranlar bp (10000 = ×1).
+    Erişim kuralı: rol uca hiç erişemiyorsa 403; erişebiliyor ama kayıt kapsam dışındaysa 404.
+    Listeler keyset sayfalıdır: `?limit=` (1–100) ve önceki yanıttaki opak `next_cursor`.
     Tüm hatalar `{"error":{"code","message","details?"}}` biçimindedir.
     Refresh token yalnızca httpOnly `gp_refresh` cookie'sinde taşınır (Path=/api/v1/auth, SameSite=Strict).
 servers:
@@ -112,8 +115,8 @@ paths:
         TCKN maskelenmiş döner.
       security: [{ bearerAuth: [] }]
       parameters:
-        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
-        - { name: cursor, in: query, description: Önceki sayfanın next_cursor değeri, schema: { type: string } }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Cursor" }
       responses:
         "200":
           description: Sayfa
@@ -129,7 +132,173 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /api/v1/tariffs/active:
+    get:
+      summary: Ürün ve tarihte geçerli tarife (valid_from <= date < valid_to, ACTIVE)
+      description: Erişim AGENT, UNDERWRITER. date yoksa bugün (Türkiye saati).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: product, in: query, required: true, schema: { $ref: "#/components/schemas/Product" } }
+        - { name: date, in: query, schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: Tarife sürümü, faktörler, teminat kataloğu, kısa dönem tablosu
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Tariff" } }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: NO_TARIFF, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/quotes/preview:
+    post:
+      summary: Primi hesaplar, kaydetmez (AGENT)
+      description: |
+        Tarife, `term_start` tarihine göre seçilir. Yaş müşterinin doğum tarihinden `term_start` gününe göre,
+        bölge müşteri kaydından gelir. Hesap sırası: taban → AGE → NCD → REGION → VEHICLE_GROUP; her adım kuruşa
+        yarımı yukarı yuvarlanır ve bir döküm satırıdır. Toplam = satırlar toplamı.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/QuoteRequest" } }
+      responses:
+        "200":
+          description: Hesap sonucu
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Calculation" } }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { description: NO_TARIFF, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/quotes:
+    post:
+      summary: Teklifi hesaplar ve kaydeder (AGENT)
+      description: Onay kuralı tetiklenirse (sürücü < 21 yaş veya prim > UW_PREMIUM_THRESHOLD_KURUS) durum UW_REVIEW, aksi halde CALCULATED. Geçerlilik 30 gün.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/QuoteRequest" } }
+      responses:
+        "201":
+          description: Kaydedilen teklif (döküm dahil)
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Quote" } }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { description: NO_TARIFF, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    get:
+      summary: Teklif listesi (en yeni önce)
+      description: AGENT kendi acentesininkini, CUSTOMER kendisininkini, UNDERWRITER tümünü görür.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/QuoteStatus" } }
+      responses:
+        "200":
+          description: Sayfa (lines alanı listede yoktur)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Quote" } }
+                  next_cursor: { type: string, nullable: true }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/quotes/{id}:
+    get:
+      summary: Teklif detayı ve döküm satırları
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200":
+          description: Teklif
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Quote" } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/quotes/{id}/review:
+    post:
+      summary: Underwriter kararı (yalnızca UW_REVIEW teklifte)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [APPROVE, REJECT] }
+                note: { type: string, maxLength: 1000, description: REJECT için zorunlu }
+      responses:
+        "200":
+          description: Güncel teklif
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Quote" } }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: QUOTE_INVALID_STATE, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/quotes/{id}/convert:
+    post:
+      summary: Teklifi poliçeye çevirir (AGENT, Idempotency-Key zorunlu)
+      description: |
+        Tek transaction: poliçe, sürüm 1, teminatlar, limit bakiyeleri (her teminat + yıllık toplam), teklif CONVERTED, audit.
+        Yalnızca CALCULATED/APPROVED, süresi dolmamış ve başlangıcı bugün veya sonrası olan teklif.
+        Aynı anahtar + aynı istek → kayıtlı yanıt (Idempotent-Replayed: true). Aynı anahtar + farklı istek → 422.
+        İşlem sürerken aynı anahtar → 409. Farklı anahtarla ikinci çevirme → 409 QUOTE_NOT_CONVERTIBLE.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 255 } }
+      responses:
+        "201":
+          description: Düzenlenen poliçe
+          headers:
+            Idempotent-Replayed: { schema: { type: string, enum: ["true"] }, description: Kayıtlı yanıt döndüyse }
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/IssuedPolicy" } }
+        "400": { description: IDEMPOTENCY_KEY_REQUIRED, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: QUOTE_NOT_CONVERTIBLE veya IDEMPOTENCY_IN_PROGRESS, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: QUOTE_EXPIRED, TERM_START_IN_PAST veya IDEMPOTENCY_KEY_REUSED, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/v1/policies:
+    get:
+      summary: Poliçe listesi (en yeni önce)
+      description: CUSTOMER/AGENT kendi kayıtlarını; UNDERWRITER, CLAIMS_ADJUSTER, ACCOUNTING tümünü görür. APPRAISER 403.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Cursor" }
+      responses:
+        "200":
+          description: Sayfa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/PolicyItem" } }
+                  next_cursor: { type: string, nullable: true }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
 components:
+  parameters:
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+    Cursor: { name: cursor, in: query, description: Önceki sayfanın opak next_cursor değeri, schema: { type: string } }
+    ID: { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
     refreshCookie: { type: apiKey, in: cookie, name: gp_refresh }
@@ -145,6 +314,10 @@ components:
         application/json: { schema: { $ref: "#/components/schemas/Error" } }
     Forbidden:
       description: FORBIDDEN
+      content:
+        application/json: { schema: { $ref: "#/components/schemas/Error" } }
+    NotFound:
+      description: NOT_FOUND (yok veya kapsam dışı)
       content:
         application/json: { schema: { $ref: "#/components/schemas/Error" } }
 
@@ -196,3 +369,135 @@ components:
         agent_id: { type: integer, format: int64, nullable: true }
         email: { type: string, nullable: true }
         phone: { type: string, nullable: true }
+    Product: { type: string, enum: [KASKO, TRAFIK, KONUT] }
+    QuoteStatus: { type: string, enum: [CALCULATED, UW_REVIEW, APPROVED, REJECTED, CONVERTED, EXPIRED] }
+    Coverage:
+      type: object
+      properties:
+        code: { type: string }
+        name: { type: string }
+        required: { type: boolean }
+        limit_kurus: { type: integer, format: int64 }
+        deductible_type: { type: string, enum: [NONE, FIXED, PERCENT_BP] }
+        deductible_value: { type: integer, format: int64 }
+        base_premium_kurus: { type: integer, format: int64 }
+        premium_kurus: { type: integer, format: int64 }
+    Tariff:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        product: { $ref: "#/components/schemas/Product" }
+        version_no: { type: integer }
+        valid_from: { type: string, format: date }
+        valid_to: { type: string, format: date, nullable: true }
+        factor_order: { type: array, items: { type: string } }
+        factors:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string, enum: [AGE, NCD, REGION, VEHICLE_GROUP] }
+              key: { type: string }
+              range: { type: object, properties: { lo: { type: integer }, hi: { type: integer, nullable: true } } }
+              multiplier_bp: { type: integer }
+        coverages: { type: array, items: { $ref: "#/components/schemas/Coverage" } }
+        annual_limit_kurus: { type: integer, format: int64 }
+        short_period_rates:
+          type: array
+          items: { type: object, properties: { from_day: { type: integer }, to_day: { type: integer }, rate_bp: { type: integer } } }
+    QuoteRequest:
+      type: object
+      additionalProperties: false
+      required: [customer_id, product, term_start, coverages]
+      properties:
+        customer_id: { type: integer, format: int64 }
+        product: { $ref: "#/components/schemas/Product" }
+        term_start: { type: string, format: date }
+        ncd_level: { type: integer, description: Tarifede tanımlı kademe }
+        vehicle_group: { type: string, description: KASKO/TRAFIK için zorunlu }
+        plate: { type: string, description: KASKO/TRAFIK için zorunlu; boşluklar silinir, büyük harfe çevrilir }
+        coverages: { type: array, items: { type: string }, description: Zorunlu teminatlar dahil olmalı }
+    PremiumLine:
+      type: object
+      properties:
+        seq: { type: integer }
+        coverage_code: { type: string }
+        line_type: { type: string, enum: [BASE, FACTOR, ROUNDING] }
+        factor_type: { type: string }
+        factor_label: { type: string }
+        multiplier_bp: { type: integer }
+        amount_kurus: { type: integer, format: int64, description: Bu adımın TL etkisi (kuruş, işaretli) }
+    Calculation:
+      type: object
+      properties:
+        customer_id: { type: integer, format: int64 }
+        product: { $ref: "#/components/schemas/Product" }
+        tariff: { type: object, properties: { id: { type: integer }, version_no: { type: integer }, valid_from: { type: string, format: date } } }
+        term_start: { type: string, format: date }
+        term_end: { type: string, format: date }
+        risk: { type: object }
+        selection: { type: object, properties: { coverages: { type: array, items: { $ref: "#/components/schemas/Coverage" } }, annual_limit_kurus: { type: integer } } }
+        lines: { type: array, items: { $ref: "#/components/schemas/PremiumLine" } }
+        total_premium_kurus: { type: integer, format: int64 }
+        input_hash: { type: string, description: Fiyat girdisi + tarife sürümünün SHA-256'sı }
+        review_required: { type: boolean }
+        review_reasons: { type: array, items: { type: string, enum: [YOUNG_DRIVER, HIGH_PREMIUM] } }
+    Quote:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        customer_id: { type: integer, format: int64 }
+        customer_name: { type: string }
+        agent_id: { type: integer, format: int64, nullable: true }
+        product: { $ref: "#/components/schemas/Product" }
+        tariff: { type: object }
+        term_start: { type: string, format: date }
+        term_end: { type: string, format: date }
+        risk: { type: object }
+        selection: { type: object }
+        input_hash: { type: string }
+        total_premium_kurus: { type: integer, format: int64 }
+        status: { $ref: "#/components/schemas/QuoteStatus" }
+        underwriter_note: { type: string, nullable: true }
+        valid_until: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        policy_id: { type: integer, format: int64, nullable: true }
+        lines: { type: array, items: { $ref: "#/components/schemas/PremiumLine" } }
+    IssuedPolicy:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        policy_no: { type: string, example: GP-KS-2026-00000011 }
+        product: { $ref: "#/components/schemas/Product" }
+        quote_id: { type: integer, format: int64 }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date }
+        status: { type: string }
+        version_no: { type: integer }
+        annual_premium_kurus: { type: integer, format: int64 }
+        annual_limit_kurus: { type: integer, format: int64 }
+        vehicle_plate: { type: string, nullable: true }
+        coverages: { type: array, items: { $ref: "#/components/schemas/Coverage" } }
+        limit_balances:
+          type: array
+          items:
+            type: object
+            properties:
+              coverage_code: { type: string, nullable: true, description: null = yıllık toplam limit }
+              period_start: { type: string, format: date }
+              period_end: { type: string, format: date }
+              limit_kurus: { type: integer, format: int64 }
+              used_kurus: { type: integer, format: int64 }
+    PolicyItem:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        policy_no: { type: string }
+        product: { $ref: "#/components/schemas/Product" }
+        customer_id: { type: integer, format: int64 }
+        customer_name: { type: string }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date }
+        status: { type: string }
+        annual_premium_kurus: { type: integer, format: int64 }
+        vehicle_plate: { type: string, nullable: true }

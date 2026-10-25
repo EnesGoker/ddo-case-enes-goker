@@ -36,11 +36,11 @@
 **Çıkış kapısı:** Temiz ortamda gerçek kullanıcıyla giriş ve RBAC kanıtlanabiliyor.
 
 ### A2 — T-1 + F-1: Tarifeli prim motoru, teklif (hedef 4 saat)
-- [ ] Zaman geçerlilikli tarife/faktör tabloları migration ile hazır.
-- [ ] Prim hesaplama deterministik ve kalem dökümü veriyor.
-- [ ] Teklif kaydediliyor, yeniden sorgulanıyor; poliçeye dönüştürme başlangıç akışı var.
-- [ ] 29 Şubat / oran/yuvarlama/faktör testleri mevcut.
-- [ ] Bir uçtan uca API doğrulama senaryosu mevcut.
+- [x] Zaman geçerlilikli tarife/faktör tabloları migration ile hazır.
+- [x] Prim hesaplama deterministik ve kalem dökümü veriyor.
+- [x] Teklif kaydediliyor, yeniden sorgulanıyor; poliçeye dönüştürme başlangıç akışı var.
+- [x] 29 Şubat / oran/yuvarlama/faktör testleri mevcut.
+- [x] Bir uçtan uca API doğrulama senaryosu mevcut.
 
 **Çıkış kapısı:** Aynı teklifin aynı tarife sürümüyle iki hesabı eşit, kalem toplamı nihai prime eşit.
 
@@ -114,14 +114,14 @@
 
 | Kimlik | Durum | Kanıt (test veya komut) |
 |---|---|---|
-| F-1 | BEKLEMEDE | — |
+| F-1 | PASS | `make verify` (F-1 teklif-kaydet-oku, police-cevir, cift-cevirme, uw-onay); `TestConvertCreatesPolicyAndIsIdempotent` |
 | F-2 | BEKLEMEDE | — |
 | F-3 | BEKLEMEDE | — |
 | F-4 | BEKLEMEDE | — |
 | F-5 | BEKLEMEDE | — |
 | F-6 | BEKLEMEDE | — |
 | F-7 | BEKLEMEDE | — |
-| T-1 | BEKLEMEDE | — |
+| T-1 | PASS | `TestGoldenKasko`, `TestGoldenKonut`, `TestBreakdownSumEqualsTotal`, `TestSelectTariffByStartDate`; `make verify` T-1 satırları |
 | T-2 | BEKLEMEDE | — |
 | T-3 | BEKLEMEDE | — |
 | T-4 | BEKLEMEDE | — |

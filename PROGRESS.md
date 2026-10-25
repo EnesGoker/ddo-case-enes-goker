@@ -5,7 +5,8 @@
 | Aşama | Durum | Not |
 |---|---|---|
 | A0 | TAMAMLANDI | Plan onaylandı |
-| A1 | TAMAMLANDI (kullanıcı onayı bekliyor) | Docker, migrasyon, seed, auth, RBAC, verify iskeleti |
+| A1 | TAMAMLANDI | Docker, migrasyon, seed, auth, RBAC, verify iskeleti |
+| A2 | TAMAMLANDI (kullanıcı onayı bekliyor) | T-1 prim motoru, F-1 teklif/onay/poliçeye çevirme, idempotans, audit, keyset |
 
 ## Şema notları (uygulama kuralı olarak ele alınacak)
 
@@ -20,6 +21,42 @@
 7. **Seed/reset:** `accounts` ve `claim_transitions` migrasyonda doldurulur, `reset-demo` bunları korur (`scripts/reset-demo.sh` KEEP listesi). Yeni migrasyon başvuru verisi eklerse listeye eklenmeli. Simülatör için 11 haneli deterministik `national_id` üretimi gerekecek (A7).
 8. **İade toplamı:** `payments` iade toplamının ödemeyi aşmasını engellemez; kilit + toplam kontrolü A5'te. Taksit `status`/`paid_kurus` tutarlılığı yalnızca `PAID` için zorlanıyor.
 9. **`policies`:** `CANCELLED` için `cancel_effective_date`/`cancel_reason` zorunlu değil (kodda zorunlu tutulacak); `EXPIRED` geçişini yapan iş yok.
+
+## README doğrulama sorusu 5 — prim motoru kanıtı (gerçek çıktı, 25 Ekim 2026)
+
+```bash
+cd backend && go test -count=1 -v -cover -run 'TestGolden|TestDeterminism|TestBreakdownSumEqualsTotal|TestMulBPHalfUp|TestSelectTariffByStartDate|TestAgeRangeBoundaries' ./internal/pricing/
+```
+
+```
+--- PASS: TestGoldenKasko (0.00s)
+--- PASS: TestGoldenKonut (0.00s)
+--- PASS: TestDeterminism (0.00s)
+--- PASS: TestBreakdownSumEqualsTotal (0.12s)
+--- PASS: TestAgeRangeBoundaries (0.00s)
+--- PASS: TestMulBPHalfUp (0.00s)
+--- PASS: TestSelectTariffByStartDate (0.00s)
+PASS
+coverage: 81.4% of statements
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/pricing	0.725s	coverage: 81.4% of statements
+```
+
+(Bu filtreyle %81,4; paketin tüm testleriyle %95,5.) Uçtan uca: `make verify` çıktısında
+
+```
+  PASS  T-1 determinizm             aynı girdi iki kez → aynı döküm/prim/hash (1514382 kuruş)
+  PASS  T-1 dokum-toplami           satır toplamı 1514382 = prim 1514382
+  PASS  T-1 tarife-tarihi           2026-06-30→v1 (1188663), 2026-07-01→v2 (1514382)
+```
+
+## A2 notları
+
+- Şema bulgusu 5 (`policy_limit_balances`) kısmen ele alındı: bakiyeler poliçe düzenlenirken her teminat + yıllık toplam için poliçe dönemiyle açılıyor. Zeyilde limit düşürme kuralı A3/A4'te.
+- Şema bulgusu 6 (`idempotency_keys`) ele alındı: `request_hash` = method + path + gövde; süre aşımı `IDEMPOTENCY_STALE_AFTER`. Eski kayıtların temizliği (TTL silme işi) **yok**; `idempotency_keys_created_idx` hazır, A8'de küçük bir temizlik eklenebilir.
+- `EXPIRED` durumu otomatik atanmıyor; süresi dolmuş teklif çevrilmek istenirse 422 `QUOTE_EXPIRED` dönüyor.
+- `GET /api/v1/policies/{id}` (tek poliçe detayı) yok; A3'te sürüm geçmişiyle birlikte eklenecek.
+- Arayüzde teklif formu müşteri listesini tek sayfada (en fazla 100) yükler; daha fazla müşteri için arama yok.
+- Eşzamanlı convert'te kilit yoksa `policies.quote_id` UNIQUE ikinci güvence olur ama 500 döner (mutasyon testinde görüldü); kilit varken bu yol oluşmuyor.
 
 ## Teknik notlar
 
