@@ -488,3 +488,18 @@ func TestConcurrentEndorsementAndCancellation(t *testing.T) {
 		assert.Equal(t, float64(want), cancelRes["refund_kurus"])
 	}
 }
+
+func TestEndorsementLinkIsWrittenOnce(t *testing.T) {
+	agent := tokenFor(t, "acente@guvenpolice.test")
+	pol := issuePolicy(t, agent)
+	s, b, _ := postKey(t, agent, policyPath(pol)+"/endorsements", map[string]any{"effective_date": day(dateOf(t, pol["start_date"]), 30), "vehicle_group": "D"}, fmt.Sprintf("link-%v", pol["id"]))
+	require.Equal(t, 201, s, b)
+	vid, eid := num(b["version"].(map[string]any)["id"]), num(b["endorsement"].(map[string]any)["id"])
+	var linked int64
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT endorsement_id FROM policy_versions WHERE id=$1`, vid).Scan(&linked))
+	assert.Equal(t, eid, linked)
+	_, err := pool.Exec(context.Background(), `UPDATE policy_versions SET endorsement_id=NULL WHERE id=$1`, vid)
+	assert.Equal(t, "55000", pgCode(err))
+	_, err = pool.Exec(context.Background(), `UPDATE policy_versions SET endorsement_id=$2 WHERE id=$1`, vid, eid)
+	assert.Equal(t, "55000", pgCode(err), "ikinci yazma da reddedilir")
+}

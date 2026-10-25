@@ -238,6 +238,9 @@ func (s *ChangeService) planVehicle(ctx context.Context, q db.DBTX, id int64, re
 		return pl, invalidDate(fmt.Sprintf("zeyil tarihi açık sürümün başlangıcından (%s) sonra ve poliçe bitişinden (%s) önce olmalı; son zeyilden önceki bir tarihe zeyil yapılamaz",
 			caldate.Format(pl.open.EffectiveFrom), pl.h.EndDate))
 	}
+	if err := claimsAfter(ctx, q, pl.h.ID, date); err != nil {
+		return pl, err
+	}
 	pl.date = date
 
 	pl.risk = pl.open.Risk
@@ -428,6 +431,9 @@ func (s *ChangeService) VehicleChange(ctx context.Context, id int64, req Vehicle
 		if err != nil {
 			return err
 		}
+		if _, err := tx.Exec(ctx, `UPDATE policy_versions SET endorsement_id = $2 WHERE id = $1`, newID, e.ID); err != nil {
+			return err
+		}
 		// Limit değişikliği: koşullu UPDATE (eşzamanlı hasar kullanımı limitin altına düşmeyi yakalar)
 		for code, limit := range pl.limits {
 			tag, err := tx.Exec(ctx, `
@@ -501,6 +507,9 @@ func (s *ChangeService) planCancel(ctx context.Context, q db.DBTX, id int64, req
 	if date.Before(pl.open.EffectiveFrom) || !date.Before(pl.h.end) {
 		return pl, invalidDate(fmt.Sprintf("iptal tarihi açık sürümün başlangıcı (%s, dahil) ile poliçe bitişi (%s, hariç) arasında olmalı",
 			caldate.Format(pl.open.EffectiveFrom), pl.h.EndDate))
+	}
+	if err := claimsAfter(ctx, q, pl.h.ID, date); err != nil {
+		return pl, err
 	}
 	pl.date = date
 
@@ -650,4 +659,16 @@ func concurrentChange(err error) error {
 			"poliçe eşzamanlı olarak değişti; güncel hali okuyup tekrar deneyin")
 	}
 	return err
+}
+
+// Hasar açma da aynı poliçe satırını kilitler: kontrol ile sürüm değişikliği arasına hasar giremez.
+func claimsAfter(ctx context.Context, q db.DBTX, policyID int64, at time.Time) error {
+	var found bool
+	if err := q.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM claims WHERE policy_id = $1 AND status <> 'REJECTED' AND loss_date >= $2)`, policyID, at).Scan(&found); err != nil {
+		return err
+	}
+	if found {
+		return httpx.NewError(http.StatusUnprocessableEntity, "CLAIMS_AFTER_EFFECTIVE_DATE", "bu tarihte veya sonrasında reddedilmemiş hasar var")
+	}
+	return nil
 }
