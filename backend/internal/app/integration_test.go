@@ -375,7 +375,7 @@ func TestSeedIsIdempotent(t *testing.T) {
 	assert.Equal(t, 5, customers)
 	var tariffs int
 	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM tariff_versions WHERE status = 'ACTIVE'`).Scan(&tariffs))
-	assert.Equal(t, 4, tariffs)
+	assert.Equal(t, 7, tariffs)
 }
 
 func TestMetricsExposed(t *testing.T) {
@@ -402,7 +402,7 @@ func TestMigrationsUpDownUp(t *testing.T) {
 	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "up")
 	v, err := goose.GetDBVersionContext(ctx, sqlDB)
 	require.NoError(t, err)
-	assert.Equal(t, int64(8), v)
+	assert.Equal(t, int64(9), v)
 
 	require.NoError(t, goose.DownToContext(ctx, sqlDB, migrationsDir, 0), "down")
 	var tables int
@@ -411,7 +411,7 @@ func TestMigrationsUpDownUp(t *testing.T) {
 
 	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "tekrar up")
 	require.NoError(t, sqlDB.QueryRow(`SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename <> 'goose_db_version'`).Scan(&tables))
-	assert.Equal(t, 34, tables)
+	assert.Equal(t, 35, tables)
 
 	// 00002 kısıtları gerçekten devrede
 	var n int

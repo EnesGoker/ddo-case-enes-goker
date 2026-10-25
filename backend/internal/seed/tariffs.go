@@ -3,6 +3,7 @@ package seed
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -12,7 +13,7 @@ import (
 
 // tariffs pricing.SampleTariffs()'ı (ürün, sürüm) yoksa ACTIVE olarak ekler.
 func tariffs(ctx context.Context, tx pgx.Tx) error {
-	for _, t := range pricing.SampleTariffs() {
+	for _, t := range append(pricing.SampleTariffs(), historicalTariffs()...) {
 		var exists bool
 		if err := tx.QueryRow(ctx,
 			`SELECT EXISTS (SELECT 1 FROM tariff_versions WHERE product = $1 AND version_no = $2)`,
@@ -64,4 +65,21 @@ func tariffs(ctx context.Context, tx pgx.Tx) error {
 		}
 	}
 	return nil
+}
+
+// Reset-demo tarife tablolarını da temizler; migration tekrar çalışmadığında v0 geri kurulur.
+func historicalTariffs() []pricing.Tariff {
+	var out []pricing.Tariff
+	for _, t := range pricing.SampleTariffs() {
+		if t.VersionNo != 1 {
+			continue
+		}
+		end := t.ValidFrom
+		t.VersionNo, t.ValidFrom, t.ValidTo = 0, time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC), &end
+		for code, value := range t.BaseRates {
+			t.BaseRates[code] = proration.RoundDiv(value*85, 100)
+		}
+		out = append(out, t)
+	}
+	return out
 }
