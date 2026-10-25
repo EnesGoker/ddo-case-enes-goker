@@ -1,93 +1,78 @@
 # CURRENT_TASK — Sadece aktif ve onaylı iş
 
-**Aktif aşama:** A2 — T-1 + F-1: tarifeli prim motoru, teklif, teklifi poliçeye çevirme
+**Aktif aşama:** A3 — T-2 + F-2: poliçe sürümleri, zeyil, iptal, gün esaslı iade
 
-**Durum:** ONAYLI (A2'ye başla). A3'e geçmek için yeni onay gerekir.
+**Durum:** ONAYLI (A3'e başla). A4'e geçmek için yeni onay gerekir.
 
 **Süre kutusu:** ~4 saat üst sınır. Takılırsan dur ve raporla.
 
-## A1 sonrası kararlar
+## 0. A2'den küçük düzeltmeler (önce bunlar)
 
-- A1 raporu kabul edildi. `legacy-peer-deps` ve `typescript 5.9.3` sabitlemesi kalsın; gerekçesini `DECISIONS.md`'ye bir satır olarak ekle.
-- `CURRENT_TASK.md` her aşama başında commit'lenebilir (`docs: A2 görev tanımı`).
-- Temiz önbellekte 5 dakika ölçümü A8'de yapılacak; şimdi değil.
+1. **UNIQUE ihlali 500 olmasın:** PostgreSQL `23505` (unique_violation) iş kısıtlarında domain hatasına çevrilsin (ör. `policies.quote_id` → 409 `QUOTE_ALREADY_CONVERTED`). Kilit asıl koruma, bu ikinci savunma hattı. Mutasyon denemesini tekrarla: kilit yokken artık 409 dönmeli.
+2. İdempotent tekrar yanıtında anahtar sırasının değişebilmesi kabul; `PROGRESS.md`'ye bilinen sınırlama olarak yaz, değiştirme.
 
-## 1. Önce: üç ortak yardımcı (A1'den devreden)
+## 1. Sürüm kuralları (karar)
 
-1. **`Idempotency-Key` middleware'i** (`idempotency_keys` tablosu):
-   - Anahtar zorunlu olan uçlarda yoksa 400 `IDEMPOTENCY_KEY_REQUIRED`.
-   - `request_hash` = method + path + gövde hash'i. Aynı anahtar + aynı hash → kayıtlı yanıt aynen döner (durum kodu + gövde). Aynı anahtar + farklı hash → 422 `IDEMPOTENCY_KEY_REUSED`.
-   - `IN_PROGRESS` iken gelen ikinci istek → 409 `IDEMPOTENCY_IN_PROGRESS`. `IN_PROGRESS` kaydı belirli süreden (env, varsayılan 60 sn) eskiyse yeniden işlenebilir.
-   - Yalnızca 2xx ve 4xx iş hataları kaydedilir; 5xx kaydedilmez (tekrar denenebilsin).
-   - Testler: tekrar istek aynı yanıt, farklı gövde 422, **eşzamanlı aynı anahtarla 5 istek → tek iş etkisi**.
-2. **Audit yardımcısı:** `audit_log`'a aynı transaction içinde yazar (aktör, rol, işlem, varlık, eski/yeni JSON, request-id).
-3. **Keyset sayfalama yardımcısı:** `?limit=&cursor=`; cursor opak (base64), `limit` üst sınırı 100. `customers` listesi bu yardımcıya geçirilsin.
+- **Sürümler değişmez (immutable).** Bir sürümde değişebilen tek alan, açık sürümün `effective_to` alanının **bir kez** `NULL` → tarih olarak kapatılmasıdır. Diğer tüm alanlar ve kapanmış sürümler değiştirilemez.
+- Bunu veritabanında da zorla: **`db/migrations/00003_policy_version_guard.sql`** ile `policy_versions` ve `policy_version_coverages` için `BEFORE UPDATE/DELETE` tetikleyici (yalnızca `effective_to IS NULL → NOT NULL` geçişine izin). Up/Down/Up dene.
+- Zeyil: açık sürümü `effective_to = zeyil tarihi` ile kapat, `effective_from = zeyil tarihi` olan yeni sürüm aç. Hepsi tek transaction, poliçe satırı `FOR UPDATE` ile kilitli.
+- **Geriye dönük zincir yok:** zeyil tarihi, açık sürümün `effective_from`'undan büyük ve poliçe `end_date`'inden küçük olmalı; değilse 422. (Son zeyilden önceki bir tarihe zeyil yapılamaz; bilinen sınırlama olarak dokümante et.)
+- İptal edilmiş poliçeye zeyil yapılamaz (422).
 
-## 2. T-1 prim motoru (asıl iş)
+## 2. Hesap kuralları (karar, `DECISIONS.md`'ye yaz)
 
-**Tasarım kuralları:**
-- Motor **saf bir Go paketi** (`internal/pricing`): girdi = risk verisi + teminat seçimi + tarife sürümü (yüklenmiş struct); çıktı = satır satır döküm + toplam. Veritabanı, saat, rastgelelik yok. Böylece deterministiklik ve test kolay.
-- **Tarife seçimi:** teklif dönemi başlangıç tarihine (`term_start`) göre, `valid_from <= term_start < valid_to` olan `ACTIVE` sürüm. İstek anındaki saat değil.
-- **Hesap sırası (sabit, dokümante edilsin):** her teminat için taban prim → AGE → NCD (hasarsızlık) → REGION → VEHICLE_GROUP çarpanları sırayla. Her adımdaki fark (kuruş) bir döküm satırı. KONUT için araç faktörleri yok; ürün başına geçerli faktör listesi tarifeden gelir.
-- **Yuvarlama:** her çarpan adımında kuruşa, yarımı yukarı (half-up), tam sayı aritmetiği (`bp` ile). Float yok. Toplam = döküm satırlarının toplamı, **her zaman tam eşit** (fark varsa `ROUNDING` satırı yazılır; normalde oluşmamalı).
-- Vergi/harç **yok** (varsayım olarak dokümante et); gerek görürsen tek bir `TAX` satırı ekleyebilirsin ama zorunlu değil.
-- `input_hash` = normalize edilmiş girdi + tarife sürüm id'sinin sha256'sı. Aynı girdi + aynı tarife → aynı hash ve aynı sonuç.
-- **Underwriter kuralı (basit, tek kural yeter):** örn. sürücü yaşı < 21 veya toplam prim belirli eşiğin üstündeyse teklif `UW_REVIEW` olur; değilse `CALCULATED`. Eşik tarifede ya da env'de, dokümante edilsin.
+Tüm hesap **saf bir pakette** (`internal/endorsement` ya da `internal/proration`), DB'siz, tam sayı aritmetiği, yarımı yukarı yuvarlama.
 
-**Seed tarifeleri (kurgusal, açıkça örnek diye işaretli):**
-- Üç ürün için `ACTIVE` sürüm. **KASKO için iki sürüm:** v1 (geçmiş tarihli, `valid_to` dolu) ve v2 (şu an geçerli, farklı oranlar) — böylece tarih bazlı seçim kanıtlanır.
-- Yaş için `num_range` aralıkları, NCD için en az 4 kademe, 3-4 bölge, 3-4 araç grubu, kısa dönem tablosu (A3 kullanacak ama şimdi seed'lensin).
+- **Dönem gün sayısı** = `end_date - start_date` (gerçek gün; içinde 29 Şubat varsa 366). Kalan gün = `end_date - zeyil/iptal tarihi`. Geçen gün = `tarih - start_date`. Aralıklar `[)`.
+- **Araç değişikliği zeyli:**
+  - Yeni yıllık prim, poliçenin **orijinal tarife sürümüyle** (`policy_versions.tariff_version_id`) ve yeni risk verisiyle T-1 motorundan hesaplanır. (Zeyil tarihindeki tarife değil; gerekçe: sözleşme şartları düzenleme anında sabitlenir.)
+  - `premium_delta = round_half_up((yeni_yıllık - eski_yıllık) × kalan_gün / dönem_günü)`; pozitif = ek prim, negatif = iade.
+  - Teminat limitleri isteğe bağlı değişebilir; yeni limit, o teminatta kullanılmış tutarın altına düşerse 422 (`LIMIT_BELOW_USAGE`). Limit bakiyeleri buna göre güncellenir (`limit_kurus` değişir, `used_kurus` korunur).
+- **İptal:**
+  - Müşteri talebi (`CUSTOMER_REQUEST`): **kısa dönem tarifesi**. Kazanılmış prim = `yıllık_prim × kısa_dönem_oranı(geçen_gün)`. İade = toplam yazılmış prim − kazanılmış prim (negatifse 0).
+  - Şirket kaynaklı (`UNDERWRITER`, `NON_PAYMENT`): **gün esaslı (pro-rata)**. İade = `yıllık_prim × kalan_gün / dönem_günü`.
+  - "Toplam yazılmış prim" = ilk prim + tüm zeyil deltaları. Tahsilat ile mahsup **A5'te**; şimdi iade tutarı yalnızca hesaplanıp `endorsements.calc_detail` ve `premium_delta`'ya yazılır.
+  - İptal: açık sürüm `effective_to = iptal tarihi` ile kapanır, yeni sürüm açılmaz; `policies.status = CANCELLED`, `cancel_effective_date`, `cancel_reason` dolar.
+  - Bu kısa dönem / gün esaslı ayrımı kurgusal iş varsayımıdır; öyle dokümante et.
+- `calc_detail` JSON'u adım adım yazılsın: dönem günü, geçen/kalan gün, artık yıl var mı, kullanılan oran, eski/yeni yıllık prim, yuvarlama öncesi/sonrası.
 
-## 3. Uç noktalar (F-1 + çevirme)
+## 3. Uç noktalar
 
-- `GET /api/v1/tariffs/active?product=&date=` — AGENT, UNDERWRITER.
-- `POST /api/v1/quotes/preview` — AGENT. Hesaplar, **kaydetmez** (form canlı hesap için).
-- `POST /api/v1/quotes` — AGENT. Hesaplar ve kaydeder, dökümle döner.
-- `GET /api/v1/quotes` (keyset), `GET /api/v1/quotes/{id}` (döküm dahil) — AGENT kendi, UNDERWRITER tümü, CUSTOMER kendi.
-- `POST /api/v1/quotes/{id}/review` — UNDERWRITER. `APPROVED` / `REJECTED` + not. Audit yazılır.
-- `POST /api/v1/quotes/{id}/convert` — AGENT, `Idempotency-Key` zorunlu. Yalnızca `CALCULATED` veya `APPROVED` teklif. Tek transaction'da:
-  - `policies` (benzersiz `policy_no`), `policy_versions` v1 (`effective_from = start_date`, `effective_to = NULL`), `policy_version_coverages`,
-  - `policy_limit_balances` (her teminat + yıllık toplam limit için, poliçe dönemi),
-  - teklif → `CONVERTED`, audit kaydı.
-  - Taksit planı ve muhasebe kaydı **A5'te**, şimdi yok.
-  - Aynı teklif iki kez çevrilemez (`quotes.status` kilidi + `policies.quote_id` UNIQUE).
-- Sahiplik kontrolü sunucuda: acente başka acentenin teklifini göremez/çeviremez (403 veya 404, tutarlı olsun).
+- `GET /api/v1/policies/{id}` — poliçe + tüm sürümler + teminatlar + zeyiller (A2'de eksikti). Erişim: A2'deki kapsam kuralı.
+- `GET /api/v1/policies/{id}/coverage?date=YYYY-MM-DD` — o tarihte geçerli sürüm ve teminatlar. Poliçe dışı tarih veya iptal sonrası → 404 `NO_COVERAGE_ON_DATE` (tutarlı bir kod seç).
+- `POST /api/v1/policies/{id}/endorsements/preview` — kaydetmeden hesap dökümü (AGENT, UNDERWRITER).
+- `POST /api/v1/policies/{id}/endorsements` — araç değişikliği zeyli. AGENT, UNDERWRITER. `Idempotency-Key` zorunlu. Audit.
+- `POST /api/v1/policies/{id}/cancel/preview` ve `POST /api/v1/policies/{id}/cancel` — iptal (gerekçe zorunlu). AGENT (yalnızca `CUSTOMER_REQUEST`), UNDERWRITER (her gerekçe). `NON_PAYMENT` A5'teki otomatik kural için ayrılır; elle de verilebilir ama yalnızca UNDERWRITER. `Idempotency-Key` zorunlu. Audit.
 
-## 4. Frontend (en küçük hali)
+## 4. Testler ve kabul kriterleri
 
-- Acente: teklif formu (ürün, müşteri, risk alanları, teminat seçimi) → preview dökümü tablo olarak (her faktör kaç TL) → kaydet → poliçeye çevir. Teklif listesi.
-- Underwriter: `UW_REVIEW` teklif listesi + onayla/reddet.
-- Müşteri: kendi teklif/poliçe listesi (sadece liste).
-- Yükleniyor/boş/hata durumları, 375 px'de kullanılabilir. Cila yok.
-
-## 5. Kabul kriterleri ve testler
-
-**Birim (saf motor, `internal/pricing`):**
-- Elle hesaplanmış en az **2 altın örnek** (KASKO ve KONUT): her döküm satırı ve toplam kuruşu kuruşuna tutuyor. Hesabı test dosyasında yorum olarak adım adım yaz.
-- Determinizm: aynı girdi 100 kez → aynı sonuç ve hash.
-- Döküm toplamı = nihai prim (tablo testi, çok sayıda girdi).
-- Sınırlar: yaş aralığı sınırları (`[)`), NCD kademeleri, yarım kuruş yuvarlama.
-- Tarife seçimi: `valid_to` günü yeni sürüm, bir gün önce eski sürüm seçilir.
-- Domain paketinde kapsam ≥ %70 (`go test -cover` çıktısını raporla).
+**Saf hesap paketi (birim, kapsam ≥ %70):**
+- Artık yıl: 2027-06-01 → 2028-06-01 dönemi 366 gün; 2026-01-01 → 2027-01-01 dönemi 365 gün. 2028-02-29 tarihli zeyil ve iptal.
+- Sınırlar: başlangıç gününde iptal (geçen 0 gün), son günde iptal (kalan 1 gün), kısa dönem tablo sınırları (`[)`).
+- En az **2 altın örnek** (bir araç değişikliği, bir kısa dönem iptal) elle hesaplanmış, adımlar test dosyasında yorum olarak.
+- Pro-rata delta işareti (prim artışı/azalışı) ve yuvarlama.
 
 **Entegrasyon (gerçek PostgreSQL):**
-- Teklif kaydet → oku → döküm aynı. Aynı girdiyle ikinci teklif aynı toplam ve hash.
-- Geçmiş tarihli teklif v1, güncel teklif v2 tarifesini kullanıyor.
-- Convert: poliçe + sürüm + teminatlar + limit bakiyeleri oluşuyor; aynı `Idempotency-Key` ile tekrar → aynı yanıt, tek poliçe; **farklı anahtarlarla eşzamanlı iki convert → tek poliçe**, diğeri 409/422.
-- RBAC: UNDERWRITER teklif oluşturamaz (403), CUSTOMER başkasının teklifini göremez, AGENT başka acentenin teklifini çeviremez.
+- Zeyil sonrası `coverage?date=` sorgusu: zeyil tarihinde yeni sürüm, bir gün önce eski sürüm. İptal tarihinde ve sonrasında 404.
+- Sürüm değişmezliği: kapanmış sürüme doğrudan `UPDATE` denemesi DB tarafından reddediliyor.
+- **Eşzamanlılık:** aynı poliçeye farklı anahtarlarla eşzamanlı iki zeyil → biri başarılı, diğeri tutarlı bir hata (409/422); sürüm aralıkları çakışmıyor, `endorsement_no` tekil. Eşzamanlı zeyil + iptal → tutarlı son durum.
+- İdempotans: aynı anahtarla tekrar zeyil → aynı yanıt, tek zeyil.
+- Limit kullanılanın altına düşürülürse 422 (kullanımı test içinde doğrudan bakiyeye yazarak simüle et; hasar A4'te).
+- RBAC: AGENT `UNDERWRITER` gerekçesiyle iptal edemez (403); CUSTOMER zeyil/iptal yapamaz.
 
-**`make verify`'a eklenecek kimlikler:** `F-1` ve `T-1` satırları (gerçek API çağrısıyla: iki kez hesapla → eşit; döküm toplamı = toplam; tarih bazlı sürüm seçimi; convert idempotansı). Her biri ayrı PASS/FAIL.
+**`make verify`:** `F-2` ve `T-2` satırları gerçek API ile: poliçe üret → zeyil → tarih bazlı teminat sorgusu (önce/sonra) → kısa dönem iptal ve beklenen iade tutarı → iptal sonrası teminat yok.
 
-**Komutlar:** `go test ./...`, `./scripts/test-integration.sh`, `npm run build && npm run lint`, `make verify`.
+## 5. Frontend (en küçük hali)
+
+- Poliçe detayı: sürüm zaman çizelgesi (tablo yeter), seçilen tarihte geçerli teminat sorgusu.
+- Acente/UW: araç değişikliği formu → önizleme dökümü (gün sayıları, delta) → onayla. İptal → önizleme (iade tutarı) → onayla.
+- Müşteri: poliçe detayını salt okunur görür.
+- Yükleniyor/boş/hata ve 375 px.
 
 ## Dokümanlar
 
-- `openapi.yaml` yeni uçlarla güncellensin.
-- `DECISIONS.md`: yuvarlama ve hesap sırası kararı, tarife seçim kuralı.
-- `TESTING.md`: F-1 ve T-1 için "nasıl denenir / beklenen sonuç" + kanıt komutu.
-- `requests.http`: yeni uçlar.
-- README'deki doğrulama sorusu 5 (prim motoru kanıtı) için kullanılacak komut ve gerçek çıktıyı `PROGRESS.md`'ye not et.
+`openapi.yaml`, `DECISIONS.md` (sürüm değişmezliği, pro-rata/kısa dönem kuralı, zeyilde orijinal tarife), `TESTING.md` (F-2, T-2), `requests.http`, `ROADMAP.md` kanıt matrisi.
 
 ## Kapsam dışı
 
-Zeyil/iptal/pro-rata (A3), hasar (A4), taksit/muhasebe (A5), simülatör, CI, `git push`.
+Tahsilat/muhasebe kaydı ve taksit planı düzeltmesi (A5), hasar (A4), `EXPIRED` işi, `git push`.
