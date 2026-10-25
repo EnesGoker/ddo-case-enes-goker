@@ -27,8 +27,8 @@ func DefaultConfig() Config {
 
 func (c Config) Validate() error {
 	for _, v := range []int{c.Threshold, c.EarlyDays, c.EarlyPoints, c.RepeatDays, c.RepeatMinimum, c.RepeatPoints, c.WorkshopDays, c.WorkshopMinimum, c.WorkshopPoints} {
-		if v <= 0 {
-			return fmt.Errorf("fraud ayarları pozitif olmalı")
+		if v <= 0 || v > 2147483647 {
+			return fmt.Errorf("fraud ayarları 1..2147483647 aralığında olmalı")
 		}
 	}
 	if int64(c.EarlyPoints)+int64(c.RepeatPoints)+int64(c.WorkshopPoints) > 2147483647 {
@@ -47,7 +47,7 @@ type Input struct {
 }
 
 type Detail struct {
-	Days           int64    `json:"days,omitempty"`
+	Days           int64    `json:"days"`
 	Threshold      int      `json:"threshold"`
 	Count          int      `json:"count,omitempty"`
 	From           string   `json:"from,omitempty"`

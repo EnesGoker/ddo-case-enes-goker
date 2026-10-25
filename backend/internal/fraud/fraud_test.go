@@ -56,4 +56,6 @@ func TestWindowAndInvalidConfig(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.EarlyPoints = 2147483647
 	assert.Error(t, cfg.Validate())
+	cfg.EarlyPoints = int(^uint(0) >> 1)
+	assert.Error(t, cfg.Validate(), "puan toplamının ara taşması kabul edilmez")
 }

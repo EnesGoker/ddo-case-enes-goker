@@ -15,7 +15,7 @@ func LossRatioBP(claims, premium int64) *int64 {
 	numerator.Abs(numerator)
 	q, r := new(big.Int), new(big.Int)
 	q.QuoRem(numerator, big.NewInt(premium), r)
-	// RoundDiv küçük paydada kullanılır; MaxInt64 paydada ara toplama taşabilir.
+	// RoundDiv yerine güvenli kalan karşılaştırması: MaxInt64 paydada ara toplam taşabilir.
 	rounded := int64(0)
 	if r.Int64() >= premium-r.Int64() {
 		rounded = 1
