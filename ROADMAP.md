@@ -62,11 +62,11 @@
 **Çıkış kapısı:** İki eşzamanlı hasarda harcanan limit yıllık tavanı geçmiyor; açıklamalı ödeme kalemleri görünüyor.
 
 ### A5 — T-4 + F-3: Taksit, tahsilat, muhasebe (hedef 4 saat)
-- [ ] Taksit planı ve kısmi ödemenin en eski taksite tahsisi çalışıyor.
-- [ ] Gecikme faizi, iade, 30-gün iptal kuralı test ediliyor.
-- [ ] `Idempotency-Key` tekrar isteği ikinci tahsilat yaratmıyor.
-- [ ] Muhasebe borç/alacak kayıtları her işlemin sonunda dengede.
-- [ ] Ödeme/API ve iade için uçtan uca kanıt var.
+- [x] Taksit planı ve kısmi ödemenin en eski taksite tahsisi çalışıyor.
+- [x] Gecikme faizi, iade, 30-gün iptal kuralı test ediliyor.
+- [x] `Idempotency-Key` tekrar isteği ikinci tahsilat yaratmıyor.
+- [x] Muhasebe borç/alacak kayıtları her işlemin sonunda dengede.
+- [x] Ödeme/API ve iade için uçtan uca kanıt var.
 
 **Çıkış kapısı:** Tekrarlı ödeme mali kayıt üretmiyor; defter bakiye testi başarılı.
 
@@ -116,7 +116,7 @@
 |---|---|---|
 | F-1 | PASS | `make verify` (F-1 teklif-kaydet-oku, police-cevir, cift-cevirme, uw-onay); `TestConvertCreatesPolicyAndIsIdempotent` |
 | F-2 | PASS | `make verify` (F-2 zeyil-kayit, surum-gecmisi, iptal-sonrasi); `TestVehicleChangeEndorsementAndCoverageOnDate`, `TestShortPeriodCancellationAfterEndorsement` |
-| F-3 | BEKLEMEDE | — |
+| F-3 | PASS | `make verify` (taksit/tahsilat/idem/aşırı ödeme/iade/gün sonu); 52 entegrasyon testi, `TESTING.md` A5 |
 | F-4 | PASS | `make verify` F-4 hasar-dosya; `TestClaimVersionSelectionAndCancellation`, `TestClaimTransitionsValidationAndRBAC` |
 | F-5 | PASS | `make verify` F-5 ekspertiz; `TestClaimLifecycleAndIdempotency` |
 | F-6 | PASS | `make verify` F-6 idempotent-onay/odeme; `TestClaimLifecycleAndIdempotency` |
@@ -124,7 +124,7 @@
 | T-1 | PASS | `TestGoldenKasko`, `TestGoldenKonut`, `TestBreakdownSumEqualsTotal`, `TestSelectTariffByStartDate`; `make verify` T-1 satırları |
 | T-2 | PASS | `TestGoldenVehicleChange`, `TestGoldenShortPeriodCancellation`, `TestCancellationOnLeapDay`; `make verify` T-2 satırları; eşzamanlılık `TestConcurrentEndorsements` |
 | T-3 | PASS | `TestGoldenSettlements`; `TestConcurrentClaimApprovals -count=10 -race`; mutasyon LIMIT_CHANGED; `make verify` hesap-adimlari/paralel-limit |
-| T-4 | BEKLEMEDE | — |
+| T-4 | PASS | Kayıt bazında awk faiz hesabı, gerçek paralel ödeme, 1200 mutabakatı; 10 tekrar `-race` ve kilit mutasyonu; billing %92,1 |
 | T-5 | BEKLEMEDE | — |
 
 ## Teslim kontrolü

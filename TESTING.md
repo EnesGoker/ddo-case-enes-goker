@@ -122,7 +122,8 @@ Altın örneklerin elle hesabı `backend/internal/proration/proration_test.go` i
 | F-2 | PASS (`make verify` + entegrasyon testleri) |
 | T-2 | PASS (`make verify` + birim/entegrasyon testleri) |
 | F-4, F-5, F-6, T-3 | PASS (A4; aşağıdaki kanıtlar) |
-| F-3, F-7, T-4, T-5 | YAPILMADI (A5 ve sonrası) |
+| F-3, T-4 | PASS (A5; aşağıdaki kanıtlar) |
+| F-7, T-5 | YAPILMADI (A6 ve sonrası) |
 
 ## F-4 / F-5 / F-6 — Hasar, ekspertiz ve tazminat (A4)
 
@@ -173,3 +174,90 @@ Komutlar repo kökünden çalıştırılır; parantezli komutlar kendi alt kabu�
 | OpenAPI | Ruby YAML ayrıştırması ve 202 iç `$ref` doğrulaması PASS; dış OpenAPI linter ÇALIŞTIRILMADI (yeni araç kurulmadı) |
 
 **Bilinen sınırlar:** Uzlaşma iptali yok; APPROVED geri alınamaz. Ayrı olay limiti yok (ADR-10 varsayımı). Fraud/SLA/atama A6, taksit/prim muhasebesi A5 kapsamındadır. İdempotans JSONB yanıt sırası ve iş transaction'ı–yanıt saklama aralığı A2/A3'teki gibi kalır. UI/API testleri kurgusal demo veriyle yapılır.
+
+## F-3 / T-4 — Taksit, tahsilat, faiz, iade ve defter (A5)
+
+**Arayüz:** Acente → yeni teklif / teklif detayı → 1–12 taksit seç → poliçeye çevir. Poliçeler → detay → **Ödeme planı**: vadeler, gecikme günleri, tutar/ödenen/durum, faizlerin aralık/anapara/oranı, tahsilat/iadelerin tahsisleri, açık bakiye. Müşteri kendi poliçesinde **Öde**; muhasebe **Ödeme al** (tutar kuruş, yöntem, tarih), ödeme satırını aç → **İade et** (tutar/gerekçe). **Tahsilat ve Defter** → gün sonu tarihi → çalıştır → mizan, 1200 mutabakatı ve satırlarıyla keyset yevmiye listesi. Boş/yükleniyor/hata durumları gerçek API'ye dayanır.
+
+**Seed:** `GP-DEMO-OVERDUE-A` (Gecikmiş-A, ilk seed günü −75 gün), `GP-DEMO-OVERDUE-B` (Gecikmiş-B, −20 gün), üçer taksit, 300.000 kuruş kurgusal prim, başlangıçta ödenmemiş. `policy.Issue` ile plan/limit/yevmiye aynı transaction'da oluşturulur. Sabit poliçe no tekrar seed'de yeni kayıt veya tarih değişikliği yaratmaz. İlk gün: B'nin ilk taksiti 100.000 × 1000 × 20 / 1.000.000 = **2.000 kuruş** faiz; A >=30 gün nedeniyle `NON_PAYMENT` iptal. Tarih ilerledikçe B de 30 gün kuralına girebilir; yeni demo başlangıcı gerekiyorsa yalnızca silinebilir demo ortamında kullanıcı `make reset-demo` çalıştırır. Mevcut veri bu görevde sıfırlanmadı.
+
+**Eski veri:** A5 öncesi plansız poliçede `/billing`, zeyil/iptal ve önizleme 409 `BILLING_PLAN_MISSING`. Otomatik backfill yok; veriyi korumak gerekiyorsa reset yapılmaz. 00005 yalnızca `installment_plans.total_kurus >= 0`; boş veritabanında Up/Down/Up denenir. Sıfır toplamlı plan varken Down, `>0` kısıtı nedeniyle başarısız olabilir; migration yorumu bunu açıklar.
+
+```bash
+make test
+(cd backend && go test -count=1 -cover ./internal/billing ./internal/caldate)
+./scripts/test-integration.sh -coverpkg=./internal/payment/...,./internal/billing,./internal/ledger -coverprofile=/tmp/guvenpolice-a5-coverage.out
+(cd backend && go tool cover -func=/tmp/guvenpolice-a5-coverage.out)
+./scripts/test-integration.sh -run TestConcurrentPayments -count=10 -race
+make lint
+make build
+make up
+make verify
+```
+
+- `TestGoldenSplit/Interest/Allocation/Adjustments`, `TestThirtyDayBoundary`: kalan ilk taksite, 31 Ocak → Şubat ay sonu, yarım kuruş, faiz→anapara, çok taksite yayılan ödeme, en geç vadeden azalış/nakit iade, ek taksit, 29/30 gün altın örnekleri.
+- `TestBillingIssueThreeInstallments`: API convert üç taksit, prim toplamı/vadeler/tek POLICY_ISSUE yevmiyesi.
+- `TestBillingInterestAllocationRefundAndDates`: 100.000/3 → 33.334/33.333/33.333; 20 gün faiz **667**; 40.000 ödeme = 667 faiz + 33.334 ilk anapara + 5.999 ikinci anapara. 1.000 iade ikinciyi 4.999'a indirir. Yalnızca faize tahsis edilen 100 kuruştan 50 kuruş iade, faiz paid alanını 50'ye geri açar. Son tahakkuktan önce ödeme tarihi 422.
+- `TestBillingPaymentIdempotency`: aynı anahtarda beş eşzamanlı istek, işlem sürerken mevcut middleware 409 dönebilir; tamamlanmış tekrar 201 ve aynı yanıt, tek PAYMENT/yevmiye. Farklı gövde için anahtar yeniden kullanılmaz.
+- `TestConcurrentPayments`: 30.000 açık bakiyeye bağımsız iki HTTP ×20.000. Dış transaction taksit satırını kilitler; `pg_stat_activity` iki isteğin kilitte beklediğini doğrular. Normal sonuç **201 + 422 OVERPAYMENT**, kalan 10.000. `-count=10 -race` PASS.
+- **Mutasyon:** yalnızca payment servisindeki poliçe kilidi geçici kaldırıldı; sonuç **201 + 409 CONCURRENT_PAYMENT**. `installments` CHECK ikinci savunması paid>amount taşmasını reddetti; beklenen 201/422 bozulduğu için test FAIL. Kaynak `finally` ile geri konuldu, sonra 10 tekrar `-race` yeniden PASS. Mutasyon kalıcı değil.
+- `TestConcurrentRefunds`: aynı ödeme için toplamı iade edilebilir tutarı aşan iki bağımsız eşzamanlı iade → 201 + 422, tek REFUND.
+- `TestBillingRunSeedAndBoundary`: seed A iptal, B 2.000 faiz/ACTIVE, aynı gün tekrarında yeni faiz/iptal yok, 29 gün ACTIVE/30 gün CANCELLED, ileri tarih 422.
+- `TestBillingRunSkipsLockedAndClaimGuard`: SKIP LOCKED atlama ve A4 hasar korumasıyla `CLAIMS_AFTER_EFFECTIVE_DATE` raporu.
+- `TestBillingPremiumAdjustmentsAndCashRefund`: + zeyil ek taksit, − zeyil, peşin ödemenin başlangıç iptalinde nakit REFUND (tahsis yok), manuel iptal sonrası iade 409, ödenmemiş başlangıç iptalinde sıfır plan toplamı.
+- `TestRefundReopenedPrincipalAccruesFromRefundDay`: vade gününde tam ödeme, 20 gün sonra 1.000 iade; geçmişe faiz yok, ertesi gün **1 kuruş**, faiz önce kapanır.
+- `TestCancelledPolicyAcceptsRemainingBalance`: iptal tarihine kadar kırpılan faiz ve kalan bakiyenin tahsilatı.
+- `TestBillingRBACAndLedger`: acente ödeme 403, başkasına müşteri ödeme 404, müşteri iade/gün sonu 403, müşteri kendi ödeme 201, mizan ve satırlı keyset yevmiye.
+
+Her A5 mali testinin sonunda ortak `assertBillingInvariant`: genel defter dengeli, tüm yevmiyeler satırlı/dengeli, **1200 = açık anapara + faiz**, plan toplamları iptal olmayan taksit toplamına eşit.
+
+`make verify` gerçek API ile üç taksit/ilk tahsis/tek ödeme/idem, 422 fazla ödeme, manuel iade, **arka planda iki curl + wait** ile 201/422 yarışı, gün sonu ve A'nın iptalini doğrular. B'deki **her faiz kaydını**, kendi API anapara/ppm/from/to alanlarından Gregorian gün hesabı ve half-up ile awk'te yeniden hesaplar; toplam tutar karşılaştırmasıyla yetinmez. Son mizan `balanced=true`, `matches=true`, satırsız/dengesiz sayıları 0.
+
+## A5 sonuçları (25 Ekim 2026)
+
+| Kontrol | Gerçek sonuç |
+|---|---|
+| `make test` | PASS; 58 birim test fonksiyonu |
+| Saf kapsam komutu (yukarıda) | billing **%92,1**, caldate **%100** |
+| Entegrasyon + kapsam komutu | PASS; **52 entegrasyon test fonksiyonu**, A1–A4 dahil, migration 00005 Up/Down/Up |
+| Birleşik kapsam profili | payment/store, payment, billing ve ledger toplam **%83,3** |
+| `./scripts/test-integration.sh -run TestConcurrentPayments -count=10 -race` | PASS; mutasyon geri alındıktan sonra tekrar 10 kez PASS |
+| Poliçe kilidi mutasyonu | Beklenen FAIL; CHECK → 409 CONCURRENT_PAYMENT, fazla tahsilat yok |
+| `make lint`, `make build` | PASS; Go vet normal/integration, ESLint, Go/TypeScript/Vite |
+| `make up` | PASS; db/api/web healthy; 00005 ve iki demo poliçesi yüklendi |
+| `make verify` | **47 PASS, 0 FAIL**, iki ayrı çalıştırma; F-3/T-4 gerçek mali etki ve mutabakat dahil |
+| Tarayıcı / 375 px | PASS; acente yeni teklifi 3 taksitle çevirdi (493828/493826/493826 kuruş); muhasebe 100 tahsil/40 iade; müşteri 1 kuruş ödeme ve fazla ödeme hatası; genişlik 375/375, taşma yok |
+| OpenAPI | YAML ayrıştırması ve **245 iç `$ref`** PASS; dış linter çalıştırılmadı |
+
+**Sınırlar:** Kurgusal model/oran; kazanılmamış prim karşılığı ve banka entegrasyonu yok. İptal sonrası manuel iade ve otomatik zamanlayıcı yok. Plansız eski veriye backfill yok. Mevcut idempotans middleware'inin iş commit'i–yanıt saklama aralığında süreç çökmesi sınırlaması sürer. Dış OpenAPI linter **ÇALIŞTIRILMADI** (yeni araç kurulmadı); YAML ve iç `$ref` kontrolü yerel Ruby ile yapılır.
+
+OpenAPI yerel kontrolü (repo kökünden):
+
+```bash
+ruby <<'RUBY'
+require 'yaml'
+doc = YAML.load_file('openapi.yaml')
+refs = []
+walk = lambda do |v|
+  case v
+  when Hash
+    v.each { |k, x| k == '$ref' ? refs << x : walk.call(x) }
+  when Array
+    v.each { |x| walk.call(x) }
+  end
+end
+walk.call(doc)
+refs.each do |r|
+  raise "Geçersiz referans: #{r}" unless r.start_with?('#/') && r[2..].split('/').reduce(doc) { |v, k| v.fetch(k) }
+end
+doc['paths'].each_value do |path|
+  path.each_value do |operation|
+    next unless operation.is_a?(Hash) && operation['responses']
+    operation['responses'].each_value do |response|
+      raise "Geçersiz response alanı: #{response}" unless (response.keys - %w[description content headers links $ref]).empty?
+    end
+  end
+end
+puts "YAML PASS; #{refs.size} refs PASS; response keys PASS"
+RUBY
+```

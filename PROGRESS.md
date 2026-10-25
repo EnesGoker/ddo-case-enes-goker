@@ -171,3 +171,115 @@ Son doküman/biçim commitleri `git log 15fe058..HEAD` ve teslim raporunda yer a
 ### Sonraki görev
 
 Yalnızca öneri: A5 — T-4/F-3 taksit, tahsilat ve prim muhasebesi. Yeni kullanıcı onayı olmadan başlanmaz.
+
+
+## A5 (ajan: Codex) — 25 Ekim 2026
+
+### Durum
+
+**TAMAMLANDI.** Onaylı T-4/F-3 kapsamı uygulandı ve doğrulandı. A6'ya geçilmedi. A4 claim/settlement koduna veya 00001–00004 migrationlarına dokunulmadı; mevcut yardımcılar ve paket kalıpları korundu. Yeni bağımlılık kurulmadı, veri sıfırlanmadı, push yok.
+
+### Yapılanlar
+
+- DB'siz billing hesabı, ay sonu vadeleri, half-up basit faiz, faiz→anapara tahsisi, zeyil/iptal için tek prim ayarı.
+- Issue/convert ile atomik plan/taksit/yevmiye; mevcut zeyil/iptal transactionına mali ayar ve ayrı cash_refund_kurus. payment/store ayrımı import döngüsü oluşturmuyor.
+- Önce poliçe satırı kilidi: ödeme/iade/tahakkuk/plan; gün sonu SKIP LOCKED ve mevcut CancelTx ile NON_PAYMENT. Mizan repeatable-read snapshot ve ortak mutabakat değişmezi.
+- İdempotent gecikmiş A/B seed, minimal rol arayüzleri, gerçek API verify ve belgeler.
+- 00005 yalnızca plan toplamı CHECK >0 → >=0; Down riski yorumda. Kullanıcının yerel CURRENT_TASK değişikliği ilk docs commitinde korundu.
+
+### Testler ve gerçek sonuçlar
+
+| Tam komut / kontrol | Sonuç |
+|---|---|
+| `make test` | PASS; 58 birim test fonksiyonu. |
+| `(cd backend && go test -count=1 -cover ./internal/billing ./internal/caldate)` | PASS; billing %92,1, caldate %100. |
+| `./scripts/test-integration.sh -coverpkg=./internal/payment/...,./internal/billing,./internal/ledger -coverprofile=/tmp/guvenpolice-a5-coverage.out` | PASS; 52 entegrasyon fonksiyonu (11 yeni A5); A1–A4 korunuyor; 00005 dahil Up/Down/Up. |
+| `(cd backend && go tool cover -func=/tmp/guvenpolice-a5-coverage.out)` | Birleşik toplam %83,3; payment %80,6, store %81,0, ledger %83,9, billing %93,1 (birim+entegrasyon). |
+| `./scripts/test-integration.sh -run TestConcurrentPayments -count=10 -race -v` | PASS; bağımsız iki HTTP/transaction, gate ile kilitte buluşma, 201 + 422 OVERPAYMENT. |
+| `./scripts/test-integration.sh -run TestConcurrentPayments -count=1 -v` (geçici kilit mutasyonunda) | Beklenen FAIL; 201 + 409 CONCURRENT_PAYMENT. installments CHECK paid<=amount ikinci savunması yakaladı, bakiye 10000 kaldı. |
+| `./scripts/test-integration.sh -run TestConcurrentPayments -count=10 -race` (kilit geri konulduktan sonra) | PASS; kaynak finally ile geri yüklendi, mutasyon kalıcı değil. |
+| `make lint` | PASS; normal/integration go vet ve ESLint. |
+| `make build` | PASS; Go ve TypeScript/Vite. |
+| `make up` | PASS; db/api/web healthy, 00005 ve iki demo poliçesi yüklendi. |
+| `make verify` | İki ayrı çalıştırmada 47 PASS, 0 FAIL; ikinci tur iptal edilmiş seed A ile de geçti. |
+| `./scripts/test-integration.sh -run TestBillingInterestAllocationRefundAndDates -count=1` | PASS; ek faiz tahsisi iade kontrolü. |
+| `bash -n scripts/verify.sh`, `git diff --check` | PASS. |
+| Yerel Ruby YAML + iç $ref taraması | PASS; 245 referans çözüldü. Dış OpenAPI linter ÇALIŞTIRILMADI (yeni araç kurulmadı). |
+
+İade/açılan anapara, eşzamanlı iade, iptal sonrası tahsilat, 29/30 sınırı, seed faiz altın hesabı, kilitli kayıt atlama, A4 hasar koruması, zeyil +/−, sıfır plan ve nakit iade, RBAC ve keyset test edildi. Her A5 mali senaryosu sonunda tüm defter/yevmiye dengesi, satırsız kayıt yokluğu, plan toplamları ve 1200 = açık anapara + faiz kontrol edildi.
+
+Tarayıcı (375 px): acente yeni teklifi üç taksitle çevirdi: 1.481.480 kuruş = 493.828 + 493.826 + 493.826; muhasebe 100 kuruş tahsilat/40 kuruş iade, müşteri kendi poliçesine 1 kuruş ödeme ve fazla ödeme hata görünümü; muhasebe aynı gün gün sonu 0 yeni faiz/iptal ve dengeli mizan. Boş durumlar göründü. Ölçüm viewport=375, scrollWidth=375; yatay taşma yok. Yerel ekran kanıtı (Git dışında): `/Users/macair/.codex/visualizations/2026/10/25/01a1736b-a440-73e3-9306-e324601dce63/a5-billing-375.jpg`.
+
+### Bilinen eksikler / riskler
+
+- Kurgusal muhasebe: prim anında gelir, kazanılmamış prim karşılığı yok; gerçek tarife/mevzuat veya banka entegrasyonu değildir.
+- Manuel iade yalnızca ACTIVE poliçede; otomatik zamanlayıcı yok. Her gün sonu poliçesi ayrı commit; sonraki poliçe hatası önceki başarıları geri almaz.
+- Plansız A5 öncesi veri için 409 BILLING_PLAN_MISSING, otomatik backfill yok; reset-demo yalnızca silinebilir demo için kullanıcı işlemidir. 00005 Down sıfır plan varsa başarısız olabilir; eski migrationlar değişmedi.
+- Mevcut idempotans middleware'inde iş commit'i–yanıt saklama aralığında süreç çökmesi riski devam ediyor; normal tekrar/eşzamanlı istekler tek ödeme üretir.
+- B seed tarihi ilk oluşturulduğu güne bağlı; zaman ilerleyince kendisi de >=30 gün kuralına girer. Verify kayıt bazında çoklu faizi destekler, başlangıç B örneği için taze demo gerekebilir.
+
+### Değişen dosyalar (tam yollar)
+
+| Dosya | Amaç |
+|---|---|
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example` | Kurgusal günlük faiz env varsayılanı. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md` | Kullanıcının onaylı A5 görev tanımı; ilk commit. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md` | ADR-12/13 kilit, tahsis, faiz ve muhasebe kararları. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md` | A5 teslim durumu, kanıtlar, riskler ve tam dosya listesi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md` | A5 çıkış kapısı ve F-3/T-4 kanıt matrisi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md` | A5 komutları, hesap örnekleri, yarış/mutasyon ve UI kanıtları. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/cmd/api/main.go` | Faiz oranını router bağımlılıklarına aktarır. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/integration_test.go` | 00005 migration sürümü ve Up/Down/Up doğrulaması. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/payment_integration_test.go` | 11 mali entegrasyon senaryosu ve ortak plan/defter/mutabakat değişmezi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/router.go` | Ödeme/iade/gün sonu/mizan/yevmiye uçları; mevcut RBAC ve idempotans. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/billing/billing.go` | Saf taksit, faiz, tahsis, tek prim ayarı ve 30 gün hesabı. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/billing/billing_test.go` | Elle hesaplanmış altın örnekler ve sınır testleri. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/caldate/caldate.go` | Ay sonuna kırpılan AddMonths. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/caldate/caldate_test.go` | 29 Şubat, ay sonu ve yıl sınırı örnekleri. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/config/config.go` | LATE_INTEREST_DAILY_PPM doğrulaması ve varsayılan 1000. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/ledger/handler.go` | Repeatable-read mizan ve keyset yevmiye HTTP girişleri. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/ledger/query.go` | Hesap/yevmiye dengesi, 1200 mutabakatı ve satırlı liste. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/handler.go` | Plan, tahsilat, iade ve gün sonu HTTP sözleşmesi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/repo.go` | Kilitli mali görünüm; taksit, faiz, ödeme, tahsis ve iadeler. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/run.go` | Poliçe bazında SKIP LOCKED tahakkuk ve ortak CancelTx iptali. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/service.go` | Poliçe kilitli tahsilat/iade; tarih, sahiplik, audit ve hata eşleme. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/accrual.go` | Tam sayı faiz kaydı ve LATE_INTEREST yevmiyesi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/adjustment.go` | Ortak prim ayarının kalıcı etkisi ve tahsissiz nakit REFUND. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/payment.go` | Ödeme, pozitif tahsis ve PAYMENT/REFUND yevmiyesi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/plan.go` | Plan yükleme/oluşturma ve POLICY_ISSUE yevmiyesi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/change.go` | Zeyil/iptal transactionına mali ayar; nakit iade önizlemesi; ortak CancelTx. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/policy.go` | Issue ile aynı transactionda plan/taksit/yevmiye; seed için dahili sabit no. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/quote/handler.go` | Convert isteğe bağlı 1–12 installment_count doğrulaması. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/quote/service.go` | Taksit sayısını mevcut Issue akışına aktarır; varsayılan 1. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/billing.go` | Issue üzerinden sabit no ile iki idempotent gecikmiş demo poliçesi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/demo.go` | Mevcut seed transactionından mali demo servisini çağırır. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00005_installment_plan_zero_total.sql` | Yalnızca total_kurus CHECK >=0; Down riski yorumlu. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/docker-compose.yml` | Günlük faiz oranını API ortamına aktarır. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/api/types.ts` | Mali plan/ödeme/faiz/mizan/yevmiye ve nakit iade tipleri. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/BillingPanel.tsx` | Plan, faiz, tahsis, tahsilat ve iade formları. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/PolicyChangeForms.tsx` | Önizlemede prim azalışından ayrı müşteriye nakit iade. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/PolicyDetail.tsx` | Yetkili rollerde mali plan bileşeni. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/QuoteDetail.tsx` | Convert için taksit sayısı ve değişen girdide yeni idempotans anahtarı. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/AccountingPage.tsx` | Gün sonu, mizan/mutabakat ve keyset yevmiye ekranı. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/Dashboard.tsx` | Muhasebe ekranı ve müşteri ödeme gezinmesi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/roles.ts` | A5 tahsilat menüsünü kullanılabilir yapar. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/openapi.yaml` | A5 uçları, istek/yanıt/hata şemaları ve convert/cash_refund sözleşmesi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http` | Mevcut token/istek değişkenleriyle A5 örnekleri. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/verify.sh` | F-3/T-4 API, arka planda paralel curl, kayıt bazında awk faiz ve mutabakat kanıtı. |
+
+### Yerel commitler
+
+- `fd659dc docs: A5 görev tanımı`
+- `ae55cf3 feat(billing): saf taksit, faiz, tahsis ve prim ayarı hesapları`
+- `fb0817b feat(policy): düzenleme ve zeyil iptal akışını ödeme planı ve deftere bağla`
+- `e513dff feat(payment): tahsilat, iade, gün sonu ve defter mutabakatı`
+- `07e7bf1 feat(web): taksit seçimi, ödeme iade ve mizan ekranları`
+- `eb41b35 test(verify): F-3 tahsilat ve T-4 paralel ödeme faiz mutabakat kanıtları`
+
+- `3fb6bea test(payment): manuel iadede faiz tahsisinin yeniden açılmasını doğrula`
+
+Son A5 doküman commitinin hash'i `git log 204fd8d..HEAD` ve teslim raporunda bulunur; push yapılmadı.
+
+### Sonraki görev
+
+Yalnızca öneri: A6 — fraud, atama/SLA ve raporlar. Yeni onay olmadan başlanmaz.

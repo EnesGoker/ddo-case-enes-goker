@@ -235,3 +235,50 @@ Authorization: Bearer {{adjuster.response.body.access_token}}
 Content-Type: application/json
 
 {"to_status":"CLOSED","expected_row_version":6}
+
+### A5 — üç taksitle çevir (yeni CALCULATED/APPROVED teklif id'sini yaz)
+
+# @name a5convert
+POST {{api}}/api/v1/quotes/{{quote.response.body.id}}/convert
+Authorization: Bearer {{login.response.body.access_token}}
+Idempotency-Key: a5-convert-001
+Content-Type: application/json
+
+{"installment_count":3}
+
+### Plan, taksit, faiz, tahsis ve iadeler
+GET {{api}}/api/v1/policies/{{a5convert.response.body.id}}/billing
+Authorization: Bearer {{accounting.response.body.access_token}}
+
+### Tahsilat (CUSTOMER kendi poliçesinde payment_date göndermez)
+
+# @name a5payment
+POST {{api}}/api/v1/policies/{{a5convert.response.body.id}}/payments
+Authorization: Bearer {{accounting.response.body.access_token}}
+Idempotency-Key: a5-payment-001
+Content-Type: application/json
+
+{"amount_kurus":10000,"method":"TRANSFER"}
+
+### İade — yukarıdaki PAYMENT id'sini yaz
+POST {{api}}/api/v1/payments/{{a5payment.response.body.id}}/refund
+Authorization: Bearer {{accounting.response.body.access_token}}
+Idempotency-Key: a5-refund-001
+Content-Type: application/json
+
+{"amount_kurus":1000,"reason":"Kurgusal demo iadesi"}
+
+### Gün sonu (as_of verilmezse bugün)
+POST {{api}}/api/v1/billing/run
+Authorization: Bearer {{accounting.response.body.access_token}}
+Content-Type: application/json
+
+{}
+
+### Mizan ve alacak mutabakatı
+GET {{api}}/api/v1/ledger/trial-balance
+Authorization: Bearer {{accounting.response.body.access_token}}
+
+### Satırlarıyla yevmiye listesi; next_cursor ile sonraki sayfa
+GET {{api}}/api/v1/journal-entries?limit=20
+Authorization: Bearer {{accounting.response.body.access_token}}

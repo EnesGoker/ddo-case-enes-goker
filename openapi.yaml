@@ -1,10 +1,11 @@
 openapi: 3.0.3
 info:
   title: GüvenPoliçe API
-  version: 0.4.0
+  version: 0.5.0
   description: |
-    A1–A4 kapsamı: sağlık, metrik, kimlik doğrulama, müşteri listesi, tarife, teklif (F-1/T-1),
+    A1–A5 kapsamı: sağlık, metrik, kimlik doğrulama, müşteri listesi, tarife, teklif (F-1/T-1),
     poliçe listesi/detayı, tarihte teminat, araç değişikliği zeyli ve iptal (F-2/T-2), hasar/ekspertiz/tazminat/ödeme (F-4/F-5/F-6/T-3).
+    Taksit/tahsilat/iade, basit gecikme faizi, 30 gün iptal ve mizan/mutabakat (F-3/T-4).
     Para alanları kuruş cinsinden tam sayıdır (`*_kurus`); oranlar bp (10000 = ×1).
     Erişim kuralı: rol uca hiç erişemiyorsa 403; erişebiliyor ama kayıt kapsam dışındaysa 404.
     Listeler keyset sayfalıdır: `?limit=` (1–100) ve önceki yanıttaki opak `next_cursor`.
@@ -253,7 +254,7 @@ paths:
     post:
       summary: Teklifi poliçeye çevirir (AGENT, Idempotency-Key zorunlu)
       description: |
-        Tek transaction: poliçe, sürüm 1, teminatlar, limit bakiyeleri (her teminat + yıllık toplam), teklif CONVERTED, audit.
+        Tek transaction: poliçe, sürüm 1, teminatlar, limit bakiyeleri (her teminat + yıllık toplam), taksit planı/taksitler, POLICY_ISSUE yevmiyesi, teklif CONVERTED, audit.
         Yalnızca CALCULATED/APPROVED, süresi dolmamış ve başlangıcı bugün veya sonrası olan teklif.
         Aynı anahtar + aynı istek → kayıtlı yanıt (Idempotent-Replayed: true). Aynı anahtar + farklı istek → 422.
         İşlem sürerken aynı anahtar → 409. Farklı anahtarla ikinci çevirme → 409 QUOTE_NOT_CONVERTIBLE.
@@ -261,6 +262,15 @@ paths:
       parameters:
         - { $ref: "#/components/parameters/ID" }
         - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 255 } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                installment_count: { type: integer, minimum: 1, maximum: 12, default: 1 }
       responses:
         "201":
           description: Düzenlenen poliçe
@@ -271,8 +281,8 @@ paths:
         "400": { description: IDEMPOTENCY_KEY_REQUIRED, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
-        "409": { description: QUOTE_NOT_CONVERTIBLE, QUOTE_ALREADY_CONVERTED (benzersizlik ikinci savunma hattı) veya IDEMPOTENCY_IN_PROGRESS, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
-        "422": { description: QUOTE_EXPIRED, TERM_START_IN_PAST veya IDEMPOTENCY_KEY_REUSED, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "409": { description: "QUOTE_NOT_CONVERTIBLE, QUOTE_ALREADY_CONVERTED (benzersizlik ikinci savunma hattı) veya IDEMPOTENCY_IN_PROGRESS", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: "QUOTE_EXPIRED, TERM_START_IN_PAST veya IDEMPOTENCY_KEY_REUSED", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
   /api/v1/policies:
     get:
@@ -381,12 +391,13 @@ paths:
               schema:
                 type: object
                 properties:
+                  cash_refund_kurus: { type: integer, format: int64 }
                   endorsement: { $ref: "#/components/schemas/Endorsement" }
                   version: { $ref: "#/components/schemas/PolicyVersion" }
         "400": { $ref: "#/components/responses/ValidationError" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
-        "409": { description: "STALE_VERSION, CONCURRENT_MODIFICATION, IDEMPOTENCY_IN_PROGRESS", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "409": { description: "STALE_VERSION, CONCURRENT_MODIFICATION, BILLING_PLAN_MISSING, IDEMPOTENCY_IN_PROGRESS", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "422": { description: "Önizlemeyle aynı iş hataları; IDEMPOTENCY_KEY_REUSED", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
   /api/v1/policies/{id}/cancel/preview:
@@ -410,7 +421,7 @@ paths:
         "400": { $ref: "#/components/responses/ValidationError" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
-        "409": { description: STALE_VERSION, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "409": { description: "STALE_VERSION veya BILLING_PLAN_MISSING", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "422": { description: "CLAIMS_AFTER_EFFECTIVE_DATE, INVALID_EFFECTIVE_DATE, POLICY_CANCELLED, POLICY_NOT_ACTIVE, SHORT_PERIOD_RATE_MISSING", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
   /api/v1/policies/{id}/cancel:
@@ -418,7 +429,7 @@ paths:
       summary: Poliçe iptali (AGENT yalnızca CUSTOMER_REQUEST, UNDERWRITER her gerekçe; Idempotency-Key zorunlu)
       description: |
         Açık sürüm iptal tarihinde kapanır (yeni sürüm açılmaz); poliçe CANCELLED, cancel_effective_date ve cancel_reason dolar;
-        iade CANCELLATION zeyline premium_delta (negatif) ve calc_detail olarak yazılır. Tahsilat mahsubu A5'te.
+        iade CANCELLATION zeyline premium_delta (negatif) ve calc_detail olarak yazılır. Aynı transaction içinde taksit ayarı, ENDORSEMENT yevmiyesi ve gerekiyorsa tahsissiz nakit REFUND üretilir.
         İptal tarihi açık sürümün başlangıç günüyse (ör. başlangıçtan iptal) sürüm kapatılamaz (sıfır uzunlukta aralık
         CHECK ile yasak); teminat poliçe düzeyindeki iptal tarihiyle sona erer.
       security: [{ bearerAuth: [] }]
@@ -437,13 +448,14 @@ paths:
               schema:
                 type: object
                 properties:
+                  cash_refund_kurus: { type: integer, format: int64 }
                   endorsement: { $ref: "#/components/schemas/Endorsement" }
                   policy: { type: object }
                   refund_kurus: { type: integer, format: int64 }
         "400": { $ref: "#/components/responses/ValidationError" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
-        "409": { description: "STALE_VERSION, CONCURRENT_MODIFICATION, IDEMPOTENCY_IN_PROGRESS", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "409": { description: "STALE_VERSION, CONCURRENT_MODIFICATION, BILLING_PLAN_MISSING, IDEMPOTENCY_IN_PROGRESS", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "422": { description: "Önizlemeyle aynı iş hataları; IDEMPOTENCY_KEY_REUSED", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
   "/api/v1/claims":
@@ -822,8 +834,149 @@ paths:
           minLength: 1
           maxLength: 255
 
+  /api/v1/policies/{id}/billing:
+    get:
+      summary: Ödeme planı, faizler, tahsisler ve ödemeler
+      description: CUSTOMER/AGENT kendi, ACCOUNTING/UNDERWRITER tüm poliçeler. Poliçe kilidi altında tutarlı görünüm; plan yoksa 409 BILLING_PLAN_MISSING.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/ID' }]
+      responses:
+        '200':
+          description: Son tahakkuka göre açık bakiye ve mali kayıtlar
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/BillingPlan' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: "BILLING_PLAN_MISSING", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/v1/policies/{id}/payments:
+    post:
+      summary: Tahsilat (ACCOUNTING veya kendi poliçesine CUSTOMER)
+      description: |
+        Poliçe kilidi → ödeme tarihine kadar faiz → en eski taksitin faizi, sonra anapara → tahsis ve yevmiye/audit.
+        Tüm bakiyeyi aşan ödeme bütünüyle 422 OVERPAYMENT. İptal edilmiş poliçenin açık bakiyesi ödenebilir.
+        CUSTOMER için tarih bugün; ACCOUNTING payment_date <= bugün ve >= son tahakkuk to.
+        Aynı anahtarda işlem sürerken 409, tamamlandıktan sonra aynı yanıt ve Idempotent-Replayed başlığı.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ID' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/PaymentRequest' } }
+      responses:
+        '201':
+          description: Ödeme ve aynı transaction içindeki yevmiye
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Payment' } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: "BILLING_PLAN_MISSING, IDEMPOTENCY_IN_PROGRESS veya CONCURRENT_PAYMENT (CHECK ikinci savunması)", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "OVERPAYMENT, PAYMENT_DATE_IN_FUTURE, PAYMENT_DATE_BEFORE_ACCRUAL veya IDEMPOTENCY_KEY_REUSED", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/v1/payments/{id}/refund:
+    post:
+      summary: Tahsilat iadesi (ACCOUNTING, yalnızca ACTIVE poliçe)
+      description: |
+        Poliçe kilidi altında, tutar <= ödemenin kalan iade edilebilir tutarı.
+        Önce bugüne faiz; sonra özgün tahsisleri en sondan geriye geri alır.
+        REFUND ve pozitif tahsisler, ters yevmiye, audit. Geri açılan anapara sonraki tahakkukta faizlenir.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ID' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [amount_kurus, reason]
+              properties:
+                amount_kurus: { type: integer, format: int64, minimum: 1 }
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        '201':
+          description: REFUND ödemesi
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Payment' } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: "REFUND_REQUIRES_ACTIVE_POLICY, REFUND_ALLOCATION_MISSING, CONCURRENT_PAYMENT veya IDEMPOTENCY_IN_PROGRESS", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: "REFUND_EXCEEDS_PAYMENT veya IDEMPOTENCY_KEY_REUSED", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/v1/billing/run:
+    post:
+      summary: Faiz tahakkuku ve 30 gün kuralı (ACCOUNTING)
+      description: |
+        Her poliçe ayrı transaction; poliçe FOR UPDATE SKIP LOCKED, kilitli kayıt skipped/LOCKED.
+        Açık anapara için basit faiz, sonra >=30 gün gecikmiş ACTIVE poliçeye mevcut iptal servisi NON_PAYMENT/as_of.
+        CLAIMS_AFTER_EFFECTIVE_DATE ve uygun olmayan etki tarihi atlanır/raporlanır. Aynı as_of yeni faiz/iptal üretmez.
+        Zamanlayıcı yok. İptal edilmiş poliçede faiz cancel_effective_date ile kırpılır.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                as_of: { type: string, format: date, description: Varsayılan bugün; gelecekte olamaz }
+      responses:
+        '200':
+          description: İşlenen ve atlanan poliçeler
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/BillingRun' } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: "AS_OF_IN_FUTURE", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/v1/ledger/trial-balance:
+    get:
+      summary: Hesap bazında mizan ve 1200 mutabakatı (ACCOUNTING)
+      description: Repeatable-read snapshot; 1200 borç-alacak = açık taksit anaparası + ödenmemiş faiz. Satırsız/dengesiz yevmiye sayısı 0 olmalı.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Genel ve yevmiye bazında denge
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/TrialBalance' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/journal-entries:
+    get:
+      summary: Satırlarıyla yevmiye listesi (ACCOUNTING, en yeni önce)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Keyset sayfası
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/JournalEntry' } }
+                  next_cursor: { type: string, nullable: true }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
 components:
   parameters:
+    IdempotencyKey: { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 255 } }
     Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
     Cursor: { name: cursor, in: query, description: Önceki sayfanın opak next_cursor değeri, schema: { type: string } }
     ID: { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
@@ -1049,6 +1202,7 @@ components:
       type: object
       description: Adım adım hesap kaydı (endorsements.calc_detail)
       properties:
+        cash_refund_kurus: { type: integer, format: int64, description: Müşteriye nakit iade }
         kind: { type: string, enum: [VEHICLE_CHANGE, CANCELLATION] }
         method: { type: string, enum: [PRO_RATA, SHORT_PERIOD] }
         reason: { type: string }
@@ -1133,6 +1287,7 @@ components:
     VehicleChangePreview:
       type: object
       properties:
+        cash_refund_kurus: { type: integer, format: int64, description: Prim azalışından farklı olarak müşteriye nakit iade }
         policy_id: { type: integer, format: int64 }
         type: { type: string, enum: [VEHICLE_CHANGE] }
         effective_date: { type: string, format: date }
@@ -1158,6 +1313,7 @@ components:
     CancelPreview:
       type: object
       properties:
+        cash_refund_kurus: { type: integer, format: int64 }
         policy_id: { type: integer, format: int64 }
         effective_date: { type: string, format: date }
         reason: { type: string }
@@ -1506,3 +1662,132 @@ components:
             type: integer
             format: int64
             nullable: true
+
+    PaymentRequest:
+      type: object
+      additionalProperties: false
+      required: [amount_kurus, method]
+      properties:
+        amount_kurus: { type: integer, format: int64, minimum: 1 }
+        method: { type: string, enum: [CASH, CARD, TRANSFER] }
+        payment_date: { type: string, format: date, description: Yalnızca ACCOUNTING; verilmezse bugün }
+    Payment:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        policy_id: { type: integer, format: int64 }
+        kind: { type: string, enum: [PAYMENT, REFUND] }
+        amount_kurus: { type: integer, format: int64 }
+        method: { type: string, enum: [CASH, CARD, TRANSFER] }
+        refund_of_payment_id: { type: integer, format: int64, nullable: true }
+        paid_at: { type: string, format: date-time }
+        journal_entry_id: { type: integer, format: int64 }
+        reference: { type: string }
+    Installment:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        seq: { type: integer }
+        due_date: { type: string, format: date }
+        amount_kurus: { type: integer, format: int64 }
+        paid_kurus: { type: integer, format: int64 }
+        status: { type: string, enum: [PENDING, PARTIAL, PAID, CANCELLED] }
+        overdue_days: { type: integer, format: int64 }
+    InterestCharge:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        installment_id: { type: integer, format: int64 }
+        accrued_from: { type: string, format: date }
+        accrued_to: { type: string, format: date, description: Hariç sınır }
+        overdue_principal_kurus: { type: integer, format: int64 }
+        daily_rate_ppm: { type: integer, format: int64 }
+        amount_kurus: { type: integer, format: int64 }
+        paid_kurus: { type: integer, format: int64 }
+    PaymentAllocation:
+      type: object
+      description: Tutar pozitif; PAYMENT tahsis eder, REFUND geri alır. İki hedef alanından yalnızca biri dolu.
+      properties:
+        id: { type: integer, format: int64 }
+        payment_id: { type: integer, format: int64 }
+        installment_id: { type: integer, format: int64, nullable: true }
+        late_interest_charge_id: { type: integer, format: int64, nullable: true }
+        amount_kurus: { type: integer, format: int64 }
+    BillingPlan:
+      type: object
+      properties:
+        policy_id: { type: integer, format: int64 }
+        policy_status: { type: string }
+        plan_id: { type: integer, format: int64 }
+        total_kurus: { type: integer, format: int64, minimum: 0, description: İptal olmayan taksitlerin toplamı }
+        installment_count: { type: integer, description: İlk düzenlemedeki taksit sayısı; ek taksitle değişmez }
+        daily_rate_ppm: { type: integer, format: int64 }
+        open_balance_kurus: { type: integer, format: int64, description: Açık anapara ve son tahakkuka göre ödenmemiş faiz }
+        installments: { type: array, items: { $ref: '#/components/schemas/Installment' } }
+        interest: { type: array, items: { $ref: '#/components/schemas/InterestCharge' } }
+        allocations: { type: array, items: { $ref: '#/components/schemas/PaymentAllocation' } }
+        payments:
+          type: array
+          items:
+            allOf:
+              - { $ref: '#/components/schemas/Payment' }
+              - type: object
+                properties:
+                  refundable_kurus: { type: integer, format: int64 }
+    BillingRun:
+      type: object
+      properties:
+        as_of: { type: string, format: date }
+        accrual_count: { type: integer }
+        interest_kurus: { type: integer, format: int64 }
+        cancelled: { type: array, items: { type: integer, format: int64 } }
+        skipped:
+          type: array
+          items:
+            type: object
+            properties:
+              policy_id: { type: integer, format: int64 }
+              reason: { type: string }
+    TrialBalance:
+      type: object
+      properties:
+        accounts:
+          type: array
+          items:
+            type: object
+            properties:
+              code: { type: string }
+              name: { type: string }
+              debit_kurus: { type: integer, format: int64 }
+              credit_kurus: { type: integer, format: int64 }
+              balance_kurus: { type: integer, format: int64 }
+        total_debit_kurus: { type: integer, format: int64 }
+        total_credit_kurus: { type: integer, format: int64 }
+        balanced: { type: boolean }
+        empty_entries: { type: integer, format: int64 }
+        unbalanced_entries: { type: integer, format: int64 }
+        receivable_reconciliation:
+          type: object
+          properties:
+            ledger_1200: { type: integer, format: int64 }
+            open_installments: { type: integer, format: int64 }
+            open_interest: { type: integer, format: int64 }
+            matches: { type: boolean }
+    JournalEntry:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        entry_date: { type: string, format: date }
+        description: { type: string }
+        ref_type: { type: string }
+        ref_id: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer, format: int64 }
+              account_code: { type: string }
+              debit_kurus: { type: integer, format: int64 }
+              credit_kurus: { type: integer, format: int64 }

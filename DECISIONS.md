@@ -109,3 +109,34 @@ A0'da onaylanan beş karar; A2 (ADR-6/7), A3 (ADR-8/9) ve A4 (ADR-10/11) ekleri.
 **Sınırlama:** APPROVED geri alınamaz; uzlaşma iptali bu aşamada yoktur, `claim_settlements.CANCELLED` kullanılmaz. Eksper görünürlüğü APPRAISAL dosyaları veya kendi ekspertizi bulunan dosyalardır; görev ataması/fraud/SLA A6'ya aittir.
 
 **Kanıt:** `TestConcurrentClaimApprovals` iki bağımsız HTTP isteğini dış transaction kilidinde buluşturur; 10 tekrar ve `-race` geçti. Bakiye `FOR UPDATE` geçici kaldırılınca ikinci onay `409 LIMIT_CHANGED` aldı; koşullu UPDATE taşmayı engelledi, tam/kırpılmış iki başarı bekleyen test FAIL oldu. Kilit geri konuldu ve 10 tekrar `-race` PASS. `TestClaimLifecycleAndIdempotency` tek settlement/yevmiye, ödeme ve defter dengesini; `TestClaimValidationAndLedgerRollback` eksik muhasebe hesabında geri almayı doğrular.
+
+## ADR-12 — Taksit, tek poliçe kilidi ve tahsis (A5)
+
+**Karar:** Saf `internal/billing` hesaplar; `internal/payment` uygulama/HTTP, `internal/payment/store` çağıranın transaction'ında mali kayıtlar. `policy` yalnızca `payment/store` kullanır; store policy paketini import etmez. Düzenleme/zeyil/iptal/ödeme/iade/tahakkuk ve plan okuma önce aynı poliçe satırını `policy.LoadHeader(..., true)` ile kilitler. Gün sonu önce `FOR UPDATE SKIP LOCKED`, sonra aynı başlık yardımcısı; kilitli poliçe `skipped/LOCKED` döner. Zeyil/iptal mevcut transaction ve iş kurallarını kullanır; A4 koduna genel refactor yapılmaz.
+
+- 1–12 taksit, toplam kuruştan fazla taksit yok; bölüm ve kalan ilk taksite. Vade, orijinal başlangıca ay eklenerek hedef ay sonuna kırpılır (`caldate.AddMonths`); önceki kırpılmış vade zincirlenmez.
+- Tahsis `(due_date, seq)` sırası; her taksitte eski faiz önce, sonra anapara. Erken ödeme serbest, fazla ödeme bütünüyle 422 `OVERPAYMENT`. Tahsis tutarı daima pozitif, yön `payments.kind`'dan gelir.
+- Tek `billing.Adjust`: ek prim uygun açık taksitlere (vade >= etki tarihi) dağıtılır; yoksa yeni seq ile ek taksit. Negatif prim en geç açık vadeden azaltılır. Ödenmemiş sıfır bakiye taksiti tutarı korunarak CANCELLED; kısmen ödenmişte yeni amount=paid, PAID. Artan prim azalışı en yeni tahsilatların iade edilebilir kalanından tahsissiz REFUND olur.
+- `cash_refund_kurus` müşteriye dönen nakit; A3'ün prim azalışı/iade hesabından ayrıdır. Plan toplamı iptal olmayan taksitlerin toplamıdır; peşin ödenmiş tutarlar burada kalabilir. 00005 yalnızca plan toplamı CHECK'ini `>=0` yapar; Down `>0` kuralına döner, sıfır plan varsa veri değiştirmeden başarısız olabilir.
+- Manuel iade yalnızca ACTIVE poliçede; özgün ödemenin tahsisleri en sondan geriye alınır (önce anapara, gerekirse faiz). Bugüne kadar mevcut borç faizlenir; iade ile açılan anapara iade tarihinden sonraki tahakkukta işler. Otomatik prim iadesi tahsis geri almaz.
+
+**Kanıt:** Altın hesaplar, gerçek PostgreSQL entegrasyonları, her mali senaryonun sonunda ortak defter/plan/mutabakat yardımcısı. İki ödeme dış transaction ile taksit UPDATE'inde buluşturulur: normal 201 + 422; poliçe kilidi mutasyonu 201 + 409 `CONCURRENT_PAYMENT`, CHECK taşmayı engeller. Kilit geri konularak 10 tekrar `-race` PASS.
+
+## ADR-13 — Faiz, 30 gün ve çift taraflı prim muhasebesi (A5)
+
+**Karar (kurgusal/sadeleştirilmiş):** Prim düzenlemede gelir yazılır; kazanılmamış prim karşılığı **yoktur**. Faiz basit, tam sayı kuruş, yarımı yukarı: ödenmemiş anapara × günlük ppm × gün / 1.000.000. Ara çarpım `math/big`, sonuç int64 sınırında doğrulanır. `LATE_INTEREST_DAILY_PPM` varsayılan 1000 (%0,1/gün); bileşik faiz yok. Aralık `[max(vade, son tahakkuk to, anaparayı yeniden açan iade tarihi), as_of)`; iptal edilmiş poliçede bitiş iptal etki tarihinden ileri gidemez. Vade gününde 0 gün faiz.
+
+| Olay | Borç / alacak | ref_type / ref_id |
+|---|---|---|
+| Düzenleme | 1200 / 4000 | POLICY_ISSUE / poliçe |
+| Ek prim | 1200 / 4000 | ENDORSEMENT / zeyil |
+| Prim azalışı/iptal | 4000 / 1200 | ENDORSEMENT / zeyil |
+| Faiz | 1200 / 4100 | LATE_INTEREST / faiz kaydı |
+| Tahsilat | 1000 / 1200 | PAYMENT / ödeme |
+| Manuel/otomatik nakit iade | 1200 / 1000 | REFUND / iade ödemesi |
+
+A4'ün 2000/5000 kayıtları aynen korunur. `ledger.Post` her olayda satırlı ve dengeli kayıt üretir. Değişmez: `1200 (borç−alacak) = Σ(PENDING/PARTIAL amount−paid) + Σ(faiz amount−paid)`. Mizan endpoint'i repeatable-read anlık görüntüde genel denge, her yevmiyenin dengesi/satırları ve mutabakatı okur.
+
+**Gün sonu:** Açık taksitin gecikmesi >=30 günse ACTIVE poliçeyi A3 `CancelTx` ile `NON_PAYMENT/as_of` iptal eder; 29 gün yeterli değildir. Aktör muhasebe kullanıcısıdır; elle iptalin rol/gerekçe kuralı router'da korunur. A4 `CLAIMS_AFTER_EFFECTIVE_DATE` koruması veya geçersiz etki tarihi kayıt bazında raporlanır; diğer hatada ilgili poliçenin transaction'ı geri alınır. Her poliçe ayrı commit olduğundan sonraki bir hata önceki başarıları geri almaz. Aynı tarih yeni faiz/iptal üretmez (audit yazılabilir). Otomatik zamanlayıcı yok; endpoint dışarıdan çağrılır.
+
+**Sınırlar:** A5 öncesi plansız poliçe için otomatik backfill yok, 409 `BILLING_PLAN_MISSING`; yalnızca silinebilir demo ortamında kullanıcı `make reset-demo` kullanabilir. Bu aşamada mevcut veri silinmedi. İdempotans mevcut middleware ile normal tekrar/eşzamanlı istekte tek mali etki sağlar; iş transaction'ının commit'i ile yanıtın saklanması ayrı olduğundan süreç çökmesindeki tekrar işleme aralığı sürer (A2/A3 sınırlaması). Banka entegrasyonu, gerçek sigorta tarifesi/mevzuatı, kazanılmamış prim, bileşik faiz ve iptal sonrası manuel iade kapsam dışıdır.
