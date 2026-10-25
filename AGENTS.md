@@ -80,3 +80,6 @@ Her görevin sonunda kısa ama kanıta dayalı rapor ver:
 - Zorunlu maddeleri sessizce kaldırma veya 'tamamlandı' diye işaretleme. Zaman dolarsa gerçek durumu README ve `TESTING.md`'de belirt.
 - Son saatlerde büyük mimari değişiklik, gereksiz frontend yeniden tasarımı, kontrolsüz dependency upgrade yapma.
 - Bir çözümün örnek/veri varsayımı olduğunu belirt; gerçek sigorta mevzuatı/ürün tarifesi diye sunma.
+## 9. Commit mesajları
+
+- Commit mesajlarına Co-Authored-By veya Claude-Session satırı ekleme.
