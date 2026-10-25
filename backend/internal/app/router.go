@@ -51,6 +51,7 @@ func NewRouter(d Deps) http.Handler {
 	customers := customer.NewRepo(d.Pool)
 	quotes := quote.NewHandler(quote.NewService(d.Pool, d.Now, d.UWPremiumThresholdKurus))
 	idem := idempotency.NewStore(d.Pool, d.IdempotencyStaleAfter)
+	policies := policy.NewHandler(d.Pool)
 
 	r := chi.NewRouter()
 	r.Use(logging.RequestIDMiddleware)
@@ -89,9 +90,18 @@ func NewRouter(d Deps) http.Handler {
 				r.With(agent, idem.Middleware).Post("/{id}/convert", quotes.Convert)
 			})
 
-			r.With(auth.RequireRoles(auth.RoleCustomer, auth.RoleAgent, auth.RoleUnderwriter,
-				auth.RoleClaimsAdjuster, auth.RoleAccounting)).
-				Get("/policies", policy.ListHandler(d.Pool))
+			r.Route("/policies", func(r chi.Router) {
+				readers := auth.RequireRoles(auth.RoleCustomer, auth.RoleAgent, auth.RoleUnderwriter,
+					auth.RoleClaimsAdjuster, auth.RoleAccounting)
+				writers := auth.RequireRoles(auth.RoleAgent, auth.RoleUnderwriter)
+				r.With(readers).Get("/", policy.ListHandler(d.Pool))
+				r.With(readers).Get("/{id}", policies.Detail)
+				r.With(readers).Get("/{id}/coverage", policies.Coverage)
+				r.With(writers).Post("/{id}/endorsements/preview", policies.PreviewVehicleChange)
+				r.With(writers, idem.Middleware).Post("/{id}/endorsements", policies.VehicleChange)
+				r.With(writers).Post("/{id}/cancel/preview", policies.PreviewCancel)
+				r.With(writers, idem.Middleware).Post("/{id}/cancel", policies.Cancel)
+			})
 		})
 	})
 	return r
