@@ -77,3 +77,36 @@ func Decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 	}
 	return true
 }
+
+// AppError iş/doğrulama hatasıdır; Fail bunu ilgili HTTP yanıtına çevirir.
+type AppError struct {
+	Status  int
+	Code    string
+	Message string
+	Details map[string]string
+}
+
+func (e *AppError) Error() string { return e.Code + ": " + e.Message }
+
+func NewError(status int, code, message string) *AppError {
+	return &AppError{Status: status, Code: code, Message: message}
+}
+
+// NotFound kapsam dışı veya olmayan kayıt (başkasına ait kaydın varlığı sızdırılmaz).
+func NotFound(what string) *AppError {
+	return NewError(http.StatusNotFound, CodeNotFound, what+" bulunamadı")
+}
+
+func Invalid(details map[string]string) *AppError {
+	return &AppError{Status: http.StatusBadRequest, Code: CodeValidation, Message: "istek doğrulanamadı", Details: details}
+}
+
+// Fail AppError ise kendi durum koduyla, değilse 500 olarak yazar.
+func Fail(w http.ResponseWriter, r *http.Request, err error) {
+	var ae *AppError
+	if errors.As(err, &ae) {
+		JSON(w, ae.Status, ErrorBody{Error: ErrorDetail{Code: ae.Code, Message: ae.Message, Details: ae.Details}})
+		return
+	}
+	Internal(w, r, err)
+}

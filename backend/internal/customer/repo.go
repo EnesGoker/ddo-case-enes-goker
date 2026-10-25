@@ -10,12 +10,12 @@ import (
 )
 
 type Customer struct {
-	ID         int64  `json:"id"`
-	FullName   string `json:"full_name"`
-	NationalID string `json:"national_id_masked"`
-	BirthDate  string `json:"birth_date"`
-	RegionCode string `json:"region_code"`
-	AgentID    *int64 `json:"agent_id"`
+	ID         int64   `json:"id"`
+	FullName   string  `json:"full_name"`
+	NationalID string  `json:"national_id_masked"`
+	BirthDate  string  `json:"birth_date"`
+	RegionCode string  `json:"region_code"`
+	AgentID    *int64  `json:"agent_id"`
 	Email      *string `json:"email"`
 	Phone      *string `json:"phone"`
 }
