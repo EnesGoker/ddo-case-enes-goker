@@ -30,6 +30,16 @@ func Transition(ctx context.Context, tx pgx.Tx, claimID int64, to string, actor 
 	if to == "REJECTED" && strings.TrimSpace(note) == "" {
 		return c, httpx.NewError(http.StatusUnprocessableEntity, "REJECTION_REASON_REQUIRED", "red gerekçesi zorunlu")
 	}
+	if c.Status == "FRAUD_REVIEW" && to == "ADJUSTMENT" {
+		var exists bool
+		if err := tx.QueryRow(ctx, `
+   SELECT EXISTS (SELECT 1 FROM appraisals WHERE claim_id=$1)`, claimID).Scan(&exists); err != nil {
+			return c, err
+		}
+		if !exists {
+			return c, httpx.NewError(http.StatusConflict, "APPRAISAL_REQUIRED", "incelemeden değerlendirmeye geçiş için ekspertiz gerekli")
+		}
+	}
 	var allowed bool
 	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM claim_transitions WHERE from_status=$1 AND to_status=$2)`, c.Status, to).Scan(&allowed); err != nil {
 		return c, err

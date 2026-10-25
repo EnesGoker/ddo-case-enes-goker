@@ -402,7 +402,7 @@ func TestMigrationsUpDownUp(t *testing.T) {
 	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "up")
 	v, err := goose.GetDBVersionContext(ctx, sqlDB)
 	require.NoError(t, err)
-	assert.Equal(t, int64(7), v)
+	assert.Equal(t, int64(8), v)
 
 	require.NoError(t, goose.DownToContext(ctx, sqlDB, migrationsDir, 0), "down")
 	var tables int

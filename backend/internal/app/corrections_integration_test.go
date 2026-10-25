@@ -9,11 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
+	"github.com/EnesGoker/guvenpolice/backend/internal/claim"
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
 )
 
@@ -103,4 +105,31 @@ func TestBackdatedCancellationPostsOnProcessingDay(t *testing.T) {
 		assert.Zero(t, bad)
 		assert.Equal(t, 2, entries)
 	}
+}
+
+func TestFraudReviewCanReturnToAppraisal(t *testing.T) {
+	defer assertBillingInvariant(t)
+	adjuster, appraiser, account := tokenFor(t, "hasar@guvenpolice.test"), tokenFor(t, "eksper@guvenpolice.test"), tokenFor(t, "muhasebe@guvenpolice.test")
+	pol := claimPolicy(t)
+	c := reportClaim(t, adjuster, pol, "KASKO_ANA", caldate.Format(caldate.Today(time.Now())))
+	c = transitionClaim(t, adjuster, c, "TRIAGED")
+	var actor int64
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT id FROM users WHERE email='hasar@guvenpolice.test'`).Scan(&actor))
+	ctx := auth.WithPrincipal(context.Background(), auth.Principal{UserID: actor, Role: auth.RoleClaimsAdjuster})
+	require.NoError(t, pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
+		result, err := claim.Transition(ctx, tx, num(c["id"]), "FRAUD_REVIEW", auth.Principal{UserID: actor, Role: auth.RoleClaimsAdjuster}, "inceleme", int(num(c["row_version"])))
+		c["row_version"] = float64(result.RowVersion)
+		return err
+	}))
+	s, b := newClient(t).do(http.MethodPost, claimPath(c)+"/transition", adjuster, map[string]any{"to_status": "ADJUSTMENT", "expected_row_version": c["row_version"]})
+	require.Equal(t, http.StatusConflict, s, b)
+	assert.Equal(t, "APPRAISAL_REQUIRED", errCode(b))
+	c = transitionClaim(t, adjuster, c, "APPRAISAL")
+	s, b = newClient(t).do(http.MethodPost, claimPath(c)+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": 100000, "inspected_at": time.Now().UTC().Format(time.RFC3339)})
+	require.Equal(t, http.StatusCreated, s, b)
+	c = transitionClaim(t, adjuster, c, "ADJUSTMENT")
+	s, b, _ = postKey(t, adjuster, claimPath(c)+"/settlement/approve", nil, fmt.Sprintf("review-approve-%v", c["id"]))
+	require.Equal(t, http.StatusCreated, s, b)
+	s, b, _ = postKey(t, account, claimPath(c)+"/pay", nil, fmt.Sprintf("review-pay-%v", c["id"]))
+	require.Equal(t, http.StatusOK, s, b)
 }
