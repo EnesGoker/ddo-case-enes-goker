@@ -276,9 +276,12 @@ A4KEY="verify-a4-$$-$(date +%s)"
 
 claim_policy() { # ürün; POLICY değişkenini doldurur
   local body
+  VERIFY_PLATE_SEQ=$(( ${VERIFY_PLATE_SEQ:-0} + 1 ))
+  local unique_plate="34VFY$(printf '%04d' "$(( ($$ + $(date +%s) + VERIFY_PLATE_SEQ) % 10000 ))")"
   if [ "$1" = KASKO_RACE ]; then
     body="{\"customer_id\":$AYSE,\"product\":\"KASKO\",\"term_start\":\"$TODAY\",\"ncd_level\":2,\"vehicle_group\":\"C\",\"plate\":\"34ABC123\",\"coverages\":[\"KASKO_ANA\",\"IMM\"]}"
   else body="$(quote_body "$AYSE" "$TODAY")"; fi
+  body="$(printf '%s' "$body" | sed "s/34ABC123/$unique_plate/g")"
   req POST "$API_URL/api/v1/quotes" -H "Authorization: Bearer $AGENT" -H 'Content-Type: application/json' --data "$body"
   local q="$(first_num id)"
   if [ "$(field status)" = UW_REVIEW ]; then
@@ -367,6 +370,9 @@ if billing_policy; then
   req POST "$bill_path/payments" -H "Authorization: Bearer $ACCOUNTING" -H "Idempotency-Key: $BILLKEY-pay" -H 'Content-Type: application/json' --data "{\"amount_kurus\":$part,\"method\":\"TRANSFER\"}"
   pay_status="$STATUS"; payment_id="$(first_num id)"; cp "$TMP/body" "$TMP/bill-payment"
   req POST "$bill_path/payments" -H "Authorization: Bearer $ACCOUNTING" -H "Idempotency-Key: $BILLKEY-pay" -H 'Content-Type: application/json' --data "{\"amount_kurus\":$part,\"method\":\"TRANSFER\"}" -D "$TMP/bill-idem"
+  if [ "$pay_status" = 201 ] && [ "$STATUS" = 201 ] && cmp -s "$TMP/bill-payment" "$TMP/body"; then
+    pass "T-4 idem-bayt" "normal ödeme tekrarı cmp ile bayt bayt aynı"
+  else fail "T-4 idem-bayt" "ödeme yanıtı farklı veya durum=$pay_status/$STATUS"; fi
   replay_ok=no
   if [ "$pay_status" = 201 ] && [ "$STATUS" = 201 ] && [ "$payment_id" = "$(first_num id)" ] && grep -qi '^idempotent-replayed: true' "$TMP/bill-idem"; then replay_ok=yes; fi
   req GET "$bill_path/billing" -H "Authorization: Bearer $ACCOUNTING"
@@ -447,18 +453,168 @@ if [ "$STATUS" = 200 ] && body_has '"balanced":true' && body_has '"matches":true
   pass "T-4 defter-mutabakat" "her yevmiye ve genel defter dengeli; 1200 = açık anapara + faiz"
 else fail "T-4 defter-mutabakat" "durum=$STATUS"; fi
 
+# --- F-7: işlem tarihi, defter ve boyut toplamları ---
+report_total() { grep -o '"total":{[^}]*}' "$TMP/body" | sed -n "s/.*\"$1\":\(-\{0,1\}[0-9][0-9]*\).*/\1/p"; }
+TOMORROW="$(add_days "$TODAY" 1)"
+req GET "$API_URL/api/v1/reports/production?from=$TODAY&to=$TOMORROW" -H "Authorization: Bearer $ACCOUNTING"
+before="$(report_total written_premium_kurus)"
+if claim_policy KASKO; then
+  report_premium="$(num_field annual_premium_kurus)"
+  req GET "$API_URL/api/v1/reports/production?from=$TODAY&to=$TOMORROW" -H "Authorization: Bearer $ACCOUNTING"
+  after="$(report_total written_premium_kurus)"
+  if [ "$STATUS" = 200 ] && [ -n "$before" ] && [ "$(( ${after:-0} - before ))" = "$report_premium" ]; then
+    pass "F-7 prim-delta" "[bugün,yarın) artışı=$report_premium kuruş"
+  else fail "F-7 prim-delta" "önce=$before sonra=$after prim=$report_premium"; fi
+else fail "F-7 prim-delta" "bugün başlayan poliçe kurulamadı"; fi
+req GET "$API_URL/api/v1/ledger/trial-balance" -H "Authorization: Bearer $ACCOUNTING"
+net_account() {
+  grep -o "{\"code\":\"$1\"[^}]*}" "$TMP/body" | awk -F, -v credit="$2" '
+   {for(i=1;i<=NF;i++){if($i~/"debit_kurus":/){x=$i;sub(/.*:/,"",x);d=x+0}if($i~/"credit_kurus":/){x=$i;sub(/.*:/,"",x);c=x+0}}}
+   END{if(credit=="yes")print c-d;else print d-c}'
+}
+ledger_premium="$(net_account 4000 yes)"; ledger_claims="$(net_account 5000 no)"
+req GET "$API_URL/api/v1/reports/production" -H "Authorization: Bearer $ACCOUNTING"
+rp="$(report_total written_premium_kurus)"; rc="$(report_total incurred_claims_kurus)"; ratio="$(report_total loss_ratio_bp)"
+if [ "$STATUS" = 200 ] && [ "$rp" = "$ledger_premium" ] && [ "$rc" = "$ledger_claims" ]; then
+  pass "F-7 defter-mutabakati" "4000 net=$rp; 5000 net=$rc kuruş"
+else fail "F-7 defter-mutabakati" "rapor=$rp/$rc defter=$ledger_premium/$ledger_claims"; fi
+if [ "${rp:-0}" -gt 0 ]; then
+  want_ratio="$(round_div "$((rc * 10000))" "$rp")"
+  [ "$ratio" = "$want_ratio" ] && pass "F-7 oran" "$ratio bp (awk bağımsız yuvarlama)" || fail "F-7 oran" "oran=$ratio beklenen=$want_ratio"
+else
+  body_has '"loss_ratio_bp":null' && pass "F-7 oran" "pozitif olmayan primde null" || fail "F-7 oran" "null bekleniyordu"
+fi
+groups_ok=yes
+for group in month product agent; do
+  req GET "$API_URL/api/v1/reports/production?group_by=$group" -H "Authorization: Bearer $ACCOUNTING"
+  cp "$TMP/body" "$TMP/report-$group"
+  values="$(sed 's/,"total":.*//' "$TMP/body" | grep -o '"written_premium_kurus":-\{0,1\}[0-9]*\|"incurred_claims_kurus":-\{0,1\}[0-9]*\|"policy_count":[0-9]*' | awk -F: '
+   /written_premium/{p+=$2} /incurred_claims/{c+=$2} /policy_count/{n+=$2} END{print p+0 ":" c+0 ":" n+0}')"
+  totals="$(report_total written_premium_kurus):$(report_total incurred_claims_kurus):$(report_total policy_count)"
+  [ "$STATUS" = 200 ] && [ "$values" = "$totals" ] || groups_ok=no
+done
+[ "$groups_ok" = yes ] && pass "F-7 boyut-toplami" "ay/ürün/acente satırları toplamla aynı" || fail "F-7 boyut-toplami" "boyut toplamı uyuşmadı"
+
+# --- T-5: gerçek fraud, atama, çıkmaz regresyonu ve SLA ---
+seed_fp1=""; seed_fp2=""; cursor=""
+while :; do
+  req GET "$API_URL/api/v1/policies?limit=100&cursor=$cursor" -H "Authorization: Bearer $ACCOUNTING"
+  for fp in 1 2; do
+    found="$(grep -o "{\"id\":[^{}]*\"policy_no\":\"GP-DEMO-FP-$fp\"[^{}]*}" "$TMP/body" | sed -n 's/{"id":\([0-9]*\).*/\1/p')"
+    if [ -n "$found" ]; then if [ "$fp" = 1 ]; then seed_fp1="$found"; else seed_fp2="$found"; fi; fi
+  done
+  cursor="$(field next_cursor)"
+  [ -z "$cursor" ] && break
+  [ -n "$seed_fp1" ] && [ -n "$seed_fp2" ] && break
+  [ "$STATUS" = 200 ] || break
+done
+seed_claim1=""; seed_claim2=""; cursor=""
+while :; do
+  req GET "$API_URL/api/v1/claims?limit=100&cursor=$cursor" -H "Authorization: Bearer $ADJ"
+  for fp in 1 2; do
+    if [ "$fp" = 1 ]; then pid="$seed_fp1"; else pid="$seed_fp2"; fi
+    [ -n "$pid" ] || continue
+    found="$(grep -o "{\"id\":[^{}]*\"policy_id\":$pid,[^{}]*}" "$TMP/body" | head -1 | sed -n 's/{"id":\([0-9]*\).*/\1/p')"
+    if [ -n "$found" ]; then if [ "$fp" = 1 ]; then seed_claim1="$found"; else seed_claim2="$found"; fi; fi
+  done
+  cursor="$(field next_cursor)"
+  [ -z "$cursor" ] && break
+  [ -n "$seed_claim1" ] && [ -n "$seed_claim2" ] && break
+  [ "$STATUS" = 200 ] || break
+done
+req GET "$API_URL/api/v1/claims/${seed_claim2:-0}" -H "Authorization: Bearer $ADJ"
+if [ "$STATUS" = 200 ] && body_has '"status":"FRAUD_REVIEW"' && body_has '"score":75' && body_has '"rule_code":"EARLY_CLAIM","points":40' && body_has '"rule_code":"REPEAT_PLATE","points":35' && body_has '"assigned_to":{"id":'; then
+  pass "T-5 seed-supheli" "FP-2 skor 75, iki sinyal ve atanmış inceleme görevi"
+else fail "T-5 seed-supheli" "FP-2 dosya=${seed_claim2:-yok} durum=$STATUS"; fi
+
+A6KEY="verify-a6-$$-$(date +%s)"
+report_one() { # policy, key -> REPORT_ID; ilk iki çağrıda yalnız erken sinyal
+  req POST "$API_URL/api/v1/claims" -H "Authorization: Bearer $AGENT" -H "Idempotency-Key: $A6KEY-$2" -H 'Content-Type: application/json' \
+    --data "{\"policy_id\":$1,\"coverage_code\":\"KASKO_ANA\",\"loss_date\":\"$TODAY\",\"description\":\"verify A6\",\"claimed_amount_kurus\":100000}"
+  REPORT_ID="$(first_num id)"
+  [ "$STATUS" = 201 ] && [ -n "$REPORT_ID" ]
+}
+workload_snapshot() {
+  req GET "$API_URL/api/v1/claim-tasks/workload" -H "Authorization: Bearer $ADJ"
+  grep -o '{"id":[^{}]*"role":"CLAIMS_ADJUSTER"[^{}]*}' "$TMP/body" | awk -F, '
+   {for(i=1;i<=NF;i++){if($i~/"id":/){x=$i;sub(/.*:/,"",x);id=x+0}if($i~/"open_tasks":/){x=$i;sub(/.*:/,"",x);gsub(/}/,"",x);n=x+0}} print id,n}' | sort -n > "$TMP/workloads"
+}
+expected_assignments() { # N; rol kilidiyle yapılan açgözlü seçimlerin bağımsız hesabı
+  awk -v rounds="$1" '{id[NR]=$1;load[NR]=$2} END{
+   for(k=0;k<rounds;k++){best=1;for(i=2;i<=NR;i++)if(load[i]<load[best] || (load[i]==load[best] && id[i]<id[best]))best=i;print id[best];load[best]++}
+  }' "$TMP/workloads"
+}
+assigned_for() {
+  req GET "$API_URL/api/v1/claim-tasks?claim_id=$1&task_type=FRAUD_REVIEW&status=open" -H "Authorization: Bearer $ADJ"
+  grep -o '"assigned_to":{"id":[0-9]*' "$TMP/body" | head -1 | sed 's/.*://'
+}
+if claim_policy KASKO; then
+  a6_policy="$POLICY"; threshold_ok=yes
+  for i in 1 2; do
+    report_one "$a6_policy" "threshold-$i" || threshold_ok=no
+    req GET "$API_URL/api/v1/claims/${REPORT_ID:-0}" -H "Authorization: Bearer $ADJ"
+    [ "$STATUS" = 200 ] && body_has '"score":40' && body_has '"flagged":false' && body_has '"status":"REPORTED"' || threshold_ok=no
+  done
+  workload_snapshot; expected="$(expected_assignments 1)"
+  report_one "$a6_policy" threshold-3 || threshold_ok=no
+  flagged_claim="$REPORT_ID"
+  req GET "$API_URL/api/v1/claims/${flagged_claim:-0}" -H "Authorization: Bearer $ADJ"
+  [ "$STATUS" = 200 ] && body_has '"score":75' && body_has '"flagged":true' && body_has '"status":"FRAUD_REVIEW"' || threshold_ok=no
+  [ "$threshold_ok" = yes ] && pass "T-5 esik" "ilk iki 40/REPORTED; üçüncü 75/FRAUD_REVIEW" || fail "T-5 esik" "üç hasarlı eşik akışı başarısız"
+  actual="$(assigned_for "${flagged_claim:-0}")"
+  [ -n "$actual" ] && [ "$actual" = "$expected" ] && pass "T-5 atama" "en az yük/küçük id: uzman $actual" || fail "T-5 atama" "atanan=$actual beklenen=$expected"
+  req POST "$API_URL/api/v1/claims/${flagged_claim:-0}/transition" -H "Authorization: Bearer $ADJ" -H 'Content-Type: application/json' --data '{"to_status":"ADJUSTMENT","expected_row_version":3}'
+  blocked="$STATUS"; blocked_code="$(field code)"
+  req POST "$API_URL/api/v1/claims/${flagged_claim:-0}/transition" -H "Authorization: Bearer $ADJ" -H 'Content-Type: application/json' --data '{"to_status":"APPRAISAL","expected_row_version":3,"note":"verify temiz inceleme"}'
+  moved="$STATUS"
+  req GET "$API_URL/api/v1/claim-tasks?claim_id=${flagged_claim:-0}&task_type=APPRAISAL" -H "Authorization: Bearer $ADJ"
+  if [ "$blocked" = 409 ] && [ "$blocked_code" = APPRAISAL_REQUIRED ] && [ "$moved" = 200 ] && body_has '"task_type":"APPRAISAL"'; then
+    pass "T-5 inceleme" "ekspertizsiz değerlendirme 409; incelemeden ekspertize 200 + görev"
+  else fail "T-5 inceleme" "ilk=$blocked/$blocked_code sonra=$moved"; fi
+else fail "T-5 esik" "poliçe kurulamadı"; fail "T-5 atama" "hazırlık yok"; fail "T-5 inceleme" "hazırlık yok"; fi
+
+parallel_ok=yes
+for i in 1 2; do
+  if claim_policy KASKO; then
+    if [ "$i" = 1 ]; then parallel_policy1="$POLICY"; else parallel_policy2="$POLICY"; fi
+    report_one "$POLICY" "parallel-$i-prior1" || parallel_ok=no
+    report_one "$POLICY" "parallel-$i-prior2" || parallel_ok=no
+  else parallel_ok=no; fi
+done
+if [ "$parallel_ok" = yes ]; then
+  workload_snapshot; expected_assignments 2 | sort -n > "$TMP/expected-assignees"
+  for i in 1 2; do
+    if [ "$i" = 1 ]; then pid="$parallel_policy1"; else pid="$parallel_policy2"; fi
+    curl -sS --max-time 15 -o "$TMP/a6-parallel-$i" -w '%{http_code}' -X POST -H "Authorization: Bearer $AGENT" -H "Idempotency-Key: $A6KEY-parallel-$i" -H 'Content-Type: application/json' \
+      --data "{\"policy_id\":$pid,\"coverage_code\":\"KASKO_ANA\",\"loss_date\":\"$TODAY\",\"description\":\"verify paralel A6\",\"claimed_amount_kurus\":100000}" "$API_URL/api/v1/claims" > "$TMP/a6-parallel-status-$i" &
+    if [ "$i" = 1 ]; then a6p1=$!; else a6p2=$!; fi
+  done
+  wait "$a6p1"; wait "$a6p2"
+  : > "$TMP/actual-assignees"
+  for i in 1 2; do
+    cid="$(sed -n 's/^{"id":\([0-9]*\).*/\1/p' "$TMP/a6-parallel-$i")"
+    [ "$(cat "$TMP/a6-parallel-status-$i")" = 201 ] || parallel_ok=no
+    assigned_for "${cid:-0}" >> "$TMP/actual-assignees"
+  done
+  sort -n "$TMP/actual-assignees" > "$TMP/actual-assignees-sorted"
+  [ "$parallel_ok" = yes ] && cmp -s "$TMP/expected-assignees" "$TMP/actual-assignees-sorted" && pass "T-5 paralel-atama" "farklı poliçelerde iki paralel curl; beklenen uzman kümesi aynı" || fail "T-5 paralel-atama" "atama kümesi uyuşmadı"
+else fail "T-5 paralel-atama" "hazırlık yok"; fi
+req GET "$API_URL/api/v1/claim-tasks?claim_id=${seed_claim1:-0}&breached=true" -H "Authorization: Bearer $ADJ"
+sla_ok=no
+[ "$STATUS" = 200 ] && body_has '"breached":true' && body_has '"task_type":"APPRAISAL"' && sla_ok=yes
+req GET "$API_URL/metrics"
+if [ "$sla_ok" = yes ] && [ "$STATUS" = 200 ] && body_has 'guvenpolice_claim_tasks_sla_breached{task_type="APPRAISAL"}'; then
+  pass "T-5 sla" "FP-1 geçmiş SLA ihlali listede ve scrape gauge mevcut"
+else fail "T-5 sla" "FP-1 dosya=${seed_claim1:-yok} ihlal=$sla_ok"; fi
+req GET "$API_URL/api/v1/claim-tasks" -H "Authorization: Bearer ${TOKEN_CUSTOMER:-}"
+[ "$STATUS" = 403 ] && pass "T-5 yetki" "müşteri görev listesinde 403" || fail "T-5 yetki" "durum=$STATUS"
+
 # --- nginx üzerinden aynı origin akışı ---
 req POST "$WEB_URL/api/v1/auth/login" -H 'Content-Type: application/json' \
   --data "{\"email\":\"acente@guvenpolice.test\",\"password\":\"$DEMO_PASSWORD\"}" -D "$TMP/headers"
 if [ "$STATUS" = 200 ] && grep -qi '^set-cookie: gp_refresh=.*HttpOnly' "$TMP/headers"; then
   pass WEB-PROXY-LOGIN ":3000/api üzerinden giriş + httpOnly cookie"
 else fail WEB-PROXY-LOGIN "durum=$STATUS"; fi
-
-echo
-echo "Henüz uygulanmamış şartname kimlikleri (sonraki aşamalar):"
-for id in F-7 T-5; do
-  printf '  YAPILMADI  %s\n' "$id"
-done
 
 echo
 echo "Sonuç: $PASSED PASS, $FAILED FAIL"
