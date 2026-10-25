@@ -26,6 +26,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
 	"github.com/EnesGoker/guvenpolice/backend/internal/quote"
 	"github.com/EnesGoker/guvenpolice/backend/internal/report"
+	"github.com/EnesGoker/guvenpolice/backend/internal/system"
 	"github.com/EnesGoker/guvenpolice/backend/internal/tariff"
 	"github.com/EnesGoker/guvenpolice/backend/internal/task"
 	"github.com/EnesGoker/guvenpolice/backend/internal/workflow"
@@ -113,6 +114,7 @@ func NewRouter(d Deps) http.Handler {
 		r.Route("/auth", authH.Routes)
 		r.Group(func(r chi.Router) {
 			r.Use(auth.Authenticate(tokens))
+			r.Get("/system/activity", system.ActivityHandler(d.Pool))
 			r.With(auth.RequireRoles(auth.RoleAgent, auth.RoleUnderwriter)).
 				Get("/customers", customer.ListHandler(customers))
 			r.With(auth.RequireRoles(auth.RoleAgent, auth.RoleUnderwriter)).

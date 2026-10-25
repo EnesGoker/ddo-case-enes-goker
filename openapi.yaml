@@ -1,12 +1,13 @@
 openapi: 3.0.3
 info:
   title: GüvenPoliçe API
-  version: 0.6.0
+  version: 0.7.0
   description: |
-    A1–A6 kapsamı: sağlık, metrik, kimlik doğrulama, müşteri listesi, tarife, teklif (F-1/T-1),
+    A1–A7 kapsamı: sağlık, metrik, kimlik doğrulama, müşteri listesi, tarife, teklif (F-1/T-1),
     poliçe listesi/detayı, tarihte teminat, araç değişikliği zeyli ve iptal (F-2/T-2), hasar/ekspertiz/tazminat/ödeme (F-4/F-5/F-6/T-3).
     Taksit/tahsilat/iade, basit gecikme faizi, 30 gün iptal ve mizan/mutabakat (F-3/T-4).
     Fraud, görev/atama/SLA (T-5), defterden prim ve hasar/prim raporu (F-7).
+    Parçalı gün sonu ve yalnız sayısal sistem canlılığı (A7).
     Para alanları kuruş cinsinden tam sayıdır (`*_kurus`); oranlar bp (10000 = ×1).
     Erişim kuralı: rol uca hiç erişemiyorsa 403; erişebiliyor ama kayıt kapsam dışındaysa 404.
     Listeler keyset sayfalıdır: `?limit=` (1–100) ve önceki yanıttaki opak `next_cursor`.
@@ -19,6 +20,24 @@ servers:
     description: nginx üzerinden aynı origin
 
 paths:
+  /api/v1/system/activity:
+    get:
+      summary: Sistem canlılığı ve simülasyon ilerlemesi (tüm giriş yapmış roller)
+      description: |
+        Audit içeriği/kimlikleri verilmez. Son olay ve son 30 dakikanın olay sayıları
+        audit_log.occurred_at indeksinden okunur. Simülasyon bilgisi en son koşudur.
+        Bağlam saati HTTP yollarında ayarlanmaz; bu uç gerçek zamanı kullanır.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Veritabanı erişilebilir
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/SystemActivity' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '503':
+          description: Veritabanı erişilemiyor; DATABASE_UNAVAILABLE
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Error' } }
   /health:
     get:
       summary: Servis ve veritabanı sağlığı
@@ -1099,6 +1118,34 @@ components:
         application/json: { schema: { $ref: "#/components/schemas/Error" } }
 
   schemas:
+    SystemActivity:
+      type: object
+      required: [db_ok, last_event_at, minutes, simulation]
+      properties:
+        db_ok: { type: boolean }
+        last_event_at: { type: string, nullable: true, format: date-time }
+        minutes:
+          type: array
+          maxItems: 30
+          items:
+            type: object
+            required: [at, count]
+            properties:
+              at: { type: string, format: date-time }
+              count: { type: integer, format: int64 }
+        simulation:
+          type: object
+          nullable: true
+          properties:
+            status: { type: string, enum: [RUNNING, COMPLETED, FAILED, LIVE] }
+            phase: { type: string }
+            done: { type: integer, format: int64 }
+            target: { type: integer, format: int64 }
+            seed: { type: integer, format: int64 }
+            fingerprint: { type: string, nullable: true }
+            started_at: { type: string, format: date-time }
+            finished_at: { type: string, nullable: true, format: date-time }
+            summary: { type: object, additionalProperties: true }
     Role:
       type: string
       enum: [CUSTOMER, AGENT, UNDERWRITER, APPRAISER, CLAIMS_ADJUSTER, ACCOUNTING]
