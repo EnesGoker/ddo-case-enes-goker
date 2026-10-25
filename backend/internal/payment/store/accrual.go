@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -17,7 +18,7 @@ type Accrued struct {
 	AmountKurus int64 `json:"amount_kurus"`
 }
 
-func Accrue(ctx context.Context, tx pgx.Tx, s State, asOf time.Time, rate, actor int64) (Accrued, error) {
+func Accrue(ctx context.Context, tx pgx.Tx, s State, asOf, journalDate time.Time, rate, actor int64) (Accrued, error) {
 	var out Accrued
 	for _, r := range s.Rows {
 		if !billing.Open(r) || r.Paid >= r.Amount {
@@ -60,7 +61,7 @@ func Accrue(ctx context.Context, tx pgx.Tx, s State, asOf time.Time, rate, actor
 		if err != nil {
 			return out, err
 		}
-		_, err = ledger.Post(ctx, tx, ledger.Entry{Date: caldate.Of(asOf), Description: "Gecikme faizi tahakkuku", RefType: "LATE_INTEREST", RefID: id, CreatedBy: actor}, []ledger.Line{
+		_, err = ledger.Post(ctx, tx, ledger.Entry{Date: caldate.Of(journalDate), Description: fmt.Sprintf("Gecikme faizi [%s,%s)", caldate.Format(from), caldate.Format(asOf)), RefType: "LATE_INTEREST", RefID: id, CreatedBy: actor}, []ledger.Line{
 			{AccountCode: "1200", DebitKurus: amount},
 			{AccountCode: "4100", CreditKurus: amount},
 		})

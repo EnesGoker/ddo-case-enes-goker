@@ -79,7 +79,7 @@ func (s *Service) Run(ctx context.Context, date string) (RunResult, error) {
 			if err != nil {
 				return err
 			}
-			accrued, err = store.Accrue(ctx, tx, state, accrualDate(h, asOf), s.rate, actor.UserID)
+			accrued, err = store.Accrue(ctx, tx, state, accrualDate(h, asOf), asOf, s.rate, actor.UserID)
 			if err != nil {
 				return err
 			}

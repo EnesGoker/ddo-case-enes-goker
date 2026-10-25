@@ -2,12 +2,14 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/billing"
+	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
 	"github.com/EnesGoker/guvenpolice/backend/internal/ledger"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
@@ -30,7 +32,7 @@ func Adjust(ctx context.Context, tx pgx.Tx, policyID, delta int64, effective tim
 	if to.After(today) {
 		to = today
 	}
-	if _, err := Accrue(ctx, tx, s, to, rate, actor); err != nil {
+	if _, err := Accrue(ctx, tx, s, to, today, rate, actor); err != nil {
 		return 0, err
 	}
 	due := effective
@@ -65,18 +67,18 @@ func Adjust(ctx context.Context, tx pgx.Tx, policyID, delta int64, effective tim
 		if delta < 0 {
 			lines = []ledger.Line{{AccountCode: "4000", DebitKurus: -delta}, {AccountCode: "1200", CreditKurus: -delta}}
 		}
-		if _, err := ledger.Post(ctx, tx, ledger.Entry{Date: effective, Description: "Zeyil prim ayarı", RefType: "ENDORSEMENT", RefID: endorsementID, CreatedBy: actor}, lines); err != nil {
+		if _, err := ledger.Post(ctx, tx, ledger.Entry{Date: today, Description: fmt.Sprintf("Zeyil prim ayarı (etki %s)", caldate.Format(effective)), RefType: "ENDORSEMENT", RefID: endorsementID, CreatedBy: actor}, lines); err != nil {
 			return 0, err
 		}
 	}
-	if err := CashRefund(ctx, tx, policyID, result.CashRefund, effective, actor); err != nil {
+	if err := CashRefund(ctx, tx, policyID, result.CashRefund, today, actor, effective); err != nil {
 		return 0, err
 	}
 	return result.CashRefund, nil
 }
 
 // CashRefund prim azalışının açık anaparayı aşan kısmını tahsissiz nakit iadeye çevirir.
-func CashRefund(ctx context.Context, tx pgx.Tx, policyID, amount int64, at time.Time, actor int64) error {
+func CashRefund(ctx context.Context, tx pgx.Tx, policyID, amount int64, at time.Time, actor int64, effective time.Time) error {
 	if amount == 0 {
 		return nil
 	}
@@ -108,7 +110,7 @@ func CashRefund(ctx context.Context, tx pgx.Tx, policyID, amount int64, at time.
 		if part <= 0 {
 			continue
 		}
-		if _, err := InsertPayment(ctx, tx, policyID, "REFUND", part, p.Method, &p.ID, at, actor, "Prim azalışından nakit iade"); err != nil {
+		if _, err := InsertPayment(ctx, tx, policyID, "REFUND", part, p.Method, &p.ID, at, actor, fmt.Sprintf("Prim azalışından nakit iade (etki %s)", caldate.Format(effective))); err != nil {
 			return err
 		}
 		remaining -= part

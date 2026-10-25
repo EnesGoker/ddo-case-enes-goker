@@ -115,7 +115,7 @@ func (s *Service) Pay(ctx context.Context, id int64, req PayRequest) (store.Paym
 		if at.Before(store.LastAccrual(state)) {
 			return httpx.NewError(http.StatusUnprocessableEntity, "PAYMENT_DATE_BEFORE_ACCRUAL", "ödeme tarihi son faiz tahakkukunun öncesinde olamaz")
 		}
-		if _, err := store.Accrue(ctx, tx, state, accrualDate(h, at), s.rate, p.UserID); err != nil {
+		if _, err := store.Accrue(ctx, tx, state, accrualDate(h, at), at, s.rate, p.UserID); err != nil {
 			return err
 		}
 		state, err = store.Load(ctx, tx, id)
@@ -193,7 +193,7 @@ func (s *Service) Refund(ctx context.Context, id int64, req RefundRequest) (stor
 		}
 		at := caldate.Today(s.now())
 		// Önce mevcut anaparanın faizi kapanış tarihine kadar hesaplanır; iade geçmişi değiştirmez.
-		if _, err := store.Accrue(ctx, tx, state, at, s.rate, p.UserID); err != nil {
+		if _, err := store.Accrue(ctx, tx, state, at, at, s.rate, p.UserID); err != nil {
 			return err
 		}
 		rows, err := tx.Query(ctx, `
