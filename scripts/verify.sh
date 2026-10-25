@@ -409,8 +409,19 @@ if billing_policy; then
   else fail "T-4 paralel-odeme" "durum=$codes bakiye=$(num_field open_balance_kurus)"; fi
 else fail "T-4 yaris-hazirlik" "poliçe oluşturulamadı"; fi
 
-req POST "$API_URL/api/v1/billing/run" -H "Authorization: Bearer $ACCOUNTING" -H 'Content-Type: application/json' --data '{}'
-run_status="$STATUS"
+after_policy=0; run_chunks=0; run_status=200
+while :; do
+  req POST "$API_URL/api/v1/billing/run" -H "Authorization: Bearer $ACCOUNTING" -H 'Content-Type: application/json' --data "{\"after_policy_id\":$after_policy,\"limit\":1}"
+  run_chunks=$((run_chunks + 1))
+  if [ "$STATUS" != 200 ] || ! body_has '"failed":\[\]'; then run_status="$STATUS"; break; fi
+  body_has '"done":true' && break
+  next_policy="$(num_field next_after_policy_id)"
+  if [ "$next_policy" -le "$after_policy" ]; then run_status=500; break; fi
+  after_policy="$next_policy"
+done
+if [ "$run_status" = 200 ] && [ "$run_chunks" -ge 2 ]; then
+  pass "T-4 gun-sonu-parcali" "$run_chunks parça, done=true"
+else fail "T-4 gun-sonu-parcali" "durum=$run_status parça=$run_chunks"; fi
 # Seed poliçeleri eski sayfalarda olsa da keyset ile bulunur.
 seed_a=""; seed_b=""; cursor=""
 while :; do

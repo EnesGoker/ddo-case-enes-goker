@@ -34,7 +34,21 @@ export function AccountingPage() {
     setBusy(true)
     setError(null)
     try {
-      setRun(await api<BillingRun>('/api/v1/billing/run', { method: 'POST', body: JSON.stringify({ as_of: asOf }) }))
+      let after = 0
+      const total: BillingRun = { as_of: asOf, accrual_count: 0, interest_kurus: 0, cancelled: [], skipped: [], failed: [], done: false, next_after_policy_id: 0 }
+      do {
+        const batch = await api<BillingRun>('/api/v1/billing/run', { method: 'POST', body: JSON.stringify({ as_of: asOf, after_policy_id: after }) })
+        total.accrual_count += batch.accrual_count
+        total.interest_kurus += batch.interest_kurus
+        total.cancelled.push(...batch.cancelled)
+        total.skipped.push(...batch.skipped)
+        total.failed.push(...batch.failed)
+        total.done = batch.done
+        total.next_after_policy_id = batch.next_after_policy_id
+        setRun({ ...total })
+        if (!batch.done && batch.next_after_policy_id <= after) throw new Error('Gün sonu imleci ilerlemedi.')
+        after = batch.next_after_policy_id
+      } while (!total.done)
       reload()
     } catch (e) {
       setError(errorText(e))
@@ -49,7 +63,7 @@ export function AccountingPage() {
       <label>Gün sonu tarihi<input type="date" required max={todayISO()} value={asOf} onChange={(e) => setAsOf(e.target.value)} disabled={busy} /></label>
       <button disabled={busy}>{busy ? 'Çalışıyor…' : 'Gün sonu çalıştır'}</button>
     </form>
-    {run && <div className="notice success" role="status">{run.as_of}: {run.accrual_count} faiz kaydı, {formatTL(run.interest_kurus)}; iptal: {run.cancelled.join(', ') || 'yok'}; atlanan: {run.skipped.map((p) => `#${p.policy_id} ${p.reason}`).join(', ') || 'yok'}</div>}
+    {run && <div className="notice success" role="status">{run.done ? 'Tamamlandı' : `İşleniyor (#${run.next_after_policy_id})`} · {run.as_of}: {run.accrual_count} faiz kaydı, {formatTL(run.interest_kurus)}; iptal: {run.cancelled.join(', ') || 'yok'}; atlanan: {run.skipped.map((p) => `#${p.policy_id} ${p.reason}`).join(', ') || 'yok'}; hata: {run.failed.map((p) => `#${p.policy_id} ${p.code}`).join(', ') || 'yok'}</div>}
     {error && <ErrorBox message={error} onRetry={reload} />}
     {!trial && !error && <Loading text="Mizan yükleniyor…" />}
     {trial && <section className="panel">

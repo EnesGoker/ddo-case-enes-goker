@@ -283,6 +283,9 @@ export interface BillingPlan {
 }
 
 export interface BillingRun {
+  next_after_policy_id: number
+  done: boolean
+  failed: { policy_id: number; code: string }[]
   as_of: string
   accrual_count: number
   interest_kurus: number
