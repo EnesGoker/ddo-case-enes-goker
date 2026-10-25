@@ -120,3 +120,34 @@ func TestBillingRunSelectsUnpaidInterestWithoutOpenPrincipal(t *testing.T) {
 	assert.Equal(t, num(pol["id"]), num(r["next_after_policy_id"]), "açık anapara yokken açık faiz adaydır")
 	assert.Equal(t, true, r["done"])
 }
+
+func TestBillingRunUsesRealTimeBudget(t *testing.T) {
+	defer assertBillingInvariant(t)
+	first := billingPolicy(t, 20, 3, 300000)
+	second := billingPolicy(t, 20, 3, 300000)
+	ctx := principalContext(t, "muhasebe@guvenpolice.test", auth.RoleAccounting)
+	_, err := pool.Exec(ctx, fmt.Sprintf(`
+      CREATE FUNCTION a7_slow_one_policy() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        IF NEW.action='BILLING_RUN' AND NEW.entity_id='%d' THEN PERFORM pg_sleep(8.1); END IF;
+        RETURN NEW;
+      END $$;
+      CREATE TRIGGER a7_slow_one_policy BEFORE INSERT ON audit_log
+      FOR EACH ROW EXECUTE FUNCTION a7_slow_one_policy()`, num(first["id"])))
+	require.NoError(t, err)
+	defer func() {
+		_, err := pool.Exec(context.Background(), `DROP TRIGGER a7_slow_one_policy ON audit_log; DROP FUNCTION a7_slow_one_policy()`)
+		require.NoError(t, err)
+	}()
+	// İş saati ileri/geri alınsa da bütçe gerçek süreyle sınırlıdır.
+	svc := payment.NewService(pool, func() time.Time { return time.Now().Add(24 * time.Hour) }, 1000)
+	out, err := svc.Run(ctx, "", payment.RunOptions{AfterPolicyID: num(first["id"]) - 1, Limit: 10})
+	require.NoError(t, err)
+	assert.False(t, out.Done)
+	assert.Equal(t, num(first["id"]), out.NextAfterPolicyID)
+	assert.Equal(t, 1, out.AccrualCount)
+	next, err := svc.Run(ctx, "", payment.RunOptions{AfterPolicyID: out.NextAfterPolicyID, Limit: 10})
+	require.NoError(t, err)
+	assert.True(t, next.Done)
+	assert.Equal(t, num(second["id"]), next.NextAfterPolicyID)
+}

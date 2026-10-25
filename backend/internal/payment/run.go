@@ -93,7 +93,7 @@ func (s *Service) Run(ctx context.Context, date string, options ...RunOptions) (
 	actor, _ := auth.FromContext(ctx)
 	visited := 0
 	for _, id := range ids {
-		if visited == opts.Limit || (visited > 0 && time.Since(started) >= 8*time.Second) {
+		if visited == opts.Limit || time.Since(started) >= 8*time.Second {
 			break
 		}
 		visited++
@@ -173,7 +173,7 @@ func (s *Service) Run(ctx context.Context, date string, options ...RunOptions) (
 
 func runSystemError(ctx context.Context, err error) bool {
 	var network net.Error
-	if ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, io.EOF) || errors.As(err, &network) {
+	if ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.ErrClosedPipe) || errors.Is(err, net.ErrClosed) || pgconn.SafeToRetry(err) || errors.As(err, &network) {
 		return true
 	}
 	var pe *pgconn.PgError
