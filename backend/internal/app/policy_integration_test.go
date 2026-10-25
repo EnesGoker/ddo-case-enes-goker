@@ -503,3 +503,19 @@ func TestEndorsementLinkIsWrittenOnce(t *testing.T) {
 	_, err = pool.Exec(context.Background(), `UPDATE policy_versions SET endorsement_id=$2 WHERE id=$1`, vid, eid)
 	assert.Equal(t, "55000", pgCode(err), "ikinci yazma da reddedilir")
 }
+
+func TestEndorsementLinkRejectsUnrelatedEndorsement(t *testing.T) {
+	defer assertBillingInvariant(t)
+	agent, uw := tokenFor(t, "acente@guvenpolice.test"), tokenFor(t, "underwriter@guvenpolice.test")
+	pol := issuePolicy(t, agent)
+	s, cancel, _ := postKey(t, uw, policyPath(pol)+"/cancel", map[string]any{"effective_date": day(dateOf(t, pol["start_date"]), 10), "reason": "UNDERWRITER"}, fmt.Sprintf("link-cancel-%v", pol["id"]))
+	require.Equal(t, http.StatusCreated, s, cancel)
+	other := issuePolicy(t, agent)
+	s, z, _ := postKey(t, agent, policyPath(other)+"/endorsements", map[string]any{"effective_date": day(dateOf(t, other["start_date"]), 10), "vehicle_group": "D"}, fmt.Sprintf("link-other-%v", other["id"]))
+	require.Equal(t, http.StatusCreated, s, z)
+	for _, eid := range []int64{num(cancel["endorsement"].(map[string]any)["id"]), num(z["endorsement"].(map[string]any)["id"])} {
+		_, err := pool.Exec(context.Background(), `
+   UPDATE policy_versions SET endorsement_id=$2 WHERE id=$1`, num(pol["version_id"]), eid)
+		assert.Equal(t, "55000", pgCode(err), "kendi iptal zeyli veya başka poliçenin zeyli bağlanamaz")
+	}
+}
