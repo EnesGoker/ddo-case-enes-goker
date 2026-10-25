@@ -74,14 +74,17 @@ func Transition(ctx context.Context, tx pgx.Tx, claimID int64, to string, actor 
 		return c, httpx.NewError(http.StatusConflict, "INVALID_TRANSITION", "bu durum geçişine izin verilmiyor")
 	}
 	from := c.Status
-	if _, err := tx.Exec(ctx, `UPDATE claims SET status=$2,row_version=row_version+1,updated_at=$3 WHERE id=$1`, claimID, to, options.At); err != nil {
+	if _, err := tx.Exec(ctx, `
+  UPDATE claims SET status=$2,row_version=row_version+1,updated_at=$3 WHERE id=$1`, claimID, to, options.At); err != nil {
 		return c, err
 	}
 	var historyActor *int64
 	if !options.Automatic {
 		historyActor = &actor.UserID
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO claim_status_history (claim_id,from_status,to_status,actor_user_id,note,created_at) VALUES ($1,$2,$3,$4,$5,$6)`, claimID, from, to, historyActor, note, options.At); err != nil {
+	if _, err := tx.Exec(ctx, `
+  INSERT INTO claim_status_history (claim_id,from_status,to_status,actor_user_id,note,created_at)
+  VALUES ($1,$2,$3,$4,$5,$6)`, claimID, from, to, historyActor, note, options.At); err != nil {
 		return c, err
 	}
 	if err := task.Advance(ctx, tx, claimID, from, to, options.At, options.SLA); err != nil {

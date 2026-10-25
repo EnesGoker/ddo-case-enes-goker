@@ -16,6 +16,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
 	"github.com/EnesGoker/guvenpolice/backend/internal/claim"
 	"github.com/EnesGoker/guvenpolice/backend/internal/fraud"
+	"github.com/EnesGoker/guvenpolice/backend/internal/seed"
 	"github.com/EnesGoker/guvenpolice/backend/internal/task"
 	"github.com/EnesGoker/guvenpolice/backend/internal/workflow"
 	"github.com/jackc/pgx/v5"
@@ -224,7 +225,18 @@ func TestTaskLifecycleSLAAndRBAC(t *testing.T) {
 		metrics.Body.Close()
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, metrics.StatusCode)
-		assert.Contains(t, string(raw), `guvenpolice_claim_tasks_sla_breached{task_type="APPRAISAL"}`)
+		var expectedBreached int64
+		require.NoError(t, pool.QueryRow(context.Background(), `
+         SELECT count(*) FROM claim_tasks WHERE task_type='APPRAISAL'
+          AND status IN ('OPEN','IN_PROGRESS') AND sla_due_at<$1`, clock).Scan(&expectedBreached))
+		assert.Contains(t, string(raw), fmt.Sprintf(`guvenpolice_claim_tasks_sla_breached{task_type="APPRAISAL"} %d`+"\n", expectedBreached))
+		summaries, err := task.NewService(pool, func() time.Time { return clock }).Summary(context.Background())
+		require.NoError(t, err)
+		for _, summary := range summaries {
+			if summary.Type == "APPRAISAL" {
+				assert.Equal(t, expectedBreached, summary.OpenBreached)
+			}
+		}
 		fixed.Close()
 	}
 	for _, email := range []string{"musteri@guvenpolice.test", "acente@guvenpolice.test"} {
@@ -325,7 +337,7 @@ func TestConcurrentTaskAssignment(t *testing.T) {
 			errors <- e
 		}(c)
 	}
-	waiting := assert.Eventually(t, func() bool {
+	gateObserved := assert.Eventually(t, func() bool {
 		var n int
 		e := wide.QueryRow(ctx, `
   SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND wait_event='advisory'
@@ -338,9 +350,6 @@ func TestConcurrentTaskAssignment(t *testing.T) {
 	for e := range errors {
 		assert.NoError(t, e)
 	}
-	if !waiting {
-		return
-	}
 	loads := []int{}
 	for _, id := range ids {
 		var n int
@@ -348,5 +357,35 @@ func TestConcurrentTaskAssignment(t *testing.T) {
 		loads = append(loads, n)
 	}
 	assert.Equal(t, []int{7, 7, 6}, loads, "eşit başlangıç, küçük id önceliği")
-	t.Logf("20 bağımsız transaction rol kapısında bekledi; yükler %v", loads)
+	t.Logf("20 bağımsız transaction: rol kapısı=%t, yükler=%v", gateObserved, loads)
+}
+
+func TestFraudSeedStableAndMetricsDatabaseFailure(t *testing.T) {
+	defer assertBillingInvariant(t)
+	before := financialCounts(t)
+	require.NoError(t, seed.Demo(context.Background(), pool, demoPassword))
+	assert.Equal(t, before, financialCounts(t), "yeniden seed mali kayıt, sinyal ve görev üretmez")
+	var total, zero, flagged int
+	require.NoError(t, pool.QueryRow(context.Background(), `
+  SELECT count(*),count(*) FILTER(WHERE c.fraud_score=0 AND NOT c.fraud_flagged),
+         count(*) FILTER(WHERE c.fraud_score=75 AND c.fraud_flagged AND c.status='FRAUD_REVIEW')
+    FROM claims c JOIN policies p ON p.id=c.policy_id WHERE p.policy_no IN ('GP-DEMO-FP-1','GP-DEMO-FP-2')`).Scan(&total, &zero, &flagged))
+	assert.Equal(t, 3, total)
+	assert.Equal(t, 2, zero)
+	assert.Equal(t, 1, flagged)
+	var unpaidInterest int64
+	require.NoError(t, pool.QueryRow(context.Background(), `
+  SELECT coalesce(sum(l.amount_kurus),0) FROM late_interest_charges l
+   JOIN installments i ON i.id=l.installment_id JOIN installment_plans pl ON pl.id=i.plan_id
+   JOIN policies p ON p.id=pl.policy_id WHERE p.policy_no IN ('GP-DEMO-FP-1','GP-DEMO-FP-2')`).Scan(&unpaidInterest))
+	assert.Zero(t, unpaidInterest, "başlangıç tarihli tam ödeme faiz üretmez")
+	closed, err := pgxpool.New(context.Background(), pool.Config().ConnString())
+	require.NoError(t, err)
+	closed.Close()
+	handler := app.NewRouter(app.Deps{Pool: closed, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.NotContains(t, recorder.Body.String(), `guvenpolice_claim_tasks_open{`)
+	assert.NotContains(t, recorder.Body.String(), `guvenpolice_claim_tasks_sla_breached{`)
 }

@@ -161,13 +161,21 @@ func (s *Service) Report(ctx context.Context, req ReportRequest) (Claim, error) 
 			plate = &normalized
 		}
 		var id int64
-		err = tx.QueryRow(ctx, `WITH n AS (SELECT nextval(pg_get_serial_sequence('claims','id')) AS id)
-   INSERT INTO claims (id,claim_no,policy_id,policy_version_id,coverage_code,loss_date,plate,workshop_id,description,claimed_amount_kurus,created_by,request_key,reported_at,updated_at)
-   OVERRIDING SYSTEM VALUE SELECT n.id,'GP-H-'||lpad(n.id::text,greatest(8,length(n.id::text)),'0'),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11 FROM n RETURNING id`, h.ID, v.ID, req.CoverageCode, loss, plate, req.WorkshopID, req.Description, *req.ClaimedAmountKurus, p.UserID, idempotency.Key(ctx), s.now()).Scan(&id)
+		err = tx.QueryRow(ctx, `
+   WITH n AS (SELECT nextval(pg_get_serial_sequence('claims','id')) AS id)
+   INSERT INTO claims (
+     id,claim_no,policy_id,policy_version_id,coverage_code,loss_date,plate,
+     workshop_id,description,claimed_amount_kurus,created_by,request_key,reported_at,updated_at)
+   OVERRIDING SYSTEM VALUE
+   SELECT n.id,'GP-H-'||lpad(n.id::text,greatest(8,length(n.id::text)),'0'),
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11 FROM n
+   RETURNING id`, h.ID, v.ID, req.CoverageCode, loss, plate, req.WorkshopID, req.Description, *req.ClaimedAmountKurus, p.UserID, idempotency.Key(ctx), s.now()).Scan(&id)
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO claim_status_history(claim_id,from_status,to_status,actor_user_id,note,created_at) VALUES($1,NULL,'REPORTED',$2,'Hasar bildirildi',$3)`, id, p.UserID, s.now()); err != nil {
+		if _, err := tx.Exec(ctx, `
+   INSERT INTO claim_status_history(claim_id,from_status,to_status,actor_user_id,note,created_at)
+   VALUES($1,NULL,'REPORTED',$2,'Hasar bildirildi',$3)`, id, p.UserID, s.now()); err != nil {
 			return err
 		}
 		out, err = load(ctx, tx, id, false)
