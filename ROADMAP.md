@@ -53,11 +53,11 @@
 **Çıkış kapısı:** Örnek tarih aralığı için beklenen teminat/sürüm ve kuruş tutarları otomatik testle kanıtlanıyor.
 
 ### A4 — T-3 + F-4/F-5/F-6: Hasar ve tazminat (hedef 4 saat)
-- [ ] Hasar bildirimi, ekspertiz kaydı, tazminat hesabı ve ödeme kayıt akışı var.
-- [ ] Hasar tarihindeki poliçe versiyonu kullanılıyor.
-- [ ] Muafiyet, teminat başına ve yıllık toplam limit doğru uygulanıyor.
-- [ ] Eşzamanlı onay limiti aşmıyor (`FOR UPDATE` veya eşdeğeri).
-- [ ] Gerçek iki paralel transaction/istekle yarış durumu testi var.
+- [x] Hasar bildirimi, ekspertiz kaydı, tazminat hesabı ve ödeme kayıt akışı var.
+- [x] Hasar tarihindeki poliçe versiyonu kullanılıyor.
+- [x] Muafiyet, teminat başına ve yıllık toplam limit doğru uygulanıyor.
+- [x] Eşzamanlı onay limiti aşmıyor (`FOR UPDATE` veya eşdeğeri).
+- [x] Gerçek iki paralel transaction/istekle yarış durumu testi var.
 
 **Çıkış kapısı:** İki eşzamanlı hasarda harcanan limit yıllık tavanı geçmiyor; açıklamalı ödeme kalemleri görünüyor.
 
@@ -117,13 +117,13 @@
 | F-1 | PASS | `make verify` (F-1 teklif-kaydet-oku, police-cevir, cift-cevirme, uw-onay); `TestConvertCreatesPolicyAndIsIdempotent` |
 | F-2 | PASS | `make verify` (F-2 zeyil-kayit, surum-gecmisi, iptal-sonrasi); `TestVehicleChangeEndorsementAndCoverageOnDate`, `TestShortPeriodCancellationAfterEndorsement` |
 | F-3 | BEKLEMEDE | — |
-| F-4 | BEKLEMEDE | — |
-| F-5 | BEKLEMEDE | — |
-| F-6 | BEKLEMEDE | — |
+| F-4 | PASS | `make verify` F-4 hasar-dosya; `TestClaimVersionSelectionAndCancellation`, `TestClaimTransitionsValidationAndRBAC` |
+| F-5 | PASS | `make verify` F-5 ekspertiz; `TestClaimLifecycleAndIdempotency` |
+| F-6 | PASS | `make verify` F-6 idempotent-onay/odeme; `TestClaimLifecycleAndIdempotency` |
 | F-7 | BEKLEMEDE | — |
 | T-1 | PASS | `TestGoldenKasko`, `TestGoldenKonut`, `TestBreakdownSumEqualsTotal`, `TestSelectTariffByStartDate`; `make verify` T-1 satırları |
 | T-2 | PASS | `TestGoldenVehicleChange`, `TestGoldenShortPeriodCancellation`, `TestCancellationOnLeapDay`; `make verify` T-2 satırları; eşzamanlılık `TestConcurrentEndorsements` |
-| T-3 | BEKLEMEDE | — |
+| T-3 | PASS | `TestGoldenSettlements`; `TestConcurrentClaimApprovals -count=10 -race`; mutasyon LIMIT_CHANGED; `make verify` hesap-adimlari/paralel-limit |
 | T-4 | BEKLEMEDE | — |
 | T-5 | BEKLEMEDE | — |
 

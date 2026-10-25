@@ -1,10 +1,10 @@
 openapi: 3.0.3
 info:
   title: GüvenPoliçe API
-  version: 0.3.0
+  version: 0.4.0
   description: |
-    A1–A3 kapsamı: sağlık, metrik, kimlik doğrulama, müşteri listesi, tarife, teklif (F-1/T-1),
-    poliçe listesi/detayı, tarihte teminat, araç değişikliği zeyli ve iptal (F-2/T-2).
+    A1–A4 kapsamı: sağlık, metrik, kimlik doğrulama, müşteri listesi, tarife, teklif (F-1/T-1),
+    poliçe listesi/detayı, tarihte teminat, araç değişikliği zeyli ve iptal (F-2/T-2), hasar/ekspertiz/tazminat/ödeme (F-4/F-5/F-6/T-3).
     Para alanları kuruş cinsinden tam sayıdır (`*_kurus`); oranlar bp (10000 = ×1).
     Erişim kuralı: rol uca hiç erişemiyorsa 403; erişebiliyor ama kayıt kapsam dışındaysa 404.
     Listeler keyset sayfalıdır: `?limit=` (1–100) ve önceki yanıttaki opak `next_cursor`.
@@ -356,7 +356,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { description: STALE_VERSION (base_version_no güncel değil), content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
-        "422": { description: "INVALID_EFFECTIVE_DATE, POLICY_CANCELLED, POLICY_NOT_ACTIVE, NOT_A_VEHICLE_POLICY, NO_CHANGE, LIMIT_BELOW_USAGE", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: "CLAIMS_AFTER_EFFECTIVE_DATE, INVALID_EFFECTIVE_DATE, POLICY_CANCELLED, POLICY_NOT_ACTIVE, NOT_A_VEHICLE_POLICY, NO_CHANGE, LIMIT_BELOW_USAGE", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
   /api/v1/policies/{id}/endorsements:
     post:
@@ -411,7 +411,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { description: STALE_VERSION, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
-        "422": { description: "INVALID_EFFECTIVE_DATE, POLICY_CANCELLED, POLICY_NOT_ACTIVE, SHORT_PERIOD_RATE_MISSING", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: "CLAIMS_AFTER_EFFECTIVE_DATE, INVALID_EFFECTIVE_DATE, POLICY_CANCELLED, POLICY_NOT_ACTIVE, SHORT_PERIOD_RATE_MISSING", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
   /api/v1/policies/{id}/cancel:
     post:
@@ -445,6 +445,382 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { description: "STALE_VERSION, CONCURRENT_MODIFICATION, IDEMPOTENCY_IN_PROGRESS", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "422": { description: "Önizlemeyle aynı iş hataları; IDEMPOTENCY_KEY_REUSED", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  "/api/v1/claims":
+    get:
+      summary: Hasar listesi — altı rol; müşteri/acente kendi, eksper APPRAISAL veya
+        kendi ekspertizi
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                type: object
+                required: []
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Claim"
+                  next_cursor:
+                    type: string
+                    nullable: true
+        '400':
+          "$ref": "#/components/responses/ValidationError"
+        '401':
+          "$ref": "#/components/responses/Unauthenticated"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '409':
+          description: INVALID_TRANSITION, STALE_CLAIM, INVALID_CLAIM_STATUS, INVALID_SETTLEMENT_STATUS,
+            LIMIT_CHANGED, CLAIM_ALREADY_SETTLED, CLAIM_ALREADY_PAID, IDEMPOTENCY_IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: NO_COVERAGE_ON_DATE, COVERAGE_NOT_IN_VERSION, LOSS_DATE_IN_FUTURE,
+            WORKSHOP_NOT_FOUND, REJECTION_REASON_REQUIRED, APPRAISAL_REQUIRED, LIMIT_EXHAUSTED,
+            LIMIT_BALANCE_MISSING, IDEMPOTENCY_KEY_REUSED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      parameters:
+      - "$ref": "#/components/parameters/Limit"
+      - "$ref": "#/components/parameters/Cursor"
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - REPORTED
+          - TRIAGED
+          - APPRAISAL
+          - ADJUSTMENT
+          - FRAUD_REVIEW
+          - APPROVED
+          - REJECTED
+          - PAID
+          - CLOSED
+    post:
+      summary: Hasar bildir — CUSTOMER, AGENT, CLAIMS_ADJUSTER
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Claim"
+        '400':
+          "$ref": "#/components/responses/ValidationError"
+        '401':
+          "$ref": "#/components/responses/Unauthenticated"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '409':
+          description: INVALID_TRANSITION, STALE_CLAIM, INVALID_CLAIM_STATUS, INVALID_SETTLEMENT_STATUS,
+            LIMIT_CHANGED, CLAIM_ALREADY_SETTLED, CLAIM_ALREADY_PAID, IDEMPOTENCY_IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: NO_COVERAGE_ON_DATE, COVERAGE_NOT_IN_VERSION, LOSS_DATE_IN_FUTURE,
+            WORKSHOP_NOT_FOUND, REJECTION_REASON_REQUIRED, APPRAISAL_REQUIRED, LIMIT_EXHAUSTED,
+            LIMIT_BALANCE_MISSING, IDEMPOTENCY_KEY_REUSED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      description: Sürüm ve plaka sunucuda policy.VersionOn ile çözülür. Hasar, NULL
+        → REPORTED geçmişi ve audit tek transaction; zeyil/iptalle aynı poliçe kilidi.
+        İstemciden policy_version_id alınmaz.
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ClaimReportRequest"
+  "/api/v1/claims/{id}":
+    get:
+      summary: Hasar detayı — geçmiş, tüm ekspertizler, aktif tazminat
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ClaimDetail"
+        '400':
+          "$ref": "#/components/responses/ValidationError"
+        '401':
+          "$ref": "#/components/responses/Unauthenticated"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '409':
+          description: INVALID_TRANSITION, STALE_CLAIM, INVALID_CLAIM_STATUS, INVALID_SETTLEMENT_STATUS,
+            LIMIT_CHANGED, CLAIM_ALREADY_SETTLED, CLAIM_ALREADY_PAID, IDEMPOTENCY_IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: NO_COVERAGE_ON_DATE, COVERAGE_NOT_IN_VERSION, LOSS_DATE_IN_FUTURE,
+            WORKSHOP_NOT_FOUND, REJECTION_REASON_REQUIRED, APPRAISAL_REQUIRED, LIMIT_EXHAUSTED,
+            LIMIT_BALANCE_MISSING, IDEMPOTENCY_KEY_REUSED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      parameters:
+      - "$ref": "#/components/parameters/ID"
+  "/api/v1/claims/{id}/transition":
+    post:
+      summary: Durum geçişi — CLAIMS_ADJUSTER
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Claim"
+        '400':
+          "$ref": "#/components/responses/ValidationError"
+        '401':
+          "$ref": "#/components/responses/Unauthenticated"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '409':
+          description: INVALID_TRANSITION, STALE_CLAIM, INVALID_CLAIM_STATUS, INVALID_SETTLEMENT_STATUS,
+            LIMIT_CHANGED, CLAIM_ALREADY_SETTLED, CLAIM_ALREADY_PAID, IDEMPOTENCY_IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: NO_COVERAGE_ON_DATE, COVERAGE_NOT_IN_VERSION, LOSS_DATE_IN_FUTURE,
+            WORKSHOP_NOT_FOUND, REJECTION_REASON_REQUIRED, APPRAISAL_REQUIRED, LIMIT_EXHAUSTED,
+            LIMIT_BALANCE_MISSING, IDEMPOTENCY_KEY_REUSED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      description: İzinli geçiş claim_transitions tablosundan doğrulanır; REJECTED için
+        note zorunlu. Claim kilidi + expected_row_version; durum, geçmiş ve audit tek
+        transaction. APPROVED ve PAID yalnızca mali uçlardan atanır.
+      parameters:
+      - "$ref": "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ClaimTransitionRequest"
+  "/api/v1/claims/{id}/appraisals":
+    post:
+      summary: Ekspertiz ekle — APPRAISER; yalnızca APPRAISAL
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Appraisal"
+        '400':
+          "$ref": "#/components/responses/ValidationError"
+        '401':
+          "$ref": "#/components/responses/Unauthenticated"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '409':
+          description: INVALID_TRANSITION, STALE_CLAIM, INVALID_CLAIM_STATUS, INVALID_SETTLEMENT_STATUS,
+            LIMIT_CHANGED, CLAIM_ALREADY_SETTLED, CLAIM_ALREADY_PAID, IDEMPOTENCY_IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: NO_COVERAGE_ON_DATE, COVERAGE_NOT_IN_VERSION, LOSS_DATE_IN_FUTURE,
+            WORKSHOP_NOT_FOUND, REJECTION_REASON_REQUIRED, APPRAISAL_REQUIRED, LIMIT_EXHAUSTED,
+            LIMIT_BALANCE_MISSING, IDEMPOTENCY_KEY_REUSED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      description: Birden çok ekspertiz eklenebilir; en son eklenen (id DESC) tazminatta
+        kullanılır.
+      parameters:
+      - "$ref": "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AppraisalRequest"
+  "/api/v1/claims/{id}/settlement/preview":
+    post:
+      summary: Tazminat önizle — CLAIMS_ADJUSTER; ADJUSTMENT
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SettlementPreview"
+        '400':
+          "$ref": "#/components/responses/ValidationError"
+        '401':
+          "$ref": "#/components/responses/Unauthenticated"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '409':
+          description: INVALID_TRANSITION, STALE_CLAIM, INVALID_CLAIM_STATUS, INVALID_SETTLEMENT_STATUS,
+            LIMIT_CHANGED, CLAIM_ALREADY_SETTLED, CLAIM_ALREADY_PAID, IDEMPOTENCY_IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: NO_COVERAGE_ON_DATE, COVERAGE_NOT_IN_VERSION, LOSS_DATE_IN_FUTURE,
+            WORKSHOP_NOT_FOUND, REJECTION_REASON_REQUIRED, APPRAISAL_REQUIRED, LIMIT_EXHAUSTED,
+            LIMIT_BALANCE_MISSING, IDEMPOTENCY_KEY_REUSED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      description: Kaydetmez. Brüt → muafiyet → teminat kalan limiti → yıllık kalan
+        limit. Yıllık bakiye yoksa skipped=true. Onay anındaki bakiye ile yeniden hesaplanır.
+      parameters:
+      - "$ref": "#/components/parameters/ID"
+  "/api/v1/claims/{id}/settlement/approve":
+    post:
+      summary: Tazminat onayla — CLAIMS_ADJUSTER; ADJUSTMENT
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ClaimSettlement"
+        '400':
+          "$ref": "#/components/responses/ValidationError"
+        '401':
+          "$ref": "#/components/responses/Unauthenticated"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '409':
+          description: INVALID_TRANSITION, STALE_CLAIM, INVALID_CLAIM_STATUS, INVALID_SETTLEMENT_STATUS,
+            LIMIT_CHANGED, CLAIM_ALREADY_SETTLED, CLAIM_ALREADY_PAID, IDEMPOTENCY_IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: NO_COVERAGE_ON_DATE, COVERAGE_NOT_IN_VERSION, LOSS_DATE_IN_FUTURE,
+            WORKSHOP_NOT_FOUND, REJECTION_REASON_REQUIRED, APPRAISAL_REQUIRED, LIMIT_EXHAUSTED,
+            LIMIT_BALANCE_MISSING, IDEMPOTENCY_KEY_REUSED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      description: Claim FOR UPDATE; bakiyeler id ASC FOR UPDATE. Koşullu limit UPDATE,
+        settlement, tüketim, APPROVED geçişi, audit ve 5000 borç/2000 alacak yevmiyesi
+        tek transaction. Sıfır ödeme 422; durum ADJUSTMENT kalır. APPROVED geri alınamaz;
+        uzlaşma iptali yok.
+      parameters:
+      - "$ref": "#/components/parameters/ID"
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+  "/api/v1/claims/{id}/pay":
+    post:
+      summary: Tazminatı öde — ACCOUNTING; APPROVED
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Başarılı işlem
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ClaimSettlement"
+        '400':
+          "$ref": "#/components/responses/ValidationError"
+        '401':
+          "$ref": "#/components/responses/Unauthenticated"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '409':
+          description: INVALID_TRANSITION, STALE_CLAIM, INVALID_CLAIM_STATUS, INVALID_SETTLEMENT_STATUS,
+            LIMIT_CHANGED, CLAIM_ALREADY_SETTLED, CLAIM_ALREADY_PAID, IDEMPOTENCY_IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: NO_COVERAGE_ON_DATE, COVERAGE_NOT_IN_VERSION, LOSS_DATE_IN_FUTURE,
+            WORKSHOP_NOT_FOUND, REJECTION_REASON_REQUIRED, APPRAISAL_REQUIRED, LIMIT_EXHAUSTED,
+            LIMIT_BALANCE_MISSING, IDEMPOTENCY_KEY_REUSED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      description: Settlement PAID + paid_at + payment_journal_entry_id; claim PAID;
+        2000 borç/1000 alacak yevmiyesi ve audit tek transaction. Idempotency-Key tekrarında
+        kayıtlı yanıt.
+      parameters:
+      - "$ref": "#/components/parameters/ID"
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
 
 components:
   parameters:
@@ -792,3 +1168,341 @@ components:
         premium_delta_kurus: { type: integer, format: int64 }
         closes_version: { type: boolean }
         calc_detail: { $ref: "#/components/schemas/CalcDetail" }
+
+    Claim:
+      type: object
+      required:
+      - id
+      - policy_id
+      - policy_version_id
+      - created_by
+      - customer_id
+      - row_version
+      - claim_no
+      - policy_no
+      - coverage_code
+      - description
+      - loss_date
+      - reported_at
+      - plate
+      - workshop_id
+      - agent_id
+      - claimed_amount_kurus
+      - status
+      properties:
+        id:
+          type: integer
+          format: int64
+        policy_id:
+          type: integer
+          format: int64
+        policy_version_id:
+          type: integer
+          format: int64
+        created_by:
+          type: integer
+          format: int64
+        customer_id:
+          type: integer
+          format: int64
+        row_version:
+          type: integer
+          format: int64
+        claim_no:
+          type: string
+        policy_no:
+          type: string
+        coverage_code:
+          type: string
+        description:
+          type: string
+        loss_date:
+          type: string
+          format: date
+        reported_at:
+          type: string
+          format: date-time
+        plate:
+          type: string
+          nullable: true
+        workshop_id:
+          type: integer
+          format: int64
+          nullable: true
+        agent_id:
+          type: integer
+          format: int64
+          nullable: true
+        claimed_amount_kurus:
+          type: integer
+          format: int64
+          minimum: 0
+        status:
+          type: string
+          enum:
+          - REPORTED
+          - TRIAGED
+          - APPRAISAL
+          - ADJUSTMENT
+          - FRAUD_REVIEW
+          - APPROVED
+          - REJECTED
+          - PAID
+          - CLOSED
+    ClaimDetail:
+      allOf:
+      - "$ref": "#/components/schemas/Claim"
+      - type: object
+        required:
+        - history
+        - appraisals
+        - settlement
+        properties:
+          history:
+            type: array
+            items:
+              "$ref": "#/components/schemas/ClaimHistory"
+          appraisals:
+            type: array
+            items:
+              "$ref": "#/components/schemas/Appraisal"
+          settlement:
+            allOf:
+            - "$ref": "#/components/schemas/ClaimSettlement"
+            nullable: true
+    ClaimHistory:
+      type: object
+      required: []
+      properties:
+        id:
+          type: integer
+          format: int64
+        from_status:
+          type: string
+          enum:
+          - REPORTED
+          - TRIAGED
+          - APPRAISAL
+          - ADJUSTMENT
+          - FRAUD_REVIEW
+          - APPROVED
+          - REJECTED
+          - PAID
+          - CLOSED
+          nullable: true
+        to_status:
+          type: string
+          enum:
+          - REPORTED
+          - TRIAGED
+          - APPRAISAL
+          - ADJUSTMENT
+          - FRAUD_REVIEW
+          - APPROVED
+          - REJECTED
+          - PAID
+          - CLOSED
+        actor_user_id:
+          type: integer
+          format: int64
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    ClaimReportRequest:
+      type: object
+      required:
+      - policy_id
+      - coverage_code
+      - loss_date
+      - description
+      - claimed_amount_kurus
+      properties:
+        policy_id:
+          type: integer
+          format: int64
+          minimum: 1
+        coverage_code:
+          type: string
+          minLength: 1
+        loss_date:
+          type: string
+          format: date
+        description:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        claimed_amount_kurus:
+          type: integer
+          format: int64
+          minimum: 0
+        workshop_id:
+          type: integer
+          format: int64
+          minimum: 1
+      additionalProperties: false
+    ClaimTransitionRequest:
+      type: object
+      required:
+      - to_status
+      - expected_row_version
+      properties:
+        to_status:
+          type: string
+          enum:
+          - TRIAGED
+          - APPRAISAL
+          - ADJUSTMENT
+          - REJECTED
+          - CLOSED
+        expected_row_version:
+          type: integer
+          minimum: 1
+        note:
+          type: string
+          maxLength: 4000
+      additionalProperties: false
+    AppraisalRequest:
+      type: object
+      required:
+      - damage_amount_kurus
+      - inspected_at
+      properties:
+        damage_amount_kurus:
+          type: integer
+          format: int64
+          minimum: 0
+        is_total_loss:
+          type: boolean
+        notes:
+          type: string
+          maxLength: 4000
+        inspected_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+    Appraisal:
+      type: object
+      required: []
+      properties:
+        id:
+          type: integer
+          format: int64
+        appraiser_id:
+          type: integer
+          format: int64
+        inspected_at:
+          type: string
+          format: date-time
+        damage_amount_kurus:
+          type: integer
+          format: int64
+          minimum: 0
+        is_total_loss:
+          type: boolean
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    SettlementStep:
+      type: object
+      required:
+      - code
+      - input_kurus
+      - output_kurus
+      - clipped_kurus
+      - description
+      - skipped
+      properties:
+        code:
+          type: string
+          enum:
+          - GROSS_DAMAGE
+          - DEDUCTIBLE
+          - AFTER_DEDUCTIBLE
+          - COVERAGE_LIMIT
+          - ANNUAL_LIMIT
+          - PAYABLE
+        input_kurus:
+          type: integer
+          format: int64
+          minimum: 0
+        output_kurus:
+          type: integer
+          format: int64
+          minimum: 0
+        clipped_kurus:
+          type: integer
+          format: int64
+          minimum: 0
+        description:
+          type: string
+        skipped:
+          type: boolean
+    SettlementPreview:
+      type: object
+      required:
+      - gross_damage_kurus
+      - deductible_kurus
+      - payable_kurus
+      - calc_steps
+      properties:
+        gross_damage_kurus:
+          type: integer
+          format: int64
+          minimum: 0
+        deductible_kurus:
+          type: integer
+          format: int64
+          minimum: 0
+        payable_kurus:
+          type: integer
+          format: int64
+          minimum: 0
+        calc_steps:
+          type: array
+          items:
+            "$ref": "#/components/schemas/SettlementStep"
+    ClaimSettlement:
+      allOf:
+      - "$ref": "#/components/schemas/SettlementPreview"
+      - type: object
+        required:
+        - id
+        - claim_id
+        - status
+        - approved_by
+        - approved_at
+        - paid_at
+        - payment_journal_entry_id
+        properties:
+          id:
+            type: integer
+            format: int64
+          claim_id:
+            type: integer
+            format: int64
+          status:
+            type: string
+            enum:
+            - APPROVED
+            - PAID
+          approved_by:
+            type: integer
+            format: int64
+          approved_at:
+            type: string
+            format: date-time
+          paid_at:
+            type: string
+            format: date-time
+            nullable: true
+          payment_journal_entry_id:
+            type: integer
+            format: int64
+            nullable: true

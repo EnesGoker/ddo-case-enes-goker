@@ -1,6 +1,6 @@
 # Mimari Karar Kayıtları
 
-A0'da onaylanan beş karar, A2'de (ADR-6/7) ve A3'te (ADR-8/9) eklenenler. Uygulanmayan kısımlar ilgili aşamada kanıtla doldurulacak.
+A0'da onaylanan beş karar; A2 (ADR-6/7), A3 (ADR-8/9) ve A4 (ADR-10/11) ekleri. Uygulanmayan kısımlar ilgili aşamada kanıtla doldurulacak.
 
 ## ADR-1 — Modüler monolit, katmanlı paketler
 
@@ -50,13 +50,13 @@ A0'da onaylanan beş karar, A2'de (ADR-6/7) ve A3'te (ADR-8/9) eklenenler. Uygul
 
 ## ADR-8 — Poliçe sürümleri değişmez (A3)
 
-**Karar:** `policy_versions` ve `policy_version_coverages` değiştirilemez/silinemez; tek izinli değişiklik açık sürümün `effective_to` alanının bir kez NULL → tarih olarak kapatılmasıdır. `00003_policy_version_guard.sql` ile veritabanında da zorlanır (BEFORE UPDATE/DELETE tetikleyicisi; `to_jsonb(NEW) - 'effective_to' = to_jsonb(OLD) - 'effective_to'` karşılaştırması sonradan eklenecek kolonları da kapsar). Zeyil: açık sürüm zeyil tarihinde kapanır, aynı tarihte yeni sürüm açılır; iptal: açık sürüm iptal tarihinde kapanır, yeni sürüm açılmaz. Hepsi tek transaction, poliçe satırı `FOR UPDATE`.
+**Karar:** `policy_versions` ve `policy_version_coverages` değiştirilemez/silinemez; izinli değişiklikler açık sürümün `effective_to` alanının bir kez NULL → tarih olarak kapatılması ve A4 `00004` ile `endorsement_id` alanının bir kez NULL → değer olarak doldurulmasıdır. `00003_policy_version_guard.sql` ile veritabanında da zorlanır (BEFORE UPDATE/DELETE tetikleyicisi; `to_jsonb(NEW) - 'effective_to' = to_jsonb(OLD) - 'effective_to'` karşılaştırması sonradan eklenecek kolonları da kapsar). Zeyil: açık sürüm zeyil tarihinde kapanır, aynı tarihte yeni sürüm açılır; iptal: açık sürüm iptal tarihinde kapanır, yeni sürüm açılmaz. Hepsi tek transaction, poliçe satırı `FOR UPDATE`.
 **Gerekçe:** "Geçmiş bir tarihte geçerli teminat" sorusunun cevabı hiçbir zaman değişmemeli; hasar (A4) bağlandığı sürümün sonradan değişmediğine güvenebilmeli. Uygulama hatası bile geçmişi bozamaz.
 **Bedel / sonuçlar:**
-- `policy_versions.endorsement_id` kullanılmaz (NULL kalır): şemadaki döngüsel FK'ler ertelenebilir değil ve araç değişikliğinde `endorsements.to_version_id` zorunlu (CHECK); bağı doldurmanın tek yolu sürümü sonradan UPDATE etmek olurdu, bu da kurala aykırı. Sürüm ↔ zeyil bağı `endorsements.from_version_id/to_version_id` ile tutulur.
+- A4 `00004_policy_endorsement_link.sql`: döngüsel FK nedeniyle yeni sürüm önce NULL bağlantıyla eklenir; zeyil eklendikten sonra aynı transaction içinde `endorsement_id` bir kez doldurulur. İkinci yazma/NULL yapma ve başka alanlarla birlikte değiştirme reddedilir. A3 kayıtları yerinde değiştirilmez.
 - **Geriye dönük zincir yok:** zeyil tarihi açık sürümün başlangıcından sonra olmalı; son zeyilden önceki bir tarihe zeyil yapılamaz (422 `INVALID_EFFECTIVE_DATE`).
 - **Sıfır uzunlukta sürüm yok:** `CHECK (effective_to > effective_from)` (00001). İptal tarihi açık sürümün başlangıç günüyse (ör. başlangıçtan iptal) sürüm kapatılamaz; açık kalır ve teminat poliçe düzeyindeki `cancel_effective_date` ile sona erer. Bu yüzden "tarihte teminat" sorgusu her zaman poliçe sınırlarını da uygular (`policy.VersionOn`: [start_date, end_date) ve iptal tarihinden önce) — son sürümün `effective_to`'su zaten NULL olduğundan bu kırpma her durumda gerekli.
-**Kanıt:** `TestPolicyVersionsAreImmutable` (doğrudan SQL ile UPDATE/DELETE → 55000), `TestMigrationsUpDownUp` (00003 dahil Up/Down/Up), `TestProRataCancellationOnStartDay`.
+**Kanıt:** `TestEndorsementLinkIsWrittenOnce`, `TestPolicyVersionsAreImmutable` (doğrudan SQL ile UPDATE/DELETE → 55000), `TestMigrationsUpDownUp` (00003 dahil Up/Down/Up), `TestProRataCancellationOnStartDay`.
 
 ## ADR-9 — Zeyil ve iptalde prim hesabı (A3)
 
@@ -91,3 +91,21 @@ A0'da onaylanan beş karar, A2'de (ADR-6/7) ve A3'te (ADR-8/9) eklenenler. Uygul
 
 - Migrasyonlar API açılışında goose ile uygulanır; demo seed idempotenttir ve `DEMO_PASSWORD` değişirse hash'i günceller.
 - `/metrics` ek bağımlılık yerine elle yazılmış küçük bir Prometheus metin üreticisidir; etiket olarak ham yol yerine chi rota kalıbı kullanılır (kardinalite).
+
+## ADR-10 — Tazminat limiti modeli ve tam sayı hesabı (A4)
+
+**Karar:** `policy_version_coverages.limit_kurus`, teminatın poliçe dönemi boyunca toplam limitidir; teminat bakiyesi `policy_limit_balances` içindedir. `annual_limit_kurus`, bütün teminatların ortak yıllık toplam limitidir (`coverage_code IS NULL` bakiyesi). Ayrı olay limiti yoktur; bu bir **kurgusal iş varsayımıdır**. Hasar tarihindeki sürümün muafiyeti ve limiti kullanılır. Teminat kalan tutarı `max(0, min(sürüm limiti, bakiye limiti) − kullanılmış)`; böylece sonraki limit artışı geçmiş hasarın sözleşme limitini büyütmez. A3'te yıllık limit değişmez.
+
+**Hesap:** Saf `internal/settlement`: son eklenen ekspertizin (`id DESC`) brüt hasarı → muafiyet → muafiyet sonrası → teminat kalan limiti → yıllık kalan limit → ödeme. Her adım tutarı, kırpılan miktarı ve nedeni `calc_steps` içinde taşır. Yıllık bakiye yoksa adım `skipped=true`; sabit muafiyet brütle sınırlıdır. Yüzde muafiyeti yarımı yukarıdır; `pricing.MulBP` bölüm/kalan ayrımıyla kullanılır, ara çarpım taşması önlenir. Sıfır ödeme onaylanmaz (`LIMIT_EXHAUSTED`); hasar ADJUSTMENT'ta kalır.
+
+**Kanıt:** `TestGoldenSettlements` (elle hesaplı sabit/yüzde/teminat/yıllık örnekler, muafiyet > brüt ve MaxInt64), `TestInvalidSettlementInput`, `TestZeroSettlementDoesNotConsumeLimit`.
+
+## ADR-11 — Hasar iş akışı, kilit sırası ve mali kayıt (A4)
+
+**Karar:** Bütün durum değişiklikleri tek `claim.Transition` üzerinden; claim `FOR UPDATE`, `row_version` kontrolü, `claim_transitions` doğrulaması, durum/geçmiş/audit aynı transaction'da. İlk bildirim `NULL → REPORTED` geçmişiyle birlikte yazılır. Bildirimde poliçe satırı zeyil/iptalle aynı kilidi alır; `policy.VersionOn` hem sürümü hem poliçe/iptal sınırlarını uygular. Reddedilmemiş bir hasar tarihinde veya öncesinde zeyil/iptal `CLAIMS_AFTER_EFFECTIVE_DATE` ile reddedilir (önizleme dahil).
+
+**Onay kilit sırası:** claim → ilgili teminat/yıllık bakiye satırları **id ASC**. Kilit altında hesap; her bakiyede `used + ödeme <= limit` koşullu UPDATE ikinci savunmadır. Settlement, tüketimler, APPROVED geçişi, audit ve `CLAIM_APPROVAL` yevmiyesi tek transaction: 5000 borç / 2000 alacak. Ödeme claim kilidi altında: PAID geçişi, settlement `paid_at` / `payment_journal_entry_id`, audit ve `CLAIM_PAYMENT`: 2000 borç / 1000 alacak. `ledger.Post` satırsız, negatif/çift yönlü ve dengesiz kayıtları reddeder; başarısızlık bütün transaction'ı geri alır. Her iki mali uç ve bildirim mevcut idempotans middleware'ini kullanır; ADR-4/A2'deki iş transaction'ı–yanıt saklama aralığı sınırlaması sürer.
+
+**Sınırlama:** APPROVED geri alınamaz; uzlaşma iptali bu aşamada yoktur, `claim_settlements.CANCELLED` kullanılmaz. Eksper görünürlüğü APPRAISAL dosyaları veya kendi ekspertizi bulunan dosyalardır; görev ataması/fraud/SLA A6'ya aittir.
+
+**Kanıt:** `TestConcurrentClaimApprovals` iki bağımsız HTTP isteğini dış transaction kilidinde buluşturur; 10 tekrar ve `-race` geçti. Bakiye `FOR UPDATE` geçici kaldırılınca ikinci onay `409 LIMIT_CHANGED` aldı; koşullu UPDATE taşmayı engelledi, tam/kırpılmış iki başarı bekleyen test FAIL oldu. Kilit geri konuldu ve 10 tekrar `-race` PASS. `TestClaimLifecycleAndIdempotency` tek settlement/yevmiye, ödeme ve defter dengesini; `TestClaimValidationAndLedgerRollback` eksik muhasebe hesabında geri almayı doğrular.

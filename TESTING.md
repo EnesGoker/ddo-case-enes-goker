@@ -121,4 +121,55 @@ Altın örneklerin elle hesabı `backend/internal/proration/proration_test.go` i
 | T-1 | PASS (`make verify` + birim/entegrasyon testleri) |
 | F-2 | PASS (`make verify` + entegrasyon testleri) |
 | T-2 | PASS (`make verify` + birim/entegrasyon testleri) |
-| F-3…F-7, T-3…T-5 | YAPILMADI (A4 ve sonrası) |
+| F-4, F-5, F-6, T-3 | PASS (A4; aşağıdaki kanıtlar) |
+| F-3, F-7, T-4, T-5 | YAPILMADI (A5 ve sonrası) |
+
+## F-4 / F-5 / F-6 — Hasar, ekspertiz ve tazminat (A4)
+
+1. Müşteri/acente: bugün başlayan bir poliçeyi aç → **Hasar bildir** → geçmiş/bugünkü hasar tarihi ve o tarihte geçerli teminatı seç. Dosya REPORTED, geçmiş `NULL → REPORTED`; sürüm/plaka sunucudan gelir.
+2. Hasar uzmanı: **Hasar Dosyaları** → dosya → Ön incelemede (TRIAGED) → Ekspertizde (APPRAISAL). Her geçiş güncel `expected_row_version` gönderir. Red için gerekçe zorunludur.
+3. Eksper: **Ekspertiz** varsayılan APPRAISAL listesi → brüt hasar, inceleme zamanı, pert durumu ve not → kaydet. Birden çok kayıtta son eklenen ekspertiz kullanılır.
+4. Hasar uzmanı: ADJUSTMENT → **Tazminat önizle** → altı adımı ve ödenecek tutarı incele → **Tazminatı onayla**. Örnek CAM: 2.000.000 − 50.000 sabit muafiyet = 1.950.000 kuruş (kalan limit yeterliyse).
+5. Muhasebe: **Hasar Dosyaları** varsayılan APPROVED listesi → dosya → **Öde**. PAID, `paid_at` ve `payment_journal_entry_id` görünür. Müşteri/acente kendi dosyasını; underwriter tüm dosyaları salt okunur izler.
+
+**Kanıt komutu:** `make verify` → `F-4 hasar-dosya`, `F-5 ekspertiz`, `F-6 idempotent-onay`, `F-6 odeme`. `TestClaimLifecycleAndIdempotency`: aynı anahtarla onay/ödeme tekrarı aynı yanıt, tek settlement ve olay başına tek yevmiye; her yevmiye ve tüm defter borç = alacak. `TestClaimValidationAndLedgerRollback`: bildirim tekrarında aynı kayıt, istemciden sürüm kabul edilmemesi, eksik tutar/atölye doğrulaması ve eksik muhasebe hesabında bütün yevmiyenin geri alınması.
+
+## T-3 — Tarihte sürüm, muafiyet ve eşzamanlı limit (A4)
+
+```bash
+(cd backend && go test -count=1 -v -cover ./internal/settlement)
+./scripts/test-integration.sh -run TestConcurrentClaimApprovals -count=10
+./scripts/test-integration.sh -run TestConcurrentClaimApprovals -count=10 -race
+./scripts/test-integration.sh -coverpkg=./internal/claim,./internal/ledger,./internal/settlement -coverprofile=/tmp/guvenpolice-a4-coverage.out
+(cd backend && go tool cover -func=/tmp/guvenpolice-a4-coverage.out)
+make up
+make verify
+```
+
+Komutlar repo kökünden çalıştırılır; parantezli komutlar kendi alt kabuğunda çalışır. Entegrasyon betiği geçici PostgreSQL 16 konteyneri ve her çalıştırmada geçici veritabanı kullanır; gerçek demo verisini silmez.
+
+- `TestGoldenSettlements`: elle hesap yorumlu sabit muafiyet, yüzde + yarım kuruş, teminat ve yıllık limit kırpması; ayrıca muafiyet > brüt, NONE, MaxInt64. Saf paket kapsamı **%100**.
+- `TestClaimVersionSelectionAndCancellation`: zeyilden bir gün önce eski sürüm/plaka, zeyil günü yeni sürüm/plaka; iptal tarihinde/sonrasında, başlangıç gününde iptal ve poliçe bitişinde 422.
+- `TestClaimsBlockBackdatedPolicyChanges`: hasar tarihine eşit/önceki zeyil ve iptal, önizleme dahil `422 CLAIMS_AFTER_EFFECTIVE_DATE`; REJECTED hasar engel oluşturmaz.
+- `TestClaimTransitionsValidationAndRBAC`: geçersiz geçiş 409, eski sürüm 409, gerekçesiz red 422; APPRAISER onaylayamaz, CLAIMS_ADJUSTER ödeyemez, ACCOUNTING bildirim yapamaz, CUSTOMER başkasına hasar açamaz (404). Eksper kapsamı, son ekspertiz, durum filtresi/keyset de doğrulanır.
+- `TestConcurrentClaimApprovals`: yıllık 1.000.000, teminat 2.000.000; iki ayrı dosya × 800.000. İstekler dış transaction kilidinde buluşur; iki bağımsız HTTP bağlantısı/transaction onaylar → **800.000 + 200.000**, yıllık kullanım **1.000.000**. `-count=10` ve `-count=10 -race` PASS.
+- **Mutasyon:** sadece bakiye sorgusunun `FOR UPDATE` eki geçici kaldırıldı. Aynı test ikinci onayda `409 LIMIT_CHANGED` ile FAIL oldu; koşullu UPDATE ikinci savunmada taşmayı engelledi (kullanım 800.000). Kilit geri konuldu; 10 tekrar `-race` PASS. Mutasyon kalıcı kodda yoktur.
+- `make verify` gerçek katalogda iki farklı teminatı paralel onaylar: KASKO_ANA brüt 150.000.000 (%2 muafiyet sonrası 147.000.000), IMM 50.000.000; toplam istek 197.000.000 → ortak yıllık bakiye **180.000.000** ile kırpılır. Sıraya göre 147.000.000 + 33.000.000 veya 130.000.000 + 50.000.000. Entegrasyon fixture'ında ise aynı teminatta iki kez yıllık limitin %80'i denenir.
+
+## A4 sonuçları (25 Ekim 2026)
+
+| Kontrol | Gerçek sonuç |
+|---|---|
+| `make test` | PASS; 52 birim test fonksiyonu (alt testler hariç) |
+| `./scripts/test-integration.sh -coverpkg=./internal/claim,./internal/ledger,./internal/settlement -coverprofile=/tmp/guvenpolice-a4-coverage.out` | PASS; 40 entegrasyon test fonksiyonu; migration Up/Down/Up (00004 dahil) |
+| Birleşik kapsam profili (`go tool cover -func`) | claim %79,9; ledger %90,9; settlement %100; bu üç paket toplam %81,5 |
+| `./scripts/test-integration.sh -run TestConcurrentClaimApprovals -count=10 -race` | PASS; gerçek paralel onay, 10 tekrar, yarış algılayıcısı |
+| Bakiye kilidi mutasyonu | Beklenen FAIL; koşullu UPDATE `409 LIMIT_CHANGED`; kilit geri konuldu |
+| `make lint` | PASS; normal/integration `go vet` + ESLint |
+| `make build` | PASS; Go + TypeScript/Vite |
+| `make up` | PASS; db/api/web healthy, yeni 00004 migrasyonu uygulandı |
+| `make verify` | 40 PASS, 0 FAIL; A1–A3 kontrolleri de korunuyor |
+| Tarayıcı / 375 px | PASS; altı rol menü/liste; müşteri bildirimi → ekspertiz → onay → ödeme; hata/boş durumları; içerik genişliği 375 px, yatay taşma yok |
+| OpenAPI | Ruby YAML ayrıştırması ve 202 iç `$ref` doğrulaması PASS; dış OpenAPI linter ÇALIŞTIRILMADI (yeni araç kurulmadı) |
+
+**Bilinen sınırlar:** Uzlaşma iptali yok; APPROVED geri alınamaz. Ayrı olay limiti yok (ADR-10 varsayımı). Fraud/SLA/atama A6, taksit/prim muhasebesi A5 kapsamındadır. İdempotans JSONB yanıt sırası ve iş transaction'ı–yanıt saklama aralığı A2/A3'teki gibi kalır. UI/API testleri kurgusal demo veriyle yapılır.
