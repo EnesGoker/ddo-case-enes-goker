@@ -60,7 +60,7 @@ type ReportRequest struct {
 	CoverageCode       string `json:"coverage_code"`
 	LossDate           string `json:"loss_date"`
 	Description        string `json:"description"`
-	ClaimedAmountKurus int64  `json:"claimed_amount_kurus"`
+	ClaimedAmountKurus *int64 `json:"claimed_amount_kurus"`
 	WorkshopID         *int64 `json:"workshop_id"`
 }
 
@@ -82,8 +82,8 @@ func (s *Service) Report(ctx context.Context, req ReportRequest) (Claim, error) 
 	if len(req.Description) == 0 || len(req.Description) > 4000 {
 		bad["description"] = "1-4000 karakter olmalı"
 	}
-	if req.ClaimedAmountKurus < 0 {
-		bad["claimed_amount_kurus"] = "negatif olamaz"
+	if req.ClaimedAmountKurus == nil || *req.ClaimedAmountKurus < 0 {
+		bad["claimed_amount_kurus"] = "zorunlu, negatif olamaz"
 	}
 	if req.WorkshopID != nil && *req.WorkshopID <= 0 {
 		bad["workshop_id"] = "geçersiz atölye"
@@ -137,7 +137,7 @@ func (s *Service) Report(ctx context.Context, req ReportRequest) (Claim, error) 
 		var id int64
 		err = tx.QueryRow(ctx, `WITH n AS (SELECT nextval(pg_get_serial_sequence('claims','id')) AS id)
    INSERT INTO claims (id,claim_no,policy_id,policy_version_id,coverage_code,loss_date,plate,workshop_id,description,claimed_amount_kurus,created_by)
-   OVERRIDING SYSTEM VALUE SELECT n.id,'GP-H-'||lpad(n.id::text,8,'0'),$1,$2,$3,$4,$5,$6,$7,$8,$9 FROM n RETURNING id`, h.ID, v.ID, req.CoverageCode, loss, v.VehiclePlate, req.WorkshopID, req.Description, req.ClaimedAmountKurus, p.UserID).Scan(&id)
+   OVERRIDING SYSTEM VALUE SELECT n.id,'GP-H-'||lpad(n.id::text,greatest(8,length(n.id::text)),'0'),$1,$2,$3,$4,$5,$6,$7,$8,$9 FROM n RETURNING id`, h.ID, v.ID, req.CoverageCode, loss, v.VehiclePlate, req.WorkshopID, req.Description, *req.ClaimedAmountKurus, p.UserID).Scan(&id)
 		if err != nil {
 			return err
 		}
@@ -198,7 +198,7 @@ func (s *Service) ChangeStatus(ctx context.Context, id int64, req TransitionRequ
 }
 
 type AppraisalRequest struct {
-	DamageAmountKurus int64  `json:"damage_amount_kurus"`
+	DamageAmountKurus *int64 `json:"damage_amount_kurus"`
 	IsTotalLoss       bool   `json:"is_total_loss"`
 	Notes             string `json:"notes"`
 	InspectedAt       string `json:"inspected_at"`
@@ -207,7 +207,7 @@ type AppraisalRequest struct {
 func (s *Service) Appraise(ctx context.Context, id int64, req AppraisalRequest) (Appraisal, error) {
 	var out Appraisal
 	inspected, err := time.Parse(time.RFC3339, req.InspectedAt)
-	if err != nil || req.DamageAmountKurus < 0 || len(req.Notes) > 4000 {
+	if err != nil || (req.DamageAmountKurus == nil || *req.DamageAmountKurus < 0) || len(req.Notes) > 4000 {
 		return out, httpx.Invalid(map[string]string{"appraisal": "RFC3339 inspected_at, negatif olmayan hasar ve en fazla 4000 karakter not gerekli"})
 	}
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
@@ -219,8 +219,8 @@ func (s *Service) Appraise(ctx context.Context, id int64, req AppraisalRequest) 
 			return httpx.NewError(http.StatusConflict, "INVALID_CLAIM_STATUS", "ekspertiz yalnızca APPRAISAL durumunda girilebilir")
 		}
 		p, _ := auth.FromContext(ctx)
-		out = Appraisal{AppraiserID: p.UserID, InspectedAt: inspected, DamageAmountKurus: req.DamageAmountKurus, IsTotalLoss: req.IsTotalLoss, Notes: &req.Notes}
-		err = tx.QueryRow(ctx, `INSERT INTO appraisals (claim_id,appraiser_id,inspected_at,damage_amount_kurus,is_total_loss,notes) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,created_at`, id, p.UserID, inspected, req.DamageAmountKurus, req.IsTotalLoss, req.Notes).Scan(&out.ID, &out.CreatedAt)
+		out = Appraisal{AppraiserID: p.UserID, InspectedAt: inspected, DamageAmountKurus: *req.DamageAmountKurus, IsTotalLoss: req.IsTotalLoss, Notes: &req.Notes}
+		err = tx.QueryRow(ctx, `INSERT INTO appraisals (claim_id,appraiser_id,inspected_at,damage_amount_kurus,is_total_loss,notes) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,created_at`, id, p.UserID, inspected, *req.DamageAmountKurus, req.IsTotalLoss, req.Notes).Scan(&out.ID, &out.CreatedAt)
 		if err != nil {
 			return err
 		}

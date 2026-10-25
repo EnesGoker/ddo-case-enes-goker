@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
+	"github.com/EnesGoker/guvenpolice/backend/internal/ledger"
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
 	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
 	"github.com/jackc/pgx/v5"
@@ -20,7 +21,7 @@ import (
 
 // Geçmiş hasarlar için yalnızca fixture poliçesi: mevcut Issue yardımı kendi transaction'ında.
 // Üretim API'sinin geriye dönük poliçe yasağı ve gelecekte hasar yasağı korunur.
-func claimPolicy(t *testing.T, agent string) map[string]any {
+func claimPolicy(t *testing.T) map[string]any {
 	t.Helper()
 	var tariffID, agentID int64
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT id FROM tariff_versions WHERE product='KASKO' AND version_no=2`).Scan(&tariffID))
@@ -70,7 +71,7 @@ func adjustmentClaim(t *testing.T, pol map[string]any, adjuster, appraiser strin
 
 func TestClaimLifecycleAndIdempotency(t *testing.T) {
 	adjuster, appraiser, accounting := tokenFor(t, "hasar@guvenpolice.test"), tokenFor(t, "eksper@guvenpolice.test"), tokenFor(t, "muhasebe@guvenpolice.test")
-	pol := claimPolicy(t, "")
+	pol := claimPolicy(t)
 	c := adjustmentClaim(t, pol, adjuster, appraiser, 800000)
 	path := claimPath(c)
 	s, preview := newClient(t).do(http.MethodPost, path+"/settlement/preview", adjuster, nil)
@@ -111,14 +112,36 @@ func TestClaimLifecycleAndIdempotency(t *testing.T) {
 
 func TestConcurrentClaimApprovals(t *testing.T) {
 	adjuster, appraiser := tokenFor(t, "hasar@guvenpolice.test"), tokenFor(t, "eksper@guvenpolice.test")
-	pol := claimPolicy(t, "")
+	pol := claimPolicy(t)
 	a := adjustmentClaim(t, pol, adjuster, appraiser, 800000)
 	b := adjustmentClaim(t, pol, adjuster, appraiser, 800000)
 	claims := []map[string]any{a, b}
-	codes := runParallel(t, 2, func(i int) int {
-		s, _, _ := postKey(t, adjuster, claimPath(claims[i])+"/settlement/approve", nil, fmt.Sprintf("race-%v", claims[i]["id"]))
-		return s
-	})
+	// Dış transaction bakiyeleri tutar: iki bağımsız HTTP isteği de kilit noktasına
+	// ulaşmadan bırakılmaz. Mutasyonda ikisi de eski bakiyeyi okuyup UPDATE'te bekler.
+	gate, err := pool.Begin(context.Background())
+	require.NoError(t, err)
+	defer gate.Rollback(context.Background())
+	rowsGate, err := gate.Query(context.Background(), `SELECT id FROM policy_limit_balances WHERE policy_id=$1 ORDER BY id FOR UPDATE`, num(pol["id"]))
+	require.NoError(t, err)
+	_, err = pgx.CollectRows(rowsGate, pgx.RowTo[int64])
+	require.NoError(t, err)
+	result := make(chan []int, 1)
+	go func() {
+		result <- runParallel(t, 2, func(i int) int {
+			s, body, _ := postKey(t, adjuster, claimPath(claims[i])+"/settlement/approve", nil, fmt.Sprintf("race-%v", claims[i]["id"]))
+			if s != 201 {
+				t.Logf("onay %d: HTTP %d, %v", i, s, body)
+			}
+			return s
+		})
+	}()
+	require.Eventually(t, func() bool {
+		var waiting int
+		err := pool.QueryRow(context.Background(), `SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND (query LIKE 'SELECT id,coverage_code,limit_kurus,used_kurus%' OR query LIKE 'UPDATE policy_limit_balances SET used_kurus%')`).Scan(&waiting)
+		return err == nil && waiting >= 2
+	}, 5*time.Second, 10*time.Millisecond, "iki onay da veritabanı kilidinde beklemeli")
+	require.NoError(t, gate.Commit(context.Background()))
+	codes := <-result
 	assert.ElementsMatch(t, []int{201, 201}, codes)
 	var used, limit, total int64
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT used_kurus,limit_kurus FROM policy_limit_balances WHERE policy_id=$1 AND coverage_code IS NULL`, num(pol["id"])).Scan(&used, &limit))
@@ -135,7 +158,7 @@ func TestConcurrentClaimApprovals(t *testing.T) {
 
 func TestClaimVersionSelectionAndCancellation(t *testing.T) {
 	agent, adjuster := tokenFor(t, "acente@guvenpolice.test"), tokenFor(t, "hasar@guvenpolice.test")
-	pol := claimPolicy(t, "")
+	pol := claimPolicy(t)
 	start := dateOf(t, pol["start_date"])
 	zdate := day(start, 10)
 	s, z, _ := postKey(t, agent, policyPath(pol)+"/endorsements", map[string]any{"effective_date": zdate, "plate": "06ABC42", "vehicle_group": "D"}, fmt.Sprintf("claims-z-%v", pol["id"]))
@@ -154,13 +177,13 @@ func TestClaimVersionSelectionAndCancellation(t *testing.T) {
 		assert.Equal(t, 422, s, b)
 		assert.Equal(t, "NO_COVERAGE_ON_DATE", errCode(b))
 	}
-	pol2 := claimPolicy(t, "")
+	pol2 := claimPolicy(t)
 	s, b, _ = postKey(t, agent, policyPath(pol2)+"/cancel", map[string]any{"effective_date": pol2["start_date"], "reason": "CUSTOMER_REQUEST"}, fmt.Sprintf("start-c-%v", pol2["id"]))
 	require.Equal(t, 201, s, b)
 	s, b, _ = postKey(t, adjuster, "/api/v1/claims", map[string]any{"policy_id": pol2["id"], "coverage_code": "KASKO_ANA", "loss_date": pol2["start_date"], "description": "başlangıçta iptal", "claimed_amount_kurus": 1}, fmt.Sprintf("start-claim-%v", pol2["id"]))
 	assert.Equal(t, 422, s, b)
 	assert.Equal(t, "NO_COVERAGE_ON_DATE", errCode(b))
-	pol3 := claimPolicy(t, "")
+	pol3 := claimPolicy(t)
 	end := day(dateOf(t, pol3["start_date"]), 20)
 	_, err := pool.Exec(context.Background(), `UPDATE policies SET end_date=$2::date WHERE id=$1`, num(pol3["id"]), end)
 	require.NoError(t, err)
@@ -171,7 +194,7 @@ func TestClaimVersionSelectionAndCancellation(t *testing.T) {
 
 func TestClaimsBlockBackdatedPolicyChanges(t *testing.T) {
 	agent, adjuster := tokenFor(t, "acente@guvenpolice.test"), tokenFor(t, "hasar@guvenpolice.test")
-	pol := claimPolicy(t, "")
+	pol := claimPolicy(t)
 	today := caldate.Today(time.Now())
 	c := reportClaim(t, adjuster, pol, "KASKO_ANA", caldate.Format(today))
 	for i, date := range []string{day(today, -1), day(today, 0)} {
@@ -196,7 +219,7 @@ func TestClaimsBlockBackdatedPolicyChanges(t *testing.T) {
 
 func TestClaimTransitionsValidationAndRBAC(t *testing.T) {
 	adjuster, appraiser, accounting, customer := tokenFor(t, "hasar@guvenpolice.test"), tokenFor(t, "eksper@guvenpolice.test"), tokenFor(t, "muhasebe@guvenpolice.test"), tokenFor(t, "musteri@guvenpolice.test")
-	pol := claimPolicy(t, "")
+	pol := claimPolicy(t)
 	today := caldate.Format(caldate.Today(time.Now()))
 	c := reportClaim(t, customer, pol, "CAM", today)
 	path := claimPath(c)
@@ -222,7 +245,7 @@ func TestClaimTransitionsValidationAndRBAC(t *testing.T) {
 	// Aynı müşteri hesabı başka müşterinin poliçesini göremez / hasar açamaz.
 	var otherCustomer int64
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT id FROM customers WHERE national_id='10000000002'`).Scan(&otherCustomer))
-	other := claimPolicy(t, "")
+	other := claimPolicy(t)
 	_, err := pool.Exec(context.Background(), `UPDATE policies SET customer_id=$2 WHERE id=$1`, num(other["id"]), otherCustomer)
 	require.NoError(t, err)
 	s, b, _ = postKey(t, customer, "/api/v1/claims", map[string]any{"policy_id": other["id"], "coverage_code": "CAM", "loss_date": today, "description": "kapsam dışı", "claimed_amount_kurus": 1}, fmt.Sprintf("other-%v", other["id"]))
@@ -260,7 +283,7 @@ func TestClaimTransitionsValidationAndRBAC(t *testing.T) {
 
 func TestZeroSettlementDoesNotConsumeLimit(t *testing.T) {
 	adjuster, appraiser := tokenFor(t, "hasar@guvenpolice.test"), tokenFor(t, "eksper@guvenpolice.test")
-	pol := claimPolicy(t, "")
+	pol := claimPolicy(t)
 	c := adjustmentClaim(t, pol, adjuster, appraiser, 0)
 	s, b, _ := postKey(t, adjuster, claimPath(c)+"/settlement/approve", nil, fmt.Sprintf("zero-%v", c["id"]))
 	assert.Equal(t, 422, s, b)
@@ -271,4 +294,48 @@ func TestZeroSettlementDoesNotConsumeLimit(t *testing.T) {
 	var used int64
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT sum(used_kurus) FROM policy_limit_balances WHERE policy_id=$1`, num(pol["id"])).Scan(&used))
 	assert.Zero(t, used)
+}
+
+func TestClaimValidationAndLedgerRollback(t *testing.T) {
+	adjuster := tokenFor(t, "hasar@guvenpolice.test")
+	pol := claimPolicy(t)
+	body := map[string]any{"policy_id": pol["id"], "coverage_code": "KASKO_ANA", "loss_date": caldate.Format(caldate.Today(time.Now())), "description": "idempotans", "claimed_amount_kurus": 0}
+	key := fmt.Sprintf("report-idem-%v", pol["id"])
+	s, first, _ := postKey(t, adjuster, "/api/v1/claims", body, key)
+	require.Equal(t, 201, s, first)
+	s, again, h := postKey(t, adjuster, "/api/v1/claims", body, key)
+	require.Equal(t, 201, s, again)
+	assert.Equal(t, first, again)
+	assert.Equal(t, "true", h.Get("Idempotent-Replayed"))
+	delete(body, "claimed_amount_kurus")
+	s, b, _ := postKey(t, adjuster, "/api/v1/claims", body, key+"-missing")
+	assert.Equal(t, 400, s, b)
+	body["claimed_amount_kurus"] = 1
+	body["policy_version_id"] = pol["version_id"]
+	s, b, _ = postKey(t, adjuster, "/api/v1/claims", body, key+"-version")
+	assert.Equal(t, 400, s, b, "istemci sürüm belirleyemez")
+	delete(body, "policy_version_id")
+	body["workshop_id"] = 99999999
+	s, b, _ = postKey(t, adjuster, "/api/v1/claims", body, key+"-workshop")
+	assert.Equal(t, 422, s, b)
+	assert.Equal(t, "WORKSHOP_NOT_FOUND", errCode(b))
+	s, b = newClient(t).do(http.MethodPost, claimPath(first)+"/settlement/preview", adjuster, nil)
+	assert.Equal(t, 409, s, b)
+	c := transitionClaim(t, adjuster, first, "TRIAGED")
+	c = transitionClaim(t, adjuster, c, "APPRAISAL")
+	c = transitionClaim(t, adjuster, c, "ADJUSTMENT")
+	s, b = newClient(t).do(http.MethodPost, claimPath(c)+"/settlement/preview", adjuster, nil)
+	assert.Equal(t, 422, s, b)
+	assert.Equal(t, "APPRAISAL_REQUIRED", errCode(b))
+	var uid int64
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT id FROM users WHERE role='ACCOUNTING' LIMIT 1`).Scan(&uid))
+	// İkinci satırda eksik hesap: başlık ve ilk satır dahil tamamı geri alınmalı.
+	err := pgx.BeginFunc(context.Background(), pool, func(tx pgx.Tx) error {
+		_, err := ledger.Post(context.Background(), tx, ledger.Entry{Date: caldate.Today(time.Now()), Description: "rollback testi", RefType: "A4_TEST_ROLLBACK", RefID: num(pol["id"]), CreatedBy: uid}, []ledger.Line{{AccountCode: "5000", DebitKurus: 100}, {AccountCode: "YOK", CreditKurus: 100}})
+		return err
+	})
+	require.Error(t, err)
+	var n int
+	require.NoError(t, pool.QueryRow(context.Background(), `SELECT count(*) FROM journal_entries WHERE ref_type='A4_TEST_ROLLBACK'`).Scan(&n))
+	assert.Zero(t, n)
 }
