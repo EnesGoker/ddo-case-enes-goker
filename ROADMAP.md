@@ -79,11 +79,13 @@
 **Çıkış kapısı:** Kasıtlı şüpheli seed senaryosu doğru skoru/kuyruğu tetikliyor; rapor toplamı veriyle uyuşuyor.
 
 ### A7 — Gerçek veriyle 6 rolün tamamlanması ve simülatör (hedef 3 saat)
-- [ ] Her rol için kendi işiyle ilişkili kullanılabilir ekranlar var.
-- [ ] Tüm ekranlar gerçek API'den veri çekiyor; loading/empty/error/mobile durumları gözden geçirildi.
-- [ ] Simülatör ayrı compose servisinde, aynı seed ile aynı sonuç; hedef 100.000 poliçe + 5 yıl geçmiş.
-- [ ] UI üzerinde veri akışı/canlılık gösteriliyor.
-- [ ] Demo ve büyük simülasyon verisi birbirini bozmayacak şekilde ayrıldı.
+
+A7 uygulaması ve eski üreticiyle gerçek 100k kabulü tamamlandı: 50 dk 25,12 sn; verify 61 PASS / 0 FAIL, 112,11 sn. Gün sonu kapısı, deterministik DB/mali/izolasyon testleri ve 6 rolün 375 px kabulü PASS. Son yönlendirmeyle üretici 300 atölye ve seyrek kasıtlı örneklerle güncellendi: 1k %3,53 / 10k %5,43 işaretli. **Yeni üreticiyle 100k bu gece çalıştırılmadı; sabah A8 ölçümlerinden önce reset-demo → simulate → verify bekliyor.** Mevcut 100k veri korundu; A8'e geçilmedi.
+- [x] Her rol için kendi işiyle ilişkili kullanılabilir ekranlar var.
+- [x] Tüm ekranlar gerçek API'den veri çekiyor; loading/empty/error/mobile durumları gözden geçirildi.
+- [x] Simülatör ayrı compose servisinde, aynı seed ile aynı sonuç; 100.000 poliçe + 5 yıl geçmiş eski üreticiyle ölçüldü (v2 tam ölçek tekrarı bekliyor).
+- [x] UI üzerinde veri akışı/canlılık gösteriliyor.
+- [x] Demo ve büyük simülasyon verisi ayrıldı; assigned_to ortak havuzu onaylı istisna.
 
 **Çıkış kapısı:** Uygun yetkiyle giren her demo rolü kendi uçtan uca işini deneyebiliyor. Simülatör hedefi tamamlanamadıysa açıkça işaretle.
 

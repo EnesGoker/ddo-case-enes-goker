@@ -476,3 +476,298 @@ Başlangıç: 2026-10-25 22:13 TRT. Kapsam onaylı A7; push ve A8 yok. Kullanıc
 0. bölüm kapısı PASS: `make test`; `make test-integration` (saat bağlantısını da içeren tekrar); `./scripts/test-integration.sh -run 'TestConcurrent' -count=10 -race -v` (9 test ×10, app 371.142 s); `make lint build`; `make up` (db/api/web healthy); `make verify` (iki koşu, her biri 60 PASS / 0 FAIL). Ayrı hedefli testler üç parça/tek sonuç, hata yalıtımı+rollback, imleç, gelecekteki vade, yalnız açık faiz, API gerçek timestamp, migration Up/Down/Up ve reset sonrası v0 eşitliğini doğruladı. Loglar `/tmp/gp-a7-*-gate.log`, `/tmp/gp-a7-history.log`, `/tmp/gp-a7-clock-tests.log`, `/tmp/gp-a7-dayend-extra.log`.
 
 Kapı commitleri: 0ce7933 (görev metni), 57b2452 (gün sonu backend), aa3157d (UI/verify döngüsü), d06890b (00009/v0), 0e9d43c (v0 test sınırı), ac8d28c (bağlam saati/API-now), ab142f2 (açık faiz ve doğrulama). Kapı sonrası simülatör fazlarına devam edilir.
+
+
+### Docker disk kesintisi ve çevrimdışı çalışma
+
+2026-10-25 22:36 TRT: ilk 1000 poliçe entegrasyon denemesi 51.921331334 s sonra `SIM-000855: conn closed` ile kesildi. Bu **tamamlanmış 1000 ölçümü değildir** ve 100k süre kanıtı sayılmaz. Docker VM/host günlükleri `no space left on device`, EXT4 I/O hataları ve motorun kapandığını doğruladı. Kaynak: Docker `Data/log/host/com.docker.backend.log`, 19:36:22 UTC. Docker/API sağlığı ve ana DB mutabakatı geri dönüşte tekrar kontrol edilecek; ana veri sıfırlanmadı.
+
+Kullanıcı yalnız `go clean -cache` için onay verdi; komut başarıyla çalıştı (önbellek ~1 GB → 8 KB). Kullanıcı ana disk alanını kendisi açacak ve Docker'ı kendisi başlatıp haber verecek. **Haber gelmeden Docker başlatılmaz ve başka temizlik/silme yapılmaz.** Bekleyen iki test komutu, Docker'a yeniden işlem göndermemeleri için durduruldu; kalan geçici test konteynerlerine ayrıca dokunulmadı.
+
+Çevrimdışı gerçek sonuçlar:
+- `make test`: PASS (`/tmp/gp-a7-offline-unit.log`).
+- `cd backend && go test -race ./internal/platform/clock ./internal/simulation ./internal/payment`: PASS (1.888 / 4.687 / 4.634 s; `/tmp/gp-a7-offline-race.log`).
+- `cd backend && go vet -tags integration ./...`: PASS.
+- `cd backend && go test -tags integration -c -o /tmp/gp-a7-integration.test ./internal/app`: PASS; bu derleme, testleri çalıştırmaz.
+- `cd frontend && npm run lint && npm run build`: PASS (`/tmp/gp-a7-offline-web.log`).
+- `bash -n scripts/verify.sh scripts/reset-demo.sh scripts/test-integration.sh`, `git diff --check`: PASS.
+
+Bu kesinti anında simülatörün DB orkestrasyonu/aktivite/UI kodu gerçek DB kabulünden geçmediği için commit edilmedi; sonraki kabul/commit bilgisi aşağıdadır. Yeni DB testleri, 1000 × üç taze DB/parmak izi/worker kıyası, 100k gerçek ölçek, süreli verify, canlı mod ve 375 px altı rol kabulü Docker sonrasına bekliyor. Hedef 100000 olarak kalır. Ek YAML kontrolü ilk js-yaml denemesinde paket bulunamadığı için çalışmadı. Ardından repoda zaten bulunan `go.yaml.in/yaml/v3` ile `GOPROXY=off go run /tmp/gp-a7-checkyaml.go ../openapi.yaml ../docker-compose.yml` çalıştırıldı: iki YAML da PASS; yeni bağımlılık kurulmadı.
+
+
+Çevrimdışı son ek kontroller: `go test ./...` PASS (`/tmp/gp-a7-offline-unit-final.log`); frontend lint/build tekrar PASS (`/tmp/gp-a7-offline-web-final.log`). Saf 100000 plan dağılımı testi PASS: KASKO 5447 / 16169079 maruz gün → 1229 bp; TRAFIK 1934 / 11428983 → 617 bp; KONUT 535 / 4895319 → 398 bp. Bu yalnız plan hesabıdır, gerçek DB üretimi veya ölçek ölçümü değildir. Kasko'nun ~%12 toplamında üçlü şüpheli örnekler için normal bildirim sıklığından pay ayrılır.
+
+Bağımsız parametre yükleme/hash testleri ayrıca yalnız `config.go config_test.go` dosyalarıyla PASS olduğu için simülatörün bu temeli ayrı commit edildi. Orkestrasyon/DB, Docker, aktivite, UI ve kabul testleri hâlâ gerçek DB kabulünü bekliyor. Canlı modun normal sonlandırması parmak izini temizler; özetin batch sonuna ait olduğu UI ve belgelerde belirtilir. Gerçek saat bütçesi ve bağlantı-hatası ayrımı için ilave regresyonlar yazıldı; bütçe DB testi henüz çalışmadı.
+
+
+### Docker sonrası kabul ve 100k başlangıcı
+
+Kullanıcı 2026-10-25 23:03 TRT civarında alan açıldığını ve Docker'ın çalıştığını bildirdi. Yeniden başlatma kullanıcı tarafından yapıldı. Başka disk temizliği yapılmadı. Ana API/DB/web healthy; gerçek API mizanda `balanced=true`, satırsız/dengesiz 0, 1200=42781506; açık anapara 42708973 + faiz 72533; mutabakat true.
+
+`./scripts/test-integration.sh -run TestSimulatorDeterminismAndInvariants -v -timeout 20m`: PASS (app 212.448 s). Taze DB ölçümleri: seed42/8worker 80.432537625 s → doğrusal 2:14:03; seed42/16worker 55.143650958 s → 1:31:54; seed43/8worker 56.079574 s. İlk 8-worker koşusunda Docker imaj derlemesi de çalışıyordu; bunlar izole performans kıyası değildir. 8/16 parmak izi aynı: fc51238e1b71621e266b6d1c07cdba70b015c368bd19e2212023b1531c97e411. Seed43: 7b9ebdbc4215948fad3968b65d79ed5cd7bebefad24ec469bebfe75ed1104127. Tekrar koşu veri eklemedi; mali/izolasyon/geçiş kontrolleri, koşu kilidi ve canlı modun hasar üretmemesi/sonlandırılması PASS.
+
+`./scripts/test-integration.sh -run 'TestActivity|TestBillingRunUsesRealTimeBudget|TestAPICreatedTimestampsUseRealNow' -v`: PASS. `./scripts/test-integration.sh -run TestSimulatorResetRemovesDatasetAndRestoresTariffs -v`: PASS (9.59 s); yalnız taze test DB'sinde reset whitelist'i simülasyon ve koşu kaydını temizledi, seed 3 v0 tarifesini geri kurdu. Ana DB reset edilmedi.
+
+16 worker tahmini hâlâ 60 dakikayı aştığı için kullanıcı talimatıyla 100k arka planda başlatıldı: `SIM_ANCHOR_DATE=2026-10-25 SIM_SEED=42 SIM_POLICIES=100000 SIM_YEARS=5 SIM_WORKERS=16 /usr/bin/time -p make simulate`. Başlangıç 23:10 TRT; log `/tmp/gp-a7-sim-100k.log`. Gerçek tamamlanma süresi/DB boyutu henüz ölçülmedi; verify koşu bitince çalıştırılacak. Güncel imaj nonroot:nonroot; varsayılan API/DB/web healthy.
+
+### 100k sırasında onaylı çevrimiçi indeks düzeltmesi (00010)
+
+7.000 poliçede payments için pg_stat_user_tables.seq_tup_read=17.271.335.615 ölçüldü. Billing sorgusu her ödeme satırında refund_of_payment_id üzerinden iade toplamı ararken tam tablo tarıyordu. Kullanıcı 00010 ve migration testine açık onay verdi; ardından NO TRANSACTION + CREATE INDEX CONCURRENTLY IF NOT EXISTS, aynı sorgunun önce/sonra EXPLAIN (ANALYZE) kanıtı ve koşuda ortaya çıkan benzer eksik indekslerin aynı kalıpla eklenmesini yetkilendirdi. Önceden kapsam dışı olan bu EXPLAIN ölçümü yeni talimatla yapıldı; README A8'de kalır.
+
+00010 yalnız payments(refund_of_payment_id) WHERE refund_of_payment_id IS NOT NULL indeksidir; servis sorgusu ve 00001–00009 değişmedi. Up/Down/Up ve mevcut indeks varken goose Up tekrarı taze test DB'sinde PASS: ./scripts/test-integration.sh -run TestMigrationsUpDownUp -v. Ana DB'ye mevcut goose bağımlılığıyla geçici statik migration yardımcısı üzerinden uygulandı; API ve simülatör durdurulmadı. Goose 20:23:50 UTC'de sürüm10'u 848,89 ms'de uyguladı. Kalıcı binary/kod bağımlılığı eklenmedi.
+
+Aynı sorgu, aynı policy_id=54 (SIM-000020), aynı 11 ödeme, PostgreSQL16; ilk ölçümde tabloda 72.560 ödeme. Ölçümler devam eden 16-worker koşusu altında tek örnektir; izole yük testi veya soğuk cache kıyası değildir. Execution Time 310,638 ms → 0,240 ms, shared hit 13.085 → 30; alt sorgu Seq Scan → payments_refund_of_payment_idx Index Scan. İki ham çıktı ve sorgu aşağıdadır; A8 README karşılaştırmasına gerçek kanıt olarak aktarılabilir.
+
+```sql
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT p.id, p.policy_id, p.kind, p.amount_kurus, p.method, p.refund_of_payment_id,
+       p.paid_at, p.journal_entry_id, coalesce(p.reference,''),
+       CASE WHEN p.kind = 'PAYMENT' THEN p.amount_kurus - coalesce((
+         SELECT sum(r.amount_kurus) FROM payments r WHERE r.refund_of_payment_id = p.id
+       ),0) ELSE 0 END
+FROM payments p WHERE p.policy_id = 54 ORDER BY p.paid_at DESC, p.id DESC;
+```
+
+Önce:
+```text
+                                                                        QUERY PLAN
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Incremental Sort  (cost=2102.28..23122.52 rows=11 width=127) (actual time=310.584..310.585 rows=11 loops=1)
+   Sort Key: p.paid_at DESC, p.id DESC
+   Presorted Key: p.paid_at
+   Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 26kB  Peak Memory: 26kB
+   Buffers: shared hit=13085
+   ->  Index Scan Backward using payments_policy_idx on payments p  (cost=0.29..23122.02 rows=11 width=127) (actual time=43.930..310.515 rows=11 loops=1)
+         Index Cond: (policy_id = 54)
+         Buffers: shared hit=13076
+         SubPlan 1
+           ->  Aggregate  (cost=2099.59..2099.60 rows=1 width=32) (actual time=28.217..28.217 rows=1 loops=11)
+                 Buffers: shared hit=13066
+                 ->  Seq Scan on payments r  (cost=0.00..2099.59 rows=1 width=8) (actual time=26.598..26.598 rows=0 loops=11)
+                       Filter: (refund_of_payment_id = p.id)
+                       Rows Removed by Filter: 72560
+                       Buffers: shared hit=13066
+ Planning:
+   Buffers: shared hit=156
+ Planning Time: 3.507 ms
+ Execution Time: 310.638 ms
+(19 rows)
+
+
+```
+
+Sonra:
+```text
+                                                                           QUERY PLAN
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Incremental Sort  (cost=10.85..116.80 rows=11 width=127) (actual time=0.188..0.189 rows=11 loops=1)
+   Sort Key: p.paid_at DESC, p.id DESC
+   Presorted Key: p.paid_at
+   Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 26kB  Peak Memory: 26kB
+   Buffers: shared hit=30
+   ->  Index Scan Backward using payments_policy_idx on payments p  (cost=0.29..116.31 rows=11 width=127) (actual time=0.127..0.139 rows=11 loops=1)
+         Index Cond: (policy_id = 54)
+         Buffers: shared hit=21
+         SubPlan 1
+           ->  Aggregate  (cost=8.17..8.18 rows=1 width=32) (actual time=0.003..0.003 rows=1 loops=11)
+                 Buffers: shared hit=11
+                 ->  Index Scan using payments_refund_of_payment_idx on payments r  (cost=0.15..8.17 rows=1 width=8) (actual time=0.002..0.002 rows=0 loops=11)
+                       Index Cond: (refund_of_payment_id = p.id)
+                       Buffers: shared hit=11
+ Planning:
+   Buffers: shared hit=175
+ Planning Time: 18.691 ms
+ Execution Time: 0.240 ms
+(18 rows)
+
+
+```
+
+### Rol kabulünde kullanıcı yönlendirmesi: ADJUSTMENT ön koşulu
+
+375 px denemesinde ekspertizsiz APPRAISAL → ADJUSTMENT geçişi gerçekleşti; tazminat önizlemesi ekspertiz hatası verince GP-H-00000040 demo dosyası FRAUD_REVIEW üzerinden ekspertize döndürüldü. Bu amaçla fraud incelemesi kullanmak uygun değildi. Kullanıcı tüm ADJUSTMENT girişlerinde ekspertiz şartını ve UI düğmesinin pasifleşmesini açıkça istedi; sonraki denemelerde inceleme bu amaçla kullanılmaz. Demo denemesinin append-only geçmişi silinmedi/değiştirilmedi.
+
+Transition imzası değişmeden, izinli geçiş kontrolünün ardından hedef ADJUSTMENT ise appraisals varlığı doğrulanır; eksikse 409 APPRAISAL_REQUIRED. Geçersiz durum çifti hâlâ INVALID_TRANSITION döner. UI ekspertiz dizisi boşken ilgili geçiş düğmesini pasif gösterir; OpenAPI açıklaması güncellendi. Yeni TestAdjustmentRequiresAppraisalOnEveryEntry dört alt durumda APPRAISAL/FRAUD_REVIEW × var/yok; yokken durum, sürüm, geçmiş, audit sayısı değişmez ve ADJUSTMENT görevi açılmaz. Mevcut eksik ekspertiz testi daha erken 409 kapısını doğrulayacak şekilde güncellendi; eski test silinmedi.
+
+Hedefli beş entegrasyon testi PASS (app11.371 s): ./scripts/test-integration.sh -run 'TestAdjustmentRequiresAppraisalOnEveryEntry|TestClaimTransitionsValidationAndRBAC|TestClaimValidationAndLedgerRollback|TestFraudReviewCanReturnToAppraisal|TestClaimLifecycleAndIdempotency' -v. İlk yeni test denemesinde audit.entity_id'nin TEXT olduğu fixture sorgusunda sayısal parametre kullanıldığı için test hazırlığı FAIL verdi; parametre metne çevrildi, yukarıdaki son koşu geçti. Üretim audit kodu değişmedi.
+
+Frontend npm run lint && npm run build PASS. Docker api/web imajları derlendi, sağlıklı yeniden açıldı; simülatör durdurulmadı. Tarayıcıda ekspertizsiz GP-H-00000021 için düğme disabled ve isEnabled=false; 375 px kanıtı /tmp/gp-a7-adjustment-disabled-375.png. Yeni gerçek canlı mod ön kontrol testi TestVerifyStopsBeforeBusinessRequestsDuringLive de PASS (7,90 s): bash verify çıkış2, yalnız login/activity HTTP, iş isteği yok. Tam entegrasyon paketi bu son koşul değişikliğinden sonra yeniden çalıştırılıyor.
+
+### 100k tamamlanma ve gerçek verify
+
+Üretici sürüm1 /30 atölye ile gerçek100k koşusu tamamlandı: başlangıç20:10:04.071778UTC, bitiş21:00:27.405314UTC; uygulama3022,497sn, dış `/usr/bin/time -p` **real3025,12sn (50dk25,12sn)**. Parametreler seed42, anchor2026-10-25,100000 poliçe,5 yıl,16 worker. Log `/tmp/gp-a7-sim-100k.log`. Aynı anda UI, test ve indeks incelemesi yürüdü; izole benchmark değildir. Parmak izi `abc70939dcba41e974d1648012141bc97015c9bb1075750aee274c6a814d8272`.
+
+Batch sonu özeti: KASKO ACTIVE48721/CANCELLED1279; TRAFIK34054/946; KONUT14602/398. Tam100000 SIM, başlangıçlar2021-10-25…2026-10-10. Hasar7915: ADJUSTMENT11,APPRAISAL18,APPROVED20,CLOSED7221,FRAUD_REVIEW611,PAID9,REJECTED4,REPORTED8,TRIAGED13. İşaretli1900 (1289 kapalı/611 kuyrukta). Açık630/ihlalli621 görev. Taksit PAID507364 toplam/ödenen68206761307 kuruş; PENDING35857 toplam3600780877; CANCELLED3754 toplam280649529. Tahsilat930227/68377308343 kuruş, iade4757/403432711 kuruş. Defter nakit52989925755, tazminat gideri15038599856, yazılan prim71404109473 kuruş; balanced=true/reconciled=true. Bu özet batch anına aittir; sonraki verify ve demo kabul işlemleriyle canlı DB değişmiştir.
+
+00011 denemesi kaldırıldıktan, verify'dan önce gerçek DB boyutu **2.217.606.167 bayt /2115MB**. SIM hasarlarında ADJUSTMENT'a giriş anında ekspertizsiz geçmiş sayısı0. `/usr/bin/time -p make verify`: **61PASS/0FAIL,real112,11sn**; gün sonu103 parçada done=true; SYS canlılık, her yevmiye dengesi ve1200 mutabakatı PASS. Log `/tmp/gp-a7-verify-100k.log`. Rapor API'sinde2021-10-25→2026-10-26 aralığı61 ay (2021-10…2026-10); ilk20 fraud kuyruk dosyasının18'i SIM. Rapor toplamı demo kayıtları da dahil yazılan71435005911 kuruş,100023 poliçe,tazminat15585331856 kuruş,2182bp. Salt okunur ölçek kanıtı logu `/tmp/gp-a7-scale-api-proof.json` (bu yardımcı çıktıda report_total alanı null; sayılar gerçek API araç çıktısından alınmıştır).
+
+ADJUSTMENT düzeltmesinden sonraki tam entegrasyon PASS (app308,036sn; `/tmp/gp-a7-integration-adjustment-final.log`). `make test lint` son v2 kaynakla PASS (`/tmp/gp-a7-v2-test-lint.log`).
+
+### 00011 indeks denemesi ve geri alma kanıtı
+
+Yoğun100k yazımı sırasında mizan15sn API bütçesiyle504 verdi. Kullanıcının ek indeks yetkisiyle journal_lines(entry_id) INCLUDE(id,debit_kurus,credit_kurus) denendi; Up/Down/Up test edildi. Varsayılan plan eski indeksi seçmeye devam etti: önce17,25sn, sonra18,33sn; bakım sonrası19,77sn. Yalnız tanılama oturumunda random_page_cost=1.1 ile kaplama planı16,52sn; kalıcı DB/API ayarı veya servis SQL değişikliği yapılmadı. Yazım bitince aynı eski indeksli sorgu2364,543ms, gerçek API200/2670,377ms; yükün kalkması indeks kazancı sayılmadı.
+
+00011 Down çevrimiçi21:02:35UTC'de39,1ms ile uygulandı. Yeni deneme dosyası kaldırıldı; migration testi HEAD sürüm10'a döndürüldü. Geri alma sonrası:
+
+```text
+$ git diff -- backend/internal/app/integration_test.go db/migrations/00011_journal_entry_amounts_index.sql
+(çıktı yok)
+$ SELECT to_regclass('journal_lines_entry_amounts_idx');
+NULL
+$ goose version
+10
+```
+
+00011 commit edilmedi. Kalıcı ek sorgu indeksi yalnız00010. Üretim audit.go ve00001–00008 değişmedi; kod mutasyonu uygulanmadı. Normal nontruncating VACUUM/ANALYZE yapıldı, iş verisi silinmedi. Ağır yazımda mizan/API gecikmesi kalan sınırlamadır. Deneme/Down ham logları `/tmp/gp-a7-trial-*-explain.log`, `/tmp/gp-a7-migrate11-down.log`; ana veri sıfırlanmadı.
+
+### İşaretli oranı: kural kırılımı ve onaylı üretici düzeltmesi
+
+Kullanıcı1900/7915 (%24,01) işaretliyi gerçekçi bulmadı; kurallar/eşikler sabitken atölye çeşitliliği,1k/10k ölçümü ve <%10 istedi. Eski koşuda EARLY+WORKSHOP1300 (1197 kasıtlı), EARLY+REPEAT+WORKSHOP599 (tamamı kasıtlı), EARLY+REPEAT1 (kasıtlı). Kural katılımları EARLY1900/REPEAT600/WORKSHOP1899; kesişimler toplanmaz. **1797/1900 (%94,58) kasıtlı üçlü**,103 normal dosya. Ham çıktı `/tmp/gp-a7-fraud-breakdown-old.log`.
+
+Atölye300'e çıkarıldı; ilk iki poliçedeki altı yakın dönem bildirim ve her1000'de bir yakın dönem/bir tarihsel üçlü korundu. Eski her200'de üçlü yoğunluğu seyreltilerek normal Kasko%10,7 ile toplam yaklaşık%12 korundu. Parametre sürümü2; eski tamamlanmış koşu yeni üretici sonucu sanılmıyor. Fraud kodu/config/eşikleri değişmedi. Saf100k plan testi PASS: Kasko5324/16172136 maruz gün=1201bp,Trafik1967/11431837=628bp,Konut546/4894980=407bp; bu gerçek DB100k koşusu değildir.
+
+Taze DB, seed42/anchor2026-10-25/16worker gerçek ölçümü:
+
+| Poliçe | Atölye | Hasar | İşaretli | Oran | WORKSHOP sinyali | Süre |
+|---:|---:|---:|---:|---:|---:|---:|
+|1000|300|85|3|%3,53|2|35,516sn|
+|10000|300|810|44|%5,43|36|514,073sn|
+
+İki örnekte de oran kesin <%10, defter balanced ve1200 reconciliation true. İşaretli dosyalarda EARLY/REPEAT/WORKSHOP katılımı3/3/2 ve44/21/36. Parmak izleri1k=`4a689b6577278eafdfedd3f44ea0463629d9fc8d0acf423bb4e0741f786983c5`,10k=`92bf44c8ad91587a6b0431fe3f15615886807ce0b39558597a1aa0d97457d75a`. Host→Docker ölçümü, paralel UI ile; performans izolasyonu yok. Determinizm yeniden PASS: anchor2026-10-26 seed42 worker8/16 aynı `f76c695050358f5941e75febb1a839fe90382d0999bc23a1cc60c436181cbb41`; seed43 farklı `7428e4b185efe22b7680b8c5a327c35022a5bc5d669adca77834fd74f4d1e78e`.
+
+Hedefli Go testleri app723,399sn PASS; ancak çalışmakta olan kabuk betiği aynı sırada düzenlendiği için test sonrasında `ette: command not found` ile127 döndü. Komutun bütünü PASS değildir. Kaynak betikte yabancı komut yok; son kaynakla tam entegrasyon yeniden çalıştırılır. Yeni10k kabulü için varsayılan Go test bütçesi20dk; API bütçesi değişmedi.
+
+**Sınırlama ve sabah devri:** WORKSHOP_CONCENTRATION mutlak adet eşiğidir, atölyenin kendi normal hacmine göre sapma hesaplamaz (ADR-16/19). 1k/10k yeni100k oranını kanıtlamaz. Kullanıcı talimatıyla **v2 üreticiyle100k bu gece ÇALIŞTIRILMADI**. Mevcut100k korunur; sabah A8 ölçümlerinden önce yeni imajla `make reset-demo` → aynı açık seed/anchor ile `make simulate` → `make verify` gerekir. Hedef100000 olarak kaldı; A8'e başlanmadı.
+
+### Sarı SLA ve rol kabul verisi
+
+Kullanıcı yalnız kabul verisine onay verdi. Geçici seed yardımcısı mevcut issuePriced/Pay/Report/ChangeStatus servisleriyle GP-DEMO-SLA-YELLOW ve GP-H-00007968(id7968) üretti. Görev60saat önce açıldı,72saat SLA; fraudscore0/flagfalse; API saati değişmedi, mevcut kayıt zamanları UPDATE edilmedi. Varsayılan seed'e eklenmedi. Yardımcı kaynak kaldırıldı; `git diff -- backend/internal/seed/a7_yellow_acceptance.go backend/cmd/a7seed/main.go` boş. İşlem logu `/tmp/gp-a7-sla-seed.log`, exit0. 375px görev ekranında12sa kaldı ve DOMclass badge sla-soon, scrollWidth=innerWidth=375: `/tmp/gp-a7-sla-yellow-375.png`.
+
+Muhasebe rolü poliçe47'ye100000kuruş ödeme ve10000kuruş iade yaptı (935385/935386); ilk taksit net90000 ve açık bakiye1391480kuruş doğrulandı. UI gün sonu done/Tamamlandı, hata yok; bilinen INVALID_EFFECTIVE_DATE atlamaları listelendi. Ardından mizan dengede, satırsız/dengesiz0 ve1200 mutabakatı sağlandı. Defter Daha fazla kayıt ile20 ek kayıt yükledi. Diğer rol akışları ve son ekran kontrolü TESTING rol tablosundadır.
+
+### A7 değişen dosyalar — tam yol ve amaç
+
+| Dosya | Amaç |
+|---|---|
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example](</Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example>) | Simülatörün varsayılan SIM_* ayarları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md>) | Kullanıcının onaylı A7 görev tanımı; ilk commit. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md>) | ADR-19…22 ve mutlak fraud eşiği/üretici v2 kararı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/Makefile](</Users/macair/Okulda yapılan çalışma/guvenpolice/Makefile>) | simulate hedefi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md>) | Gerçek ölçüm, hata, geri alma ve teslim kanıtları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md>) | A7 kabul durumu ve sabaha kalan v2 100k. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md>) | Kurtarma, test komutları, ölçümler ve altı rol tablosu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/Dockerfile](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/Dockerfile>) | Aynı nonroot imajda API ve simülatör binaryleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/cmd/simulator/main.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/cmd/simulator/main.go>) | Sinyal/parametre/DB ile simülatör giriş noktası. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/activity_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/activity_integration_test.go>) | Tüm rollerin canlılık ve DB hata kabulü. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/billing_run_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/billing_run_integration_test.go>) | Parça eşitliği, hata yalıtımı ve gerçek zaman bütçesi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/claim_adjustment_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/claim_adjustment_integration_test.go>) | Tüm ADJUSTMENT girişlerinde ekspertiz regresyonu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/claim_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/claim_integration_test.go>) | Mevcut eksik ekspertiz beklentisini erken 409 kapısına bağlar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/clock_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/clock_integration_test.go>) | API kayıtlarının gerçek istek zamanında oluştuğunu kanıtlar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/historical_tariff_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/historical_tariff_integration_test.go>) | v0 tarife ve reset sonrası eşitlik. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/integration_test.go>) | 00009/00010 Up/Down/Up ve mevcut indeksle tekrar Up. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/quote_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/quote_integration_test.go>) | v0 tarih kapsamı ve tarife-yok sınırı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/router.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/router.go>) | Kimliği doğrulanmış tüm rollere activity ucu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/simulation_fraud_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/simulation_fraud_integration_test.go>) | 1k/10k gerçek fraud oranı, patlama ve mali mutabakat. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/simulation_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/simulation_integration_test.go>) | Taze DB determinizmi, mali/izolasyon/canlı/reset kabulü. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/verify_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/verify_integration_test.go>) | Gerçek LIVE koşusunda verify iş isteklerinden önce durur. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/service.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/service.go>) | Ekspertiz INSERT zamanını işlem bağlamından okur. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/settlement.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/settlement.go>) | Onay/tüketim/ödeme zamanlarını işlem bağlamına bağlar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/transition.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/transition.go>) | Tüm ADJUSTMENT girişlerinde ekspertiz ön koşulu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/ledger/ledger.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/ledger/ledger.go>) | Yevmiye oluşturma zamanını işlem bağlamından okur. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/handler.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/handler.go>) | Gün sonu imleç/limit isteği ve yanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/run.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/run.go>) | İndeksli aday, parça, bütçe ve poliçe hata yalıtımı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/run_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/run_test.go>) | Sistemik hata ve limit doğrulaması. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/plan.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/plan.go>) | Plan oluşturma zamanını işlem bağlamından okur. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/platform/clock/clock.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/platform/clock/clock.go>) | Gerçek saate düşen bağlam saati yardımcısı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/platform/clock/clock_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/platform/clock/clock_test.go>) | Sıfır değer ve eşzamanlı bağlam izolasyonu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/change.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/change.go>) | Zeyil/iptal kayıt zamanlarını işlem bağlamına bağlar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/policy.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/policy.go>) | Poliçe/sürüm INSERT zamanlarını işlem bağlamından okur. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/fraud.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/fraud.go>) | Geçmiş seed işlemlerine açık bağlam saati. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/policy.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/policy.go>) | Seed poliçe üretim saatini başlangıca bağlar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/tariffs.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/tariffs.go>) | Reset sonrası kurgusal v0 tarifelerini geri kurar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/claims.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/claims.go>) | Sıralı hasar yaşam döngüleri ve korunmuş kasıtlı patlamalar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/config.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/config.go>) | 100k varsayılanları, doğrulama ve sürümlü parametre kimliği. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/config_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/config_test.go>) | Varsayılanlar, worker bağımsızlığı ve v2 kimliği. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/live.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/live.go>) | Gerçek saatli isteğe bağlı canlı poliçe/tahsilat. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/plan_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/plan_test.go>) | Tarih/sıklık/seyrek kasıtlı örnek saf testleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/policies.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/policies.go>) | Paralel servis üretimi ve varlık başına RNG. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/references.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/references.go>) | Ayrık referans kullanıcı/kimlikler ve 300 atölye. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/run.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/run.go>) | Koşu kaydı, kilidi, tekrar ve faz orkestrasyonu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/summary.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/simulation/summary.go>) | Mali özet ve iş alanlarının sıralı SHA-256 parmak izi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/system/activity.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/system/activity.go>) | Audit içeriğini açmadan sayısal canlılık ve koşu özeti. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00009_simulation_activity.sql](</Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00009_simulation_activity.sql>) | simulation_runs, v0 ve açık faiz/audit indeksleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00010_payment_refund_index.sql](</Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00010_payment_refund_index.sql>) | Tekrar güvenli, transaction dışı çevrimiçi iade FK indeksi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docker-compose.yml](</Users/macair/Okulda yapılan çalışma/guvenpolice/docker-compose.yml>) | İsteğe bağlı sim profili ve SIM_* aktarımı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/api/types.ts](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/api/types.ts>) | Parçalı gün sonu ve canlılık yanıt tipleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/ActivityIndicator.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/ActivityIndicator.tsx>) | Tüm roller için canlılık göstergesi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/ClaimDetail.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/ClaimDetail.tsx>) | Ekspertiz yokken ADJUSTMENT düğmesi pasif. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/PolicyDetail.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/PolicyDetail.tsx>) | Dönemi geçmiş ACTIVE poliçe etiketi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/format.ts](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/format.ts>) | Durumu değiştirmeden Süresi doldu görünüm yardımcısı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/hooks/useActivity.ts](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/hooks/useActivity.ts>) | 15 saniyelik gerçek API yoklaması ve hata durumu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/AccountingPage.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/AccountingPage.tsx>) | done olana kadar gün sonu ve ilerleme. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/Dashboard.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/Dashboard.tsx>) | Canlılık ve Sistem sayfasını rol uygulamasına bağlar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/PoliciesPage.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/PoliciesPage.tsx>) | Listeye Süresi doldu etiketini uygular. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/SystemPage.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/SystemPage.tsx>) | Dakikalık sayılar, ilerleme ve tamamlanmış özet. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/roles.ts](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/roles.ts>) | Tüm rollerin Sistem menüsü. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/styles.css](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/styles.css>) | Canlılık/grafik/özet için mobil stiller. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/openapi.yaml](</Users/macair/Okulda yapılan çalışma/guvenpolice/openapi.yaml>) | Activity, parçalı gün sonu ve ekspertiz ön koşulu sözleşmesi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http](</Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http>) | A7 canlılık ve imleçli gün sonu örnekleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/reset-demo.sh](</Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/reset-demo.sh>) | Koşu tablosunu whitelist resetine ve simülatör durdurmaya ekler. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/test-integration.sh](</Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/test-integration.sh>) | 10k servis kabulü için gerçek Go test bütçesi 20dk. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/verify.sh](</Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/verify.sh>) | Parçalı gün sonu, LIVE ön kontrolü ve SYS doğrulaması. |
+
+### Son v2 doğrulaması
+
+`make test-integration`: **PASS,exit0**, app880,689sn; son betik20dk bütçesiyle tüm paketleri gerçekten çalıştırdı (`/tmp/gp-a7-final-integration-v2.log`). Önceki kabuk127 sorunu tekrarlanmadı. `docker compose build api` ve `docker compose up -d --no-deps --wait api`: PASS; API yeni v2 binary içeren imajla, db/api/web healthy. Simülatör veya reset başlatılmadı.
+
+Paralel10k test yükü altında ek `/usr/bin/time -p make verify`: **58PASS/3FAIL,real279,62sn**, make çıkış2. T-4 defter-mutabakat isteği10sn istemci süresini aştı (durum000), F-7 defter/boyut kontrolleri de başarısız; bu koşu PASS sayılmadı. Önceki gerçek100k61/0 kabulü ayrı koşudur. Test yükü bitince aynı kod/veriyle verify tek başına tekrar çalıştırılır. Log `/tmp/gp-a7-final-verify-v2.log`.
+
+Son tarayıcı tamamlaması: Muhasebe ürün raporunda100048 poliçe ve dengeli toplam; Sistem100000/100000,COMPLETED; eksper Sistem erişimi, kendi görev filtresi ve boş İncelemede listesi PASS. Sistem/görev/rapor genişliği375px, yatay taşma yok. Geçici viewport sıfırlandı ve kabul sekmesi kapatıldı. Kanıtlar `/tmp/gp-a7-system-100k-375.png`, `/tmp/gp-a7-accounting-balanced-375.png`; altı rolün gerçek sonuçları TESTING tablosunda.
+
+Test yükü bittikten sonra aynı v2 imajıyla `/usr/bin/time -p make verify`: **61PASS/0FAIL,real110,74sn,exit0** (`/tmp/gp-a7-final-verify-alone.log`). T-4 ve F-7 mizan/rapor kontrollerinin tamamı,103 parçalı gün sonu ve SYS güncelliği geçti. Veri düzeltmesi veya süre artırımı yapılmadı. Bu sonuç mevcut v1/100k üzerindedir; yeni v2/100k üretimi sayılmaz. Son db/api/web healthy; çalışan simülatör/test konteyneri yok.
+
+### A7 teslim özeti (AGENTS §6)
+
+1. **Durum: KISMEN.** Bu gece istenen üretici düzeltmesi ve1k/10k kabulü tamam. A7'nin mevcut100k/5y kabulü gerçek ölçümle geçti; yeni v2 üreticiyle100k kabulü kullanıcı talimatıyla sabaha bırakıldı.
+2. **Değişen dosyalar:** Yukarıdaki66 satırlık tam yol/amaç manifesti. Geçici kabul ve00011 deneme kaynakları teslimde yok.
+3. **Yapılanlar:** Parçalı gün sonu; tarihsel servis saati; ayrık/deterministik simülatör ve canlı mod; canlılık/Sistem;6 rol375px kabulü; sarı SLA; evrensel ekspertiz kapısı;00010 iade indeksi;300 atölye ve seyrek kasıtlı örnekler. Kurallar/eşikler, audit.go ve00001–00008 değişmedi.
+4. **Testler:** Aşağıdaki gerçek komut tablosu ve yukarıdaki başarısız/başarılı koşular.
+5. **Eksikler/riskler:** V2/100k **ÇALIŞTIRILMADI** (kullanıcı talimatı).1k/10k <%10 sonucu100k oranını kanıtlamaz. Atölye eşiği kendi normal hacmine göre değil mutlak adettir. Ağır eşzamanlı yazma yükünde mizan/rapor süre aşımı ölçüldü; tek başına verify110,74sn. SCoff çökmede son işlemleri kaybedebilir; yarım koşu reset→yeniden üretim gerektirir. Geçici manuel demo inceleme geçmişi silinmedi; sabah reset kabul verisini de temizler.
+6. **Commitler:** Aşağıdaki yerel liste; push yok. Son teslim belge commit'i kendi hash'ini içeremeyeceği için final yanıtta ayrıca verilir.
+7. **Sonraki görev:** Sabah yeni imajla `make reset-demo` → `SIM_ANCHOR_DATE=2026-10-25 SIM_SEED=42 SIM_POLICIES=100000 SIM_YEARS=5 SIM_WORKERS=16 make simulate` → `make verify`; ardından yalnız yeni onaylı A8 görevi. Bu gece başlatılmadı.
+
+| Komut | Gerçek sonuç |
+|---|---|
+| `make test lint` | PASS; Go birim, iki vet modu, frontend ESLint |
+| `make test-integration` | PASS/exit0; app880,689sn, v2 dahil tam paket |
+| `./scripts/test-integration.sh -run 'TestConcurrent' -count=10 -race -v` | PASS;0. bölümde9 test×10, app371,142sn |
+| `cd backend && go test -race ./internal/platform/clock ./internal/simulation ./internal/payment` | PASS;1,888/4,687/4,634sn |
+| `cd frontend && npm run lint && npm run build` | PASS |
+| `./scripts/test-integration.sh -run TestMigrationsUpDownUp -v` | PASS;00009/00010, mevcut indeksle tekrar Up |
+| `./scripts/test-integration.sh -run 'TestAdjustmentRequiresAppraisalOnEveryEntry|TestClaimTransitionsValidationAndRBAC|TestClaimValidationAndLedgerRollback|TestFraudReviewCanReturnToAppraisal|TestClaimLifecycleAndIdempotency' -v` | PASS; app11,371sn; tam pakette de tekrar geçti |
+| `docker compose build api` / `docker compose up -d --no-deps --wait api` / `docker compose ps` | PASS; v2 imaj, db/api/web healthy |
+| `/usr/bin/time -p make verify` (son, tek başına) | PASS;61/0,110,74sn,103 parça; mevcut100k üzerinde |
+| `bash -n scripts/verify.sh scripts/reset-demo.sh scripts/test-integration.sh` / `git diff --check` | PASS |
+
+### A7 yerel commit listesi (son teslim belge commit'inden önce)
+
+- `0ce7933 docs: A7 görev tanımı`
+- `57b2452 feat(billing): gün sonunu imleç ve poliçe hata yalıtımıyla parçala`
+- `aa3157d feat(web): gün sonu parçalarını ilerleme göstererek tamamla`
+- `d06890b feat(db): simülasyon kaydı ve tarihsel v0 tarifelerini ekle`
+- `0e9d43c test(tariff): tarihsel v0 ve tarife-yok sınırını doğrula`
+- `ac8d28c feat(clock): tarihsel INSERT saatini yalnız işlem bağlamından al`
+- `ab142f2 test(billing): açık faiz adayını ve parça hata sonucunu doğrula`
+- `6bba76d docs: A7 gün sonu kapısını ve simülatör kararlarını kaydet`
+- `2be06f4 feat(sim): 100k varsayılanlarını ve deterministik iş parametrelerini tanımla`
+- `d51b3ba fix(sim): worker bilgisini iş parmak izinden ayrı kaydet`
+- `20a9619 feat(sim): servislerle tarihsel poliçe tahsilat ve hasar üret`
+- `22df1a2 feat(system): tüm rollere sayısal canlılık ve koşu ilerlemesi sun`
+- `5adb4f3 feat(web): canlılık göstergesi ve simülasyon sistem ekranını ekle`
+- `5ecd4da test(billing): gerçek süre bütçesi ve sistem hatası ayrımını kanıtla`
+- `e0773ba test(sim): taze DB determinizmi izolasyon canlı mod ve reset kabulünü ekle`
+- `bfc1768 feat(demo): simülatör binary ve compose profilini bağla`
+- `0a1b06f fix(db): iade toplamı sorgusuna çevrimiçi FK indeksi ekle`
+- `1934601 fix(claim): değerlendirmeye her girişte ekspertiz şartını uygula`
+- `536606b test(verify): canlı simülatörde erken durmayı ve canlılığı doğrula`
+- `2e4dd37 fix(sim): atölye çeşitliliğini artır ve şüpheli örnekleri seyrelt`

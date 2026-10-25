@@ -309,3 +309,14 @@ Content-Type: application/json
 ### A6 — Yazılan prim raporu: bitiş günü hariç, sınırlar isteğe bağlı
 GET {{api}}/api/v1/reports/production?from=2026-10-01&to=2026-11-01&group_by=agent
 Authorization: Bearer {{accounting.response.body.access_token}}
+
+### A7 — tüm giriş yapmış roller: sayısal canlılık ve son simülasyon
+GET {{api}}/api/v1/system/activity
+Authorization: Bearer {{accounting.response.body.access_token}}
+
+### A7 — imleçli gün sonu; done=false ise next_after_policy_id ile tekrarla
+POST {{api}}/api/v1/billing/run
+Authorization: Bearer {{accounting.response.body.access_token}}
+Content-Type: application/json
+
+{"limit":25,"after_policy_id":0}

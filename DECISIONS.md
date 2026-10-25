@@ -171,6 +171,8 @@ Sinyal; puan, sayılar, pencere, önceki dosya numaraları ve Türkçe açıklam
 
 Aynı poliçedeki bildirimler poliçe kilidiyle sıralanır. Farklı poliçelerde eşzamanlı fraud sayımı READ COMMITTED görünümündedir; ±1 kaçırma kabul edilir. Sinyal karar destek içindir, otomatik red üretmez. CUSTOMER/AGENT yanıtları fraud alanlarını içermez.
 
+**A7 ölçüm sınırlaması:** WORKSHOP_CONCENTRATION mutlak dosya adedini ölçer; atölyenin kendi normal hacmine, kapasitesine veya geçmiş ortalamasına göre sapma hesaplamaz. Yoğun çalışan bir atölye normal hacmiyle sinyal üretebilir. A7'de bu kural, puanlar ve eşikler değiştirilmedi; simülatörün atölye çeşitliliği ve kasıtlı örnek yoğunluğu düzeltildi. İşaretli oranı gerçek dolandırıcılık oranı olarak yorumlanamaz.
+
 ## ADR-17 — Görev, SLA ve atama (A6)
 
 Saf paket workflow, DB/HTTP paketi task'tır. Transition'a son parametre olarak TransitionOptions{At,SLA,Automatic} eklenir. Eksik zaman veya sıfır/negatif herhangi bir SLA süresi DB erişiminden önce hatadır. APPRAISAL/ADJUSTMENT/FRAUD_REVIEW girişinde görev açılır. Kaynak açık görev DONE, REJECTED'a çıkışta CANCELLED olur; ilk completed_at korunur. Appraise da açık APPRAISAL görevini DONE yapar. IN_PROGRESS başlatma ucu yoktur.
@@ -193,13 +195,19 @@ Oran int64 baz puandır: tazminat×10000/prim, yarımı sıfırdan uzağa yuvarl
 
 İş verisi yalnız mevcut policy.Issue, ödeme, iptal ve hasar servisleriyle üretilir. Referans verisi ve simulation_runs doğrudan SQL kullanır. Poliçe/tahsilat evresi varlık başına seed+ordinal RNG ile paraleldir; hasar olayları zaman ve sabit anahtar sırasıyla tek iş parçacığında yürür. Simülatörün ayrı pgx havuzundaki bütün oturumlar synchronous_commit=off kullanır. Çökmede son commit'ler kaybolabilir; yeniden üretim yolu reset-demo ve aynı parametrelerle simulate'tir.
 
+Kasko'nun yaklaşık %12 yıllık toplamı, normal bildirim ve kasıtlı üçlü şüpheli örnekler arasında paylaştırılır; diğer ürünlerin normal sıklığı %6/%4'tür.
+
+**Üretici sürüm 2 (kullanıcı yönlendirmesi):** Atölye havuzu 30'dan 300'e çıkarıldı. Eski 100k koşusunda 7.915 hasarın 1.900'ü (%24,01) işaretliydi; 1.899'unda atölye sinyali, 1.797'sinde kasıtlı üçlü örnek vardı. Bu nedenle yalnız atölye sayısı değil, kasıtlı örnek yoğunluğu da seyreltilir: ilk iki poliçede aynı atölyeye altı yakın dönem bildirimi korunur; sonra her 1.000 poliçede bir yakın dönem ve bir tarihsel üçlü üretilir. Normal Kasko sıklığı %10,7 ile toplam yıllık sıklık yaklaşık %12'de kalır. Parametre sürümü 2 olduğundan eski tamamlanmış koşu yeni üretim sanılarak kullanılmaz; yeniden üretim reset gerektirir.
+
+Seed 42, anchor 2026-10-25, 16 worker ve taze DB ölçümleri: 1k'da 85 hasar / 3 işaretli (%3,53), 10k'da 810 / 44 (%5,43); atölye sinyalleri sırasıyla 2 ve 36, defter dengesi ve 1200 mutabakatı doğru. Bunlar 100k için ölçülmüş oran değildir. Kullanıcı talimatıyla yeni üreticiyle 100k bu gece çalıştırılmadı; sabah A8 ölçümlerinden önce reset-demo → simulate → verify bekliyor. Mutlak eşik sınırlaması ADR-16'da kalır.
+
 Aynı seed, anchor ve iş parametreleriyle taze DB'de aynı iş parmak izi beklenir; worker sayısı iş parametresi değildir. Parmak izi sıralı iş alanlarından üretilir; surrogate id, hasar numarası, sistem zaman damgası ve parola hash'i dışarıda kalır. SIM numaraları sabittir. Tamamlanan aynı koşu yeniden veri üretmez; başka/yarım koşunun mevcut SIM uzayına yazması reddedilir.
 
 Tarihsel v0 tarifeleri 00009'da bağımsız sabitlerle kurulur: 2025 öncesi, v1 faktörleri ve %85 taban fiyatlar (kurgusal). Seed, reset sonrası aynı v0'ı geri kurar; v1/v2 değişmez. İşlem bağlamındaki saat yalnız simülatör ve seed tarafından ayarlanır; ayarlanmayan bağlam gerçek zamanı kullanır. API yolları bağlam saatini ayarlamaz. Servislerin mevcut enjekte saatleri iş kurallarında kalır; alt katman INSERT zamanları bağlam saatini okur. Audit yazma yolu ve audit zaman damgaları değiştirilmez; sonradan toplu tarihselleştirme UPDATE'i yapılmaz.
 
 ## ADR-20 — Demo ve simülasyon ayrımı (A7)
 
-SIM- poliçe numaraları, ayrı kurgusal kimlikler, SIM plaka uzayı, acenteler, atölyeler ve rol aktörleri kullanılır. Demo hesapları korunur. Görev atama havuzu ortaktır: assigned_to demo uzmanı olabilir; bu onaylı izolasyon istisnasıdır. Bunun dışındaki müşteri/acente/atölye/oluşturan/ekspertiz aktörleri simülasyona aittir. Reset-demo tüm demo ve simülasyon verisini silerek seed'i yeniden kurar. Canlı mod gerçek saat kullanır ve deterministik değildir; LIVE durumunda verify iş mutasyonlarına başlamadan durur.
+SIM- poliçe numaraları, ayrı kurgusal kimlikler, SIM plaka uzayı, acenteler, atölyeler ve rol aktörleri kullanılır. Demo hesapları korunur. Görev atama havuzu ortaktır: assigned_to demo uzmanı olabilir; bu onaylı izolasyon istisnasıdır. Bunun dışındaki müşteri/acente/atölye/oluşturan/ekspertiz aktörleri simülasyona aittir. Reset-demo tüm demo ve simülasyon verisini silerek seed'i yeniden kurar. Canlı mod gerçek saat kullanır ve deterministik değildir; durdurulunca parmak izi null olur, özet batch sonundaki değerdir; LIVE durumunda verify iş mutasyonlarına başlamadan durur.
 
 ## ADR-21 — Parçalı gün sonu (A7)
 

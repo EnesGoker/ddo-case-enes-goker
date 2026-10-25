@@ -331,10 +331,83 @@ Simülatör bağlantıları `synchronous_commit=off` kullanır. Bu yalnız simü
 Yarım koşu otomatik devam ettirilmez veya mevcut SIM kayıtlarının üzerine yazılmaz. Kurtarma için önce varsa çalışan batch/canlı simülatörü durdurun; `reset-demo` tüm demo ve simülasyon verisini siler, yeniden seed eder. Ardından **aynı seed ve anchor** ile yeniden üretin:
 
 ```sh
-docker compose --profile sim stop simulator
+docker stop guvenpolice-simulator
 make reset-demo
 SIM_ANCHOR_DATE=2026-10-25 SIM_SEED=42 SIM_POLICIES=100000 SIM_YEARS=5 SIM_WORKERS=8 make simulate
 make verify
 ```
 
-Canlı mod isteğe bağlıdır: `SIM_LIVE=true make simulate`. Yaklaşık 5 saniyede bir gerçek saatle poliçe/tahsilat üretir; hasar üretmez ve deterministik değildir. Verify öncesinde canlı simülatörü durdurun; `simulation_runs.status=LIVE` olduğu sürece verify mutasyonlarına başlamaz.
+Canlı mod isteğe bağlıdır: `SIM_LIVE=true make simulate`. Yaklaşık 5 saniyede bir gerçek saatle poliçe/tahsilat üretir; hasar üretmez ve deterministik değildir. Canlı mod durduğunda parmak izi temizlenir; gösterilen özet toplu koşunun sonundandır. Verify öncesinde canlı simülatörü durdurun; `simulation_runs.status=LIVE` olduğu sürece verify mutasyonlarına başlamaz.
+
+
+### A7 gerçek kabul sonuçları
+
+| Kontrol | Gerçek sonuç |
+|---|---|
+| Gün sonu: üç parça/tek sonuç, imleç, hata rollback, gelecek vade, yalnız faiz, gerçek 8 sn bütçe | PASS |
+| API yeni kayıt zamanları gerçek istek aralığında | PASS; API bağlam saati ayarlamaz |
+| 00009/00010 Up/Down/Up; mevcut iade indeksiyle tekrar Up; reset sonrası v0 | PASS; taze test DB'leri |
+| Kapı: tüm entegrasyon, 9 yarış ×10/race, verify | PASS; kapıda 60 PASS / 0 FAIL |
+| Go birim/race, vet, frontend lint/build | PASS |
+| İlk 1000 üretimi | FAIL; Docker disk doldu, tamamlanmış ölçüm sayılmaz |
+| Aynı seed + 8/16 worker aynı parmak izi, başka seed farklı; mali/izolasyon/geçişler | PASS; üç taze DB |
+| Canlı mod / verify ön kontrolü | PASS; gerçek LIVE koşusunda verify çıkış2, iş uçlarına istek yok |
+| 100000 / 5 yıl, üretici v1 | PASS; 50 dk25,12 sn; DB 2.217.606.167 bayt (2115 MB) |
+| 100k sonrası verify | PASS; 61 PASS / 0 FAIL; 112,11 sn (<15 dk); gün sonu 103 parça |
+| Beş yıllık rapor / kuyrukta SIM hasarları | PASS; 2021-10…2026-10 aralığında 61 ay, ilk20 kuyruk satırının18'i SIM |
+| Her ADJUSTMENT girişinde ekspertiz | PASS; dört entegrasyon durumu, 409 APPRAISAL_REQUIRED; 375 px UI disabled |
+| Sarı SLA kabul verisi | PASS; servislerle ayrı GP-DEMO-SLA-YELLOW / GP-H-00007968; yaklaşık12 saat kalan72 saatlik görev, badge sla-soon |
+
+**100k koşusunun kapsamı:** seed42, anchor2026-10-25, 5 yıl,16 worker. Bu ölçüm eski üretici sürüm1 /30 atölye içindir; paralel test, UI ve çevrimiçi indeks incelemesi vardı, izole benchmark değildir. 100.000 SIM poliçe; Kasko50.000/Trafik35.000/Konut15.000; 7.915 hasar; 1.900 işaretli; açık630/ihlalli621 görev. Özetin defter dengesi ve1200 mutabakatı true. Parmak izi: `abc70939dcba41e974d1648012141bc97015c9bb1075750aee274c6a814d8272`. Özet batch bittiği andaki görüntüdür; sonradan verify/gün sonu ve rol denemeleri ana DB'ye yeni demo işlemleri yazdı.
+
+### İşaretli hasar kırılımı ve üretici v2
+
+Eski100k'da oran **1.900 /7.915 =%24,01**. Kuralların kesişimi:
+
+| İşaretli dosyadaki sinyaller | Dosya | Kasıtlı üçlü örneği |
+|---|---:|---:|
+| EARLY_CLAIM + WORKSHOP_CONCENTRATION | 1300 |1197 |
+| EARLY_CLAIM + REPEAT_PLATE + WORKSHOP_CONCENTRATION |599 |599 |
+| EARLY_CLAIM + REPEAT_PLATE |1 |1 |
+
+Kural katılımı EARLY1900 /REPEAT600 /WORKSHOP1899; satırlar kesiştiği için toplanmaz. 1797 kasıtlı,103 normal örnek işaretlidir. Atölye sayısı300 oldu; kasıtlı üçlüler her1000'de ikiye seyreltilirken ilk altı dosyalık yakın dönem patlama korundu. Normal Kasko sıklığı%10,7; saf100k planında yıllık toplam1201bp (Trafik628bp/Konut407bp). Bu saf plan testi DB'de100k üretimi değildir. **Fraud kuralları ve eşikleri değişmedi.**
+
+Aşağıdaki gerçek DB kabulü `./scripts/test-integration.sh -run 'TestSimulatorFraudRateAt1kAnd10k|TestSimulatorDeterminismAndInvariants' -v -timeout 20m` içindeki Go testlerinde geçti:
+
+| V2 örneği | Atölye | Hasar | İşaretli | Oran | Atölye sinyali | Servis üretimi ve son kontrol süresi |
+|---|---:|---:|---:|---:|---:|---:|
+|1000 poliçe |300 |85 |3 |%3,53 |2 |35,516 sn |
+|10000 poliçe |300 |810 |44 |%5,43 |36 |514,073 sn |
+
+Her ikisinde defter dengesi ve1200 mutabakatı PASS. Seed42/anchor2026-10-25/16 worker, taze PostgreSQL16 DB, host→Docker bağlantısı; izole performans ölçümü değildir. Parmak izleri sırasıyla `4a689b6577278eafdfedd3f44ea0463629d9fc8d0acf423bb4e0741f786983c5` ve `92bf44c8ad91587a6b0431fe3f15615886807ce0b39558597a1aa0d97457d75a`. İşaretli dosyalarda EARLY/REPEAT/WORKSHOP katılımları 1k için3/3/2,10k için44/21/36. Ek deterministik1k testleri koşu gününün anchor değerini (2026-10-26) kullandığından farklı parmak izi üretir;8/16 worker sonucu kendi içinde aynı, seed43 farklıdır.
+
+İlk hedefli komutta tüm Go paketleri PASS (app723,399sn), fakat çalışan kabuk betiği o sırada düzenlendiği için sonrasında `ette: command not found` ile127 döndü. Bu komutun tamamına PASS yazılmadı; son kaynakla `make test-integration` tekrarında komut çıkışı0, bütün paketler PASS (app880,689sn; `/tmp/gp-a7-final-integration-v2.log`). Entegrasyon betiğinin varsayılan Go bütçesi10k servis kabulü için20 dakikadır; API zaman bütçeleri değişmedi.
+
+**Kalan sınırlama:** Atölye eşiği mutlak adettir; atölyenin kendi normal hacmine göre anomali ölçmez. 1k/10k oranları yeni100k oranını kanıtlamaz. Kullanıcı talimatıyla yeni100k bu gece **ÇALIŞTIRILMADI**; mevcut sürüm1 veri kümesi korunuyor. Sabah A8 ölçümlerinden önce, yeni imajla:
+
+```sh
+make reset-demo
+SIM_ANCHOR_DATE=2026-10-25 SIM_SEED=42 SIM_POLICIES=100000 SIM_YEARS=5 SIM_WORKERS=16 make simulate
+make verify
+```
+
+Reset tüm demo/simülasyon kabul kayıtlarını da siler. İşlem yarıda kalırsa yukarıdaki aynı reset→simulate→verify yolu tekrarlanır. Yeni100k'nın oranı ve performansı gerçek koşudan sonra ayrıca raporlanmalıdır.
+
+### A7 rol kabulü (375×812, gerçek API, simülasyon yüklü)
+
+| Rol | Akış ve gözlenen sonuç | Sonuç |
+|---|---|---|
+| CUSTOMER | Kendi poliçesi34 →2000TL kısmi ödeme →fazla ödeme hatası →GP-H-00000040 bildirimi/sürüm1/takip; Sistem | PASS |
+| AGENT | Kendi müşteri listesi →teklif34/35 →UW sonrası çevirme →zeyil →başlangıçta iptal; Sistem | PASS |
+| UNDERWRITER |35 no'lu teklif onayı →SIM poliçede Süresi doldu/tarihsel teminat →ay/ürün raporu →boş dönem ve eşit tarih hatası; Sistem | PASS |
+| APPRAISER | Yalnız kendi görevleri →dosya40'a9000TL ekspertiz →boş İncelemede filtresi; Sistem100k özeti | PASS |
+| CLAIMS_ADJUSTER | Gerçek SIM fraud kuyruğu/sinyalleri →ekspertiz sonrası önizleme/onay; ekspertizsiz buton pasif; sarı/kırmızı SLA; Sistem | PASS |
+| ACCOUNTING | Dosya40'a8820TL ödeme; poliçe47'ye1000TL tahsilat/100TL iade →gün sonu Tamamlandı →dengeli mizan/ürün raporu/Sistem | PASS |
+
+Menü erişimleri gerçek rol oturumlarıyla denendi; listeler20 satırla başlar. Defterde Daha fazla kayıt20 ek satır getirdi. Sistem, görev ve raporda scrollWidth=innerWidth=375; geçici viewport sıfırlandı ve kabul sekmesi kapatıldı. Yükleniyor/boş/hata durumları gerçek API dönüşleriyle gözlendi. Yoğun16-worker100k üretimiyle paralel mizan sorgusu15sn bütçesini aşarak504, canlılık sorgusu bazen3sn'de503 verdi; UI hatayı/yeniden denemeyi gösterdi. Üretim bitince aynı mizan API'si200/2,670sn, defter dengeli ve mutabık. Denenen00011 kaplama indeksi varsayılan planı iyileştirmediği için Down ile geri alındı, kaynak dosyası kaldırıldı; kalıcı indeks yalnız00010'dur. Ağır yazma yükünde mizan gecikmesi bilinen sınırlamadır.
+
+Sarı SLA verisi kullanıcı onayıyla yalnız servislerden, tarihsel seed bağlamıyla üretildi; varsayılan seed'e eklenmedi. API saati değişmedi. Geçici kabul yardımcısı kaynakta kalmadı. Görsel kanıtlar: `/tmp/gp-a7-sla-yellow-375.png`, `/tmp/gp-a7-adjustment-disabled-375.png`, `/tmp/gp-a7-system-100k-375.png`, `/tmp/gp-a7-accounting-balanced-375.png`.
+
+Son v2 imajı derlendi ve API sağlıklı yeniden açıldı. Paralel10k entegrasyon üretimi sırasında yapılan ek `/usr/bin/time -p make verify` **58 PASS /3 FAIL**,279,62sn: T-4 mizan isteği10sn istemci süresini aştı (000); F-7 defter ve boyut kontrolleri de başarısız oldu. Bu koşu PASS sayılmadı. Önceki112,11sn/61PASS100k kabulü ayrı gerçek koşudur. Test yükü bittikten sonraki tekrarın sonucu PROGRESS'te ayrıca yer alır.
+
+Test yükü bittikten sonra aynı v2 imajıyla `/usr/bin/time -p make verify`: **61 PASS /0 FAIL,real110,74sn,exit0** (`/tmp/gp-a7-final-verify-alone.log`). Gün sonu103 parça, her yevmiye dengeli,1200 mutabık, F-7 bütün boyut toplamları aynı ve SYS canlılığı güncel. Bu son doğrulama mevcut v1/100k veri üzerinde yapıldı; v2/100k üretimi değildir.
