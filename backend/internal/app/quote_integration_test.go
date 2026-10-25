@@ -348,6 +348,25 @@ func TestConcurrentConvertSameKey(t *testing.T) {
 	assert.Equal(t, "true", h.Get(idempotency.ReplayedHeader))
 }
 
+// Kilit atlanmış bir yarışı simüle eder: teklif hâlâ CALCULATED iken poliçesi zaten var.
+// policies.quote_id UNIQUE ihlali 500 değil 409 QUOTE_ALREADY_CONVERTED olmalı.
+func TestConvertUniqueViolationIsConflict(t *testing.T) {
+	ctx := context.Background()
+	agent := tokenFor(t, "acente@guvenpolice.test")
+	q := createQuote(t, agent, kaskoBody(t, ayse, futureStart()))
+	qid := num(q["id"])
+	_, err := pool.Exec(ctx, `
+		INSERT INTO policies (policy_no, product, customer_id, agent_id, quote_id, start_date, end_date)
+		SELECT 'GP-RACE-' || id, product, customer_id, agent_id, id, term_start, term_end FROM quotes WHERE id = $1`, qid)
+	require.NoError(t, err)
+
+	s, body, _ := newClient(t).doH(http.MethodPost, fmt.Sprintf("/api/v1/quotes/%d/convert", qid), agent, nil,
+		map[string]string{idempotency.Header: fmt.Sprintf("race-%d", qid)})
+	assert.Equal(t, 409, s, body)
+	assert.Equal(t, "QUOTE_ALREADY_CONVERTED", errCode(body))
+	assertPolicyCount(t, qid, 1)
+}
+
 func TestIdempotencyStaleInProgressIsTakenOver(t *testing.T) {
 	ctx := context.Background()
 	agent := tokenFor(t, "acente@guvenpolice.test")

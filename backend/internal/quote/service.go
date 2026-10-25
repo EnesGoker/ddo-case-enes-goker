@@ -18,6 +18,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/audit"
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/page"
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
@@ -465,6 +466,11 @@ func (s *Service) Convert(ctx context.Context, id int64) (policy.Issued, error) 
 			TariffVersionID: tariffID, StartDate: start, EndDate: end, Plate: plate, RiskData: riskJSON,
 			AnnualPremium: total, AnnualLimitKurus: sel.AnnualLimitKurus, Coverages: sel.Coverages,
 		})
+		// İkinci savunma hattı: kilit atlanmış olsa bile aynı teklifin ikinci poliçesi
+		// policies.quote_id UNIQUE'a takılır; 500 yerine iş hatası döner.
+		if db.Violates(err, "policies_quote_id_key", "policies_policy_no_key") {
+			return httpx.NewError(http.StatusConflict, "QUOTE_ALREADY_CONVERTED", "teklif zaten poliçeye çevrilmiş")
+		}
 		if err != nil {
 			return err
 		}
