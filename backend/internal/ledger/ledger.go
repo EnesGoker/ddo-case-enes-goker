@@ -4,9 +4,10 @@ package ledger
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5"
 	"math"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type Entry struct {

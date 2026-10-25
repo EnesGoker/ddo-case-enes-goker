@@ -2,12 +2,14 @@ package claim
 
 import (
 	"context"
+	"net/http"
+	"strings"
+
+	"github.com/jackc/pgx/v5"
+
 	"github.com/EnesGoker/guvenpolice/backend/internal/audit"
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
-	"github.com/jackc/pgx/v5"
-	"net/http"
-	"strings"
 )
 
 type TransitionRequest struct {

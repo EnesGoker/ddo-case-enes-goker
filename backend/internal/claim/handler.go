@@ -1,12 +1,14 @@
 package claim
 
 import (
-	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
-	"github.com/EnesGoker/guvenpolice/backend/internal/platform/page"
-	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
+
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/page"
 )
 
 type Handler struct{ svc *Service }

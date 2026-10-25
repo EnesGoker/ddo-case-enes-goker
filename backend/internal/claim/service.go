@@ -4,6 +4,13 @@ package claim
 import (
 	"context"
 	"errors"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/EnesGoker/guvenpolice/backend/internal/access"
 	"github.com/EnesGoker/guvenpolice/backend/internal/audit"
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
@@ -12,11 +19,6 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/page"
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type Service struct {

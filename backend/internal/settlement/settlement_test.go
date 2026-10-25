@@ -1,11 +1,13 @@
 package settlement
 
 import (
-	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
 )
 
 func TestGoldenSettlements(t *testing.T) {

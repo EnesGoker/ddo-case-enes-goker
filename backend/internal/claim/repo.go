@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
-	"github.com/jackc/pgx/v5"
-	"time"
 )
 
 type Claim struct {
