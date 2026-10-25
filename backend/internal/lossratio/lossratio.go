@@ -3,8 +3,6 @@ package lossratio
 
 import (
 	"math/big"
-
-	"github.com/EnesGoker/guvenpolice/backend/internal/proration"
 )
 
 // LossRatioBP prim <=0 veya int64'e sığmayan oranda nil döner; yarımı sıfırdan uzağa yuvarlar.
@@ -17,7 +15,12 @@ func LossRatioBP(claims, premium int64) *int64 {
 	numerator.Abs(numerator)
 	q, r := new(big.Int), new(big.Int)
 	q.QuoRem(numerator, big.NewInt(premium), r)
-	q.Add(q, big.NewInt(proration.RoundDiv(r.Int64(), premium)))
+	// RoundDiv küçük paydada kullanılır; MaxInt64 paydada ara toplama taşabilir.
+	rounded := int64(0)
+	if r.Int64() >= premium-r.Int64() {
+		rounded = 1
+	}
+	q.Add(q, big.NewInt(rounded))
 	if sign < 0 {
 		q.Neg(q)
 	}
