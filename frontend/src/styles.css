@@ -163,3 +163,16 @@ details.endorsement summary { cursor: pointer; font-weight: 600; }
 .inline-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
 .inline-form input { width: auto; margin: 0; }
 .coverage-query { margin-top: 12px; }
+
+/* A6: SLA ve dar ekran rapor satırları */
+.sla-late { background: #fde8e8; color: #9b1c1c; }
+.sla-soon { background: #fff3cd; color: #725500; }
+.sla-ontime { background: #e9f7ef; color: #1d5e36; }
+@media (max-width: 720px) {
+  .report-table tfoot tr { display: block; }
+  .report-table tfoot td { display: flex; justify-content: space-between; }
+  .report-table tfoot td::before { content: attr(data-label); }
+  td { gap: 10px; overflow-wrap: anywhere; }
+  .profile { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+  .profile dd { overflow-wrap: anywhere; }
+}

@@ -261,6 +261,9 @@ export interface ClaimSettlement extends SettlementPreview {
   payment_journal_entry_id: number | null
 }
 export interface ClaimDetail extends ClaimItem {
+  fraud?: FraudResult
+  tasks?: ClaimTask[]
+  allowed_transitions?: ClaimStatus[]
   history: { id: number; from_status: string | null; to_status: string; note: string | null; created_at: string }[]
   appraisals: { id: number; appraiser_id: number; damage_amount_kurus: number; is_total_loss: boolean; notes: string | null; inspected_at: string }[]
   settlement: ClaimSettlement | null
@@ -305,3 +308,35 @@ export interface JournalEntry {
   ref_id: number
   lines: { id: number; account_code: string; debit_kurus: number; credit_kurus: number }[]
 }
+
+export interface FraudResult {
+  score: number
+  threshold: number
+  flagged: boolean
+  signals: { rule_code: string; points: number; detail: Record<string, unknown>; explanation: string }[]
+}
+export interface ClaimTask {
+  id: number
+  claim_id: number
+  claim_no: string
+  task_type: 'APPRAISAL' | 'ADJUSTMENT' | 'FRAUD_REVIEW'
+  status: 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED'
+  assigned_to: { id: number; full_name: string } | null
+  created_at: string
+  sla_due_at: string
+  completed_at: string | null
+  breached: boolean
+  remaining_seconds: number
+  fraud_score?: number
+  signal_codes?: string[]
+}
+export interface TaskWorkload { id: number; full_name: string; role: string; open_tasks: number }
+export interface ProductionRow {
+  key: string
+  label: string
+  written_premium_kurus: number
+  policy_count: number
+  incurred_claims_kurus: number
+  loss_ratio_bp: number | null
+}
+export interface ProductionReport { group_by: string; items: ProductionRow[]; total: ProductionRow }

@@ -9,6 +9,8 @@ import { CustomersPage } from './CustomersPage'
 import { PoliciesPage } from './PoliciesPage'
 import { QuoteFormPage } from './QuoteFormPage'
 import { QuotesPage } from './QuotesPage'
+import { TasksPage } from './TasksPage'
+import { ReportsPage } from './ReportsPage'
 
 export function Dashboard({ user }: { user: User }) {
   const { logout } = useAuth()
@@ -59,6 +61,9 @@ export function Dashboard({ user }: { user: User }) {
         {current.key === 'payments' && (user.role === 'ACCOUNTING' ? <AccountingPage /> : <PoliciesPage role={user.role} />)}
         {current.key === 'policies' && <PoliciesPage role={user.role} />}
         {(current.key === 'claims' || current.key === 'appraisals') && <ClaimsPage role={user.role} />}
+        {current.key === 'tasks' && <RequireRole roles={['CLAIMS_ADJUSTER', 'APPRAISER']}><TasksPage role={user.role} /></RequireRole>}
+        {current.key === 'fraud' && <RequireRole roles={['CLAIMS_ADJUSTER']}><TasksPage key="fraud" role={user.role} fraudQueue /></RequireRole>}
+        {current.key === 'reports' && <RequireRole roles={['ACCOUNTING', 'UNDERWRITER']}><ReportsPage /></RequireRole>}
         {!current.ready && (
           <div className="notice">Bu ekran {current.phase} aşamasında eklenecek; henüz uygulanmadı.</div>
         )}

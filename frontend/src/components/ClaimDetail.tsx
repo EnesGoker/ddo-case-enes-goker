@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api, type Role } from '../api/client'
-import type { ClaimDetail, ClaimStatus, SettlementPreview } from '../api/types'
+import type { ClaimDetail, SettlementPreview } from '../api/types'
 import { errorText, formatTL, newIdempotencyKey, statusLabels } from '../format'
 import { AppraisalForm } from './ClaimForms'
 import { Empty, ErrorBox, Loading } from './States'
+import { TaskTable } from './TaskTable'
 
-const transitions: Partial<Record<ClaimStatus, ClaimStatus[]>> = {
-  REPORTED: ['TRIAGED', 'REJECTED'], TRIAGED: ['APPRAISAL', 'REJECTED'],
-  APPRAISAL: ['ADJUSTMENT', 'REJECTED'], ADJUSTMENT: ['REJECTED'], PAID: ['CLOSED'], REJECTED: ['CLOSED'],
-}
 export function ClaimDetailLoader({ id, role, onChanged }: { id: number; role: Role; onChanged?: () => void }) {
   const [claim, setClaim] = useState<ClaimDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -41,14 +38,16 @@ function ClaimView({ claim: c, role, reload }: { claim: ClaimDetail; role: Role;
   return <section className="panel">
     <h3>{c.claim_no} · {statusLabels[c.status]} · sürüm {c.row_version}</h3>
     <dl className="profile"><dt>Poliçe</dt><dd>{c.policy_no}</dd><dt>Hasar tarihi</dt><dd>{c.loss_date}</dd><dt>Teminat / plaka</dt><dd>{c.coverage_code} / {c.plate ?? '—'}</dd><dt>Talep</dt><dd>{formatTL(c.claimed_amount_kurus)}</dd><dt>Açıklama</dt><dd>{c.description}</dd></dl>
+    {c.fraud && <section className="panel"><h4>Fraud sinyalleri (kurgusal)</h4><p>Skor: <strong>{c.fraud.score} / {c.fraud.threshold}</strong> · {c.fraud.flagged ? 'İnceleme eşiğinde' : 'Eşik altında'}</p>{c.fraud.signals.length === 0 ? <Empty text="Sinyal yok." /> : <ul>{c.fraud.signals.map((s) => <li key={s.rule_code}><strong>{s.rule_code} · {s.points} puan</strong> — {s.explanation}</li>)}</ul>}</section>}
+    {c.tasks && <><h4>Görevler</h4>{c.tasks.length ? <TaskTable tasks={c.tasks} /> : <Empty text="Görev yok." />}</>}
     <h4>Durum geçmişi</h4>
     <ol>{c.history.map((h) => <li key={h.id}>{new Date(h.created_at).toLocaleString('tr-TR')} · {h.from_status ? `${statusLabels[h.from_status]} → ` : ''}{statusLabels[h.to_status]} {h.note ? `· ${h.note}` : ''}</li>)}</ol>
     <h4>Ekspertizler</h4>
     {c.appraisals.length === 0 ? <Empty text="Henüz ekspertiz yok." /> : <ul>{c.appraisals.map((a) => <li key={a.id}>#{a.id} · {new Date(a.inspected_at).toLocaleString('tr-TR')} · {formatTL(a.damage_amount_kurus)} · {a.is_total_loss ? 'Tam hasar' : 'Kısmi hasar'} · {a.notes}</li>)}</ul>}
     {role === 'APPRAISER' && c.status === 'APPRAISAL' && <AppraisalForm claimID={c.id} onDone={reload} />}
-    {role === 'CLAIMS_ADJUSTER' && (transitions[c.status]?.length ?? 0) > 0 && <div>
-      <label>Geçiş notu (red için zorunlu)<textarea maxLength={4000} value={note} onChange={(e) => setNote(e.target.value)} disabled={busy} /></label>
-      <div className="actions">{transitions[c.status]?.map((to) => <button key={to} disabled={busy || (to === 'REJECTED' && !note.trim())} onClick={() => void act('/transition', { to_status: to, note, expected_row_version: c.row_version })}>{statusLabels[to]}</button>)}</div>
+    {role === 'CLAIMS_ADJUSTER' && (c.allowed_transitions?.length ?? 0) > 0 && <div>
+      <label>Geçiş notu (red ve fraud incelemesi için zorunlu)<textarea maxLength={4000} value={note} onChange={(e) => setNote(e.target.value)} disabled={busy} /></label>
+      <div className="actions">{c.allowed_transitions?.map((to) => <button key={to} disabled={busy || (['REJECTED', 'FRAUD_REVIEW'].includes(to) && !note.trim())} onClick={() => void act('/transition', { to_status: to, note, expected_row_version: c.row_version })}>{statusLabels[to]}</button>)}</div>
     </div>}
     {role === 'CLAIMS_ADJUSTER' && c.status === 'ADJUSTMENT' && <div className="actions"><button disabled={busy} onClick={() => void act('/settlement/preview')}>Tazminat önizle</button></div>}
     {(preview || c.settlement) && <SettlementSteps result={(c.settlement ?? preview)!} />}

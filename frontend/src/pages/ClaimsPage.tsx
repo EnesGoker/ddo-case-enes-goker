@@ -6,7 +6,7 @@ import { Empty, ErrorBox, Loading } from '../components/States'
 import { formatTL, statusLabels } from '../format'
 import { usePaged } from '../hooks/usePaged'
 
-const statuses = ['REPORTED', 'TRIAGED', 'APPRAISAL', 'ADJUSTMENT', 'APPROVED', 'REJECTED', 'PAID', 'CLOSED']
+const statuses = ['REPORTED', 'TRIAGED', 'APPRAISAL', 'ADJUSTMENT', 'FRAUD_REVIEW', 'APPROVED', 'REJECTED', 'PAID', 'CLOSED']
 export function ClaimsPage({ role }: { role: Role }) {
   const [status, setStatus] = useState(role === 'APPRAISER' ? 'APPRAISAL' : role === 'ACCOUNTING' ? 'APPROVED' : '')
   const [selected, setSelected] = useState<number | null>(null)

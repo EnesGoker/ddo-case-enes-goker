@@ -28,7 +28,10 @@ export const menu: MenuItem[] = [
   { key: 'claims', label: 'Hasar Dosyaları', roles: ['CUSTOMER', 'AGENT', 'UNDERWRITER', 'CLAIMS_ADJUSTER', 'APPRAISER', 'ACCOUNTING'], ready: true },
   { key: 'appraisals', label: 'Ekspertiz', roles: ['APPRAISER'], ready: true },
   { key: 'payments', label: 'Tahsilat ve Defter', roles: ['ACCOUNTING', 'CUSTOMER'], ready: true },
-  { key: 'reports', label: 'Raporlar', roles: ['ACCOUNTING', 'UNDERWRITER'], ready: false, phase: 'A6' },
+  { key: 'tasks', label: 'Görevler', roles: ['CLAIMS_ADJUSTER'], ready: true },
+  { key: 'tasks', label: 'Görevlerim', roles: ['APPRAISER'], ready: true },
+  { key: 'fraud', label: 'Fraud kuyruğu', roles: ['CLAIMS_ADJUSTER'], ready: true },
+  { key: 'reports', label: 'Raporlar', roles: ['ACCOUNTING', 'UNDERWRITER'], ready: true },
 ]
 
 export function menuFor(role: Role): MenuItem[] {
