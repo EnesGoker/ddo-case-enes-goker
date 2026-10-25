@@ -413,7 +413,8 @@ after_policy=0; run_chunks=0; run_status=200
 while :; do
   req POST "$API_URL/api/v1/billing/run" -H "Authorization: Bearer $ACCOUNTING" -H 'Content-Type: application/json' --data "{\"after_policy_id\":$after_policy,\"limit\":1}"
   run_chunks=$((run_chunks + 1))
-  if [ "$STATUS" != 200 ] || ! body_has '"failed":\[\]'; then run_status="$STATUS"; break; fi
+  if [ "$STATUS" != 200 ]; then run_status="$STATUS"; break; fi
+  if ! body_has '"failed":\[\]'; then run_status=500; break; fi
   body_has '"done":true' && break
   next_policy="$(num_field next_after_policy_id)"
   if [ "$next_policy" -le "$after_policy" ]; then run_status=500; break; fi

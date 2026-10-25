@@ -94,7 +94,7 @@ func TestBillingRunExcludesFutureDuesAndValidatesCursor(t *testing.T) {
 	assert.Equal(t, true, out["done"])
 	assert.Equal(t, num(pol["id"])-1, num(out["next_after_policy_id"]))
 	assert.Empty(t, billingDetail(t, account, pol)["interest"])
-	for _, body := range []map[string]any{{"after_policy_id": -1}, {"limit": 2001}, {"limit": -1}} {
+	for _, body := range []map[string]any{{"after_policy_id": -1}, {"limit": 2001}, {"limit": -1}, {"limit": 0}} {
 		s, out = newClient(t).do(http.MethodPost, "/api/v1/billing/run", account, body)
 		assert.Equal(t, http.StatusBadRequest, s, out)
 	}
@@ -102,4 +102,21 @@ func TestBillingRunExcludesFutureDuesAndValidatesCursor(t *testing.T) {
 	cancel()
 	_, err := payment.NewService(pool, time.Now, 1000).Run(ctx, "")
 	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestBillingRunSelectsUnpaidInterestWithoutOpenPrincipal(t *testing.T) {
+	defer assertBillingInvariant(t)
+	account := tokenFor(t, "muhasebe@guvenpolice.test")
+	pol := billingPolicy(t, 20, 1, 100000)
+	first := payBilling(t, account, pol, 100, "interest-first")
+	open := num(billingDetail(t, account, pol)["open_balance_kurus"])
+	payBilling(t, account, pol, open, "close")
+	s, r, _ := postKey(t, account, fmt.Sprintf("/api/v1/payments/%v/refund", first["id"]), map[string]any{"amount_kurus": 100, "reason": "yalnız faizi yeniden aç"}, fmt.Sprintf("only-interest-%v", pol["id"]))
+	require.Equal(t, http.StatusCreated, s, r)
+	b := billingDetail(t, account, pol)
+	assert.Equal(t, "PAID", b["installments"].([]any)[0].(map[string]any)["status"])
+	s, r = newClient(t).do(http.MethodPost, "/api/v1/billing/run", account, map[string]any{"after_policy_id": num(pol["id"]) - 1, "limit": 1})
+	require.Equal(t, http.StatusOK, s, r)
+	assert.Equal(t, num(pol["id"]), num(r["next_after_policy_id"]), "açık anapara yokken açık faiz adaydır")
+	assert.Equal(t, true, r["done"])
 }

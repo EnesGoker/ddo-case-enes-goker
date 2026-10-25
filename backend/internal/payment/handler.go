@@ -71,14 +71,23 @@ func (h *Handler) Refund(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Run(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		AsOf string `json:"as_of"`
-		RunOptions
+		AsOf          string `json:"as_of"`
+		AfterPolicyID int64  `json:"after_policy_id"`
+		Limit         *int   `json:"limit"`
 	}
 	// Gövdesiz çağrı da bugünün gün sonudur; JSON verilirse ortak katı decoder kullanılır.
 	if r.Body != nil && r.ContentLength != 0 && !httpx.Decode(w, r, &req) {
 		return
 	}
-	out, err := h.svc.Run(r.Context(), req.AsOf, req.RunOptions)
+	opts := RunOptions{AfterPolicyID: req.AfterPolicyID}
+	if req.Limit != nil {
+		if *req.Limit <= 0 {
+			httpx.ValidationError(w, map[string]string{"limit": "1–2000 olmalı"})
+			return
+		}
+		opts.Limit = *req.Limit
+	}
+	out, err := h.svc.Run(r.Context(), req.AsOf, opts)
 	if err != nil {
 		httpx.Fail(w, r, err)
 		return
