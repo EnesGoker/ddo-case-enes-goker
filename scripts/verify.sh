@@ -43,6 +43,21 @@ login() { # login EMAIL PAROLA [JAR]
     --data "{\"email\":\"$1\",\"password\":\"$2\"}"
 }
 
+# Ön kontrol yalnız oturum açar/okur; iş verisine dokunan doğrulamalardan önce durur.
+login "muhasebe@guvenpolice.test" "$DEMO_PASSWORD"
+preflight_token="$(field access_token)"
+if [ "$STATUS" != 200 ] || [ -z "$preflight_token" ]; then
+  echo "Verify ön kontrolü: muhasebe girişi başarısız (HTTP $STATUS)" >&2; exit 2
+fi
+req GET "$API_URL/api/v1/system/activity" -H "Authorization: Bearer $preflight_token"
+if [ "$STATUS" != 200 ]; then
+  echo "Verify ön kontrolü: sistem canlılığı okunamadı (HTTP $STATUS)" >&2; exit 2
+fi
+if body_has '"status":"LIVE"' || body_has '"status":"RUNNING"'; then
+  echo "Verify durduruldu: simülatör LIVE/RUNNING. Koşunun tamamlanmasını bekleyin veya canlı simülatörü durdurun." >&2; exit 2
+fi
+VERIFY_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%S)"
+
 echo "GüvenPoliçe verify — API: $API_URL  WEB: $WEB_URL"
 echo
 
@@ -409,9 +424,9 @@ if billing_policy; then
   else fail "T-4 paralel-odeme" "durum=$codes bakiye=$(num_field open_balance_kurus)"; fi
 else fail "T-4 yaris-hazirlik" "poliçe oluşturulamadı"; fi
 
-after_policy=0; run_chunks=0; run_status=200
+after_policy=0; run_chunks=0; run_status=200; run_limit=1
 while :; do
-  req POST "$API_URL/api/v1/billing/run" -H "Authorization: Bearer $ACCOUNTING" -H 'Content-Type: application/json' --data "{\"after_policy_id\":$after_policy,\"limit\":1}"
+  req POST "$API_URL/api/v1/billing/run" -H "Authorization: Bearer $ACCOUNTING" -H 'Content-Type: application/json' --data "{\"after_policy_id\":$after_policy,\"limit\":$run_limit}"
   run_chunks=$((run_chunks + 1))
   if [ "$STATUS" != 200 ]; then run_status="$STATUS"; break; fi
   if ! body_has '"failed":\[\]'; then run_status=500; break; fi
@@ -419,6 +434,7 @@ while :; do
   next_policy="$(num_field next_after_policy_id)"
   if [ "$next_policy" -le "$after_policy" ]; then run_status=500; break; fi
   after_policy="$next_policy"
+  [ "$run_chunks" -lt 2 ] || run_limit=25
 done
 if [ "$run_status" = 200 ] && [ "$run_chunks" -ge 2 ]; then
   pass "T-4 gun-sonu-parcali" "$run_chunks parça, done=true"
@@ -629,5 +645,16 @@ if [ "$STATUS" = 200 ] && grep -qi '^set-cookie: gp_refresh=.*HttpOnly' "$TMP/he
 else fail WEB-PROXY-LOGIN "durum=$STATUS"; fi
 
 echo
+req GET "$API_URL/api/v1/system/activity" -H "Authorization: Bearer $ACCOUNTING"
+activity_status="$STATUS"
+last_event="$(field last_event_at)"
+activity_now="$(date -u +%Y-%m-%dT%H:%M:%S)"
+last_second="${last_event:0:19}"
+if [ "$activity_status" = 200 ] && body_has '"db_ok":true' && [ -n "$last_second" ] \
+   && [[ "$last_second" > "$VERIFY_STARTED_AT" || "$last_second" = "$VERIFY_STARTED_AT" ]] \
+   && [[ "$last_second" < "$activity_now" || "$last_second" = "$activity_now" ]]; then
+  pass "SYS canlilik" "db_ok=true; son olay verify işlem aralığında: $last_event"
+else fail "SYS canlilik" "HTTP=$activity_status son_olay=$last_event"; fi
+
 echo "Sonuç: $PASSED PASS, $FAILED FAIL"
 [ "$FAILED" -eq 0 ]
