@@ -36,7 +36,7 @@ func (r *runner) claims(ctx context.Context) error {
 		for j, loss := range p.Losses {
 			rng := entityRNG(r.cfg.Seed, i, 100+j)
 			plan := claimPlan{Policy: i, Index: j, Loss: loss, Reject: rng.Intn(100) < 8, Amount: int64(300000 + rng.Intn(4700000)), Workshop: rng.Intn(len(r.refs.workshops))}
-			if i%200 == 0 || i%1000 == 1 {
+			if hasDeliberateClaims(i) {
 				plan.Workshop = 0
 			}
 			n := len(plans)

@@ -41,6 +41,24 @@ func TestDueBalanceNeverPrepaysFuture(t *testing.T) {
 	assert.Equal(t, int64(775), dueBalance(v, at))
 }
 
+func TestDeliberateClaimsRemainSparseWithRecentAndHistoricalExamples(t *testing.T) {
+	cfg := DefaultConfig()
+	var triples int
+	for i := range 10000 {
+		if hasDeliberateClaims(i) {
+			triples++
+			assert.Len(t, planPolicy(cfg, i).Losses, 3)
+		}
+	}
+	assert.Equal(t, 21, triples)
+	for _, i := range []int{0, 1} {
+		p := planPolicy(cfg, i)
+		assert.Equal(t, cfg.Anchor.AddDate(0, 0, -18), p.Start)
+		assert.Len(t, p.Losses, 3)
+	}
+	assert.True(t, planPolicy(cfg, 200).Start.Before(cfg.Anchor.AddDate(0, 0, -30)))
+}
+
 func TestLargePlanAnnualIncidence(t *testing.T) {
 	cfg := DefaultConfig()
 	type exposure struct {

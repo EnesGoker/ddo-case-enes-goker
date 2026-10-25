@@ -118,7 +118,7 @@ func (r *runner) references(ctx context.Context) (out references, err error) {
 		for i := range out.customers {
 			out.customers[i].Agent = i % 20
 		}
-		for i := 0; i < 30; i++ {
+		for i := 0; i < 300; i++ {
 			var id int64
 			err := tx.QueryRow(ctx, `
               INSERT INTO workshops(name,region_code) VALUES($1,$2) RETURNING id`, fmt.Sprintf("Kurgusal SIM Atölye %02d", i), regions[i%len(regions)]).Scan(&id)

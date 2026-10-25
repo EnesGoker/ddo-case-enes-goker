@@ -24,4 +24,5 @@ if [ -z "${DATABASE_URL:-}" ]; then
 fi
 
 cd "$ROOT/backend"
-go test -tags integration -count=1 "$@" ./...
+# Servislerle 10k üretim kabulü de aynı pakette; varsayılan 10 dakika yetmeyebilir.
+go test -tags integration -timeout 20m -count=1 "$@" ./...

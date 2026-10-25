@@ -38,14 +38,20 @@ func entityRNG(seed int64, ordinal, domain int) *rand.Rand {
 	return rand.New(rand.NewSource(int64(uint64(seed) ^ uint64(ordinal+1)*6364136223846793005 ^ uint64(domain)*1442695040888963407)))
 }
 
+func hasDeliberateClaims(i int) bool {
+	// İlk iki yakın dönem poliçesi aynı atölyede altı bildirim üretir.
+	// Her binde bir yakın dönem ve bir tarihsel üçlü, örnek yoğunluğunu sınırlı tutar.
+	return i == 0 || i%1000 == 1 || i%1000 == 200
+}
+
 func planPolicy(c Config, i int) policyPlan {
 	rng := entityRNG(c.Seed, i, 1)
-	// Kasko yıllık ~%12 toplamının ~4 puanı aşağıdaki üçlü fraud örneklerine ayrılır.
-	product, incidence := pricing.Kasko, 8
+	// Kasko yıllık ~%12 toplamı: normal %10,7 ve seyrek kasıtlı üçlüler.
+	product, incidenceBP := pricing.Kasko, 1070
 	if i%100 >= 85 {
-		product, incidence = pricing.Konut, 4
+		product, incidenceBP = pricing.Konut, 400
 	} else if i%100 >= 50 {
-		product, incidence = pricing.Trafik, 6
+		product, incidenceBP = pricing.Trafik, 600
 	}
 	first := c.Anchor.AddDate(-c.Years, 0, 0)
 	days := int(proration.DaysBetween(first, c.Anchor.AddDate(0, 0, -15)))
@@ -65,11 +71,11 @@ func planPolicy(c Config, i int) policyPlan {
 		p.Plate = fmt.Sprintf("%02dSIM%04d", i%81+1, i/81)
 	}
 	exposure := int(proration.DaysBetween(start, minDate(p.End, c.Anchor)))
-	if !unpaid && rng.Intn(36500) < incidence*max(0, exposure) {
+	if !unpaid && rng.Intn(3650000) < incidenceBP*max(0, exposure) {
 		loss := start.AddDate(0, 0, rng.Intn(max(1, exposure)))
 		p.Losses = []time.Time{loss}
 	}
-	if product.IsVehicle() && (i%200 == 0 || i%1000 == 1) {
+	if product.IsVehicle() && hasDeliberateClaims(i) {
 		p.Losses = []time.Time{start.AddDate(0, 0, 2), start.AddDate(0, 0, 5), start.AddDate(0, 0, 8)}
 	}
 	if len(p.Losses) == 0 && !unpaid && rng.Intn(100) < 3 {
