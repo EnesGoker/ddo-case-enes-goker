@@ -350,6 +350,103 @@ if claim_policy KASKO_RACE; then
   else fail "T-3 paralel-limit" "durum=$(cat "$TMP/race1-status")/$(cat "$TMP/race2-status") tutar=$paid1/$paid2 kullanım=$used"; fi
 else fail "T-3 hazirlik" "yarış poliçesi oluşturulamadı"; fi
 
+# --- F-3 / T-4: taksit, tahsilat, iade, faiz ve gerçek defter mutabakatı ---
+BILLKEY="verify-bill-$$-$(date +%s)"
+billing_policy() {
+  req POST "$API_URL/api/v1/quotes" -H "Authorization: Bearer $AGENT" -H 'Content-Type: application/json' --data "$(quote_body "$AYSE" "$START")"
+  local quote_id="$(first_num id)"
+  BILL_TOTAL="$(num_field total_premium_kurus)"
+  [ "$STATUS" = 201 ] || return 1
+  req POST "$API_URL/api/v1/quotes/$quote_id/convert" -H "Authorization: Bearer $AGENT" -H "Idempotency-Key: $BILLKEY-convert-$quote_id" -H 'Content-Type: application/json' --data '{"installment_count":3}'
+  BILL_POLICY="$(first_num id)"
+  [ "$STATUS" = 201 ] && [ -n "$BILL_POLICY" ]
+}
+if billing_policy; then
+  bill_path="$API_URL/api/v1/policies/$BILL_POLICY"
+  part=$((BILL_TOTAL / 6))
+  req POST "$bill_path/payments" -H "Authorization: Bearer $ACCOUNTING" -H "Idempotency-Key: $BILLKEY-pay" -H 'Content-Type: application/json' --data "{\"amount_kurus\":$part,\"method\":\"TRANSFER\"}"
+  pay_status="$STATUS"; payment_id="$(first_num id)"; cp "$TMP/body" "$TMP/bill-payment"
+  req POST "$bill_path/payments" -H "Authorization: Bearer $ACCOUNTING" -H "Idempotency-Key: $BILLKEY-pay" -H 'Content-Type: application/json' --data "{\"amount_kurus\":$part,\"method\":\"TRANSFER\"}" -D "$TMP/bill-idem"
+  replay_ok=no
+  if [ "$pay_status" = 201 ] && [ "$STATUS" = 201 ] && [ "$payment_id" = "$(first_num id)" ] && grep -qi '^idempotent-replayed: true' "$TMP/bill-idem"; then replay_ok=yes; fi
+  req GET "$bill_path/billing" -H "Authorization: Bearer $ACCOUNTING"
+  installment_sum="$(grep -o '"seq":[^}]*}' "$TMP/body" | sed -n 's/.*"amount_kurus":\([0-9]*\).*/\1/p' | awk '{s+=$1} END {print s+0}')"
+  first_paid="$(grep -o '"seq":[^}]*}' "$TMP/body" | head -n 1 | sed -n 's/.*"paid_kurus":\([0-9]*\).*/\1/p')"
+  payment_count="$(grep -o '"kind":"PAYMENT"' "$TMP/body" | wc -l | tr -d ' ')"
+  if [ "$STATUS" = 200 ] && [ "$(num_field installment_count)" = 3 ] && [ "$installment_sum" = "$BILL_TOTAL" ] && [ "$first_paid" = "$part" ] && [ "$payment_count" = 1 ] && [ "$replay_ok" = yes ]; then
+    pass "F-3 taksit-tahsilat-idem" "3 taksit toplamı=$BILL_TOTAL; ilk taksite $part; tekrarında tek ödeme #$payment_id"
+  else fail "F-3 taksit-tahsilat-idem" "durum=$STATUS toplam=$installment_sum ilk=$first_paid adet=$payment_count idem=$replay_ok"; fi
+  req POST "$bill_path/payments" -H "Authorization: Bearer $ACCOUNTING" -H "Idempotency-Key: $BILLKEY-over" -H 'Content-Type: application/json' --data "{\"amount_kurus\":$BILL_TOTAL,\"method\":\"CARD\"}"
+  if [ "$STATUS" = 422 ] && [ "$(field code)" = OVERPAYMENT ]; then pass "F-3 asiri-odeme" "tamamı 422 OVERPAYMENT ile reddedildi"
+  else fail "F-3 asiri-odeme" "durum=$STATUS"; fi
+  req POST "$API_URL/api/v1/payments/$payment_id/refund" -H "Authorization: Bearer $ACCOUNTING" -H "Idempotency-Key: $BILLKEY-refund" -H 'Content-Type: application/json' --data '{"amount_kurus":1,"reason":"verify kısmi iade"}'
+  refund_status="$STATUS"
+  req GET "$bill_path/billing" -H "Authorization: Bearer $ACCOUNTING"
+  if [ "$refund_status" = 201 ] && [ "$(num_field open_balance_kurus)" = "$((BILL_TOTAL - part + 1))" ] && body_has '"kind":"REFUND"'; then
+    pass "F-3 iade" "1 kuruş iade anaparayı yeniden açtı; bakiye=$(num_field open_balance_kurus)"
+  else fail "F-3 iade" "durum=$refund_status/$STATUS"; fi
+else fail "F-3 hazirlik" "3 taksitli poliçe oluşturulamadı"; fi
+
+if billing_policy; then
+  race_amount=$((BILL_TOTAL * 3 / 4))
+  for i in 1 2; do
+    curl -sS --max-time 15 -o "$TMP/bill-race-$i" -w '%{http_code}' -X POST \
+      -H "Authorization: Bearer $ACCOUNTING" -H "Idempotency-Key: $BILLKEY-race-$i" -H 'Content-Type: application/json' \
+      --data "{\"amount_kurus\":$race_amount,\"method\":\"CARD\"}" "$API_URL/api/v1/policies/$BILL_POLICY/payments" >"$TMP/bill-race-status-$i" &
+    if [ "$i" = 1 ]; then br1=$!; else br2=$!; fi
+  done
+  wait "$br1"; wait "$br2"
+  codes="$(cat "$TMP/bill-race-status-1")/$(cat "$TMP/bill-race-status-2")"
+  req GET "$API_URL/api/v1/policies/$BILL_POLICY/billing" -H "Authorization: Bearer $ACCOUNTING"
+  if { [ "$codes" = 201/422 ] || [ "$codes" = 422/201 ]; } && [ "$(num_field open_balance_kurus)" = "$((BILL_TOTAL - race_amount))" ]; then
+    pass "T-4 paralel-odeme" "iki gerçek paralel HTTP: $codes; bakiye=$(num_field open_balance_kurus)"
+  else fail "T-4 paralel-odeme" "durum=$codes bakiye=$(num_field open_balance_kurus)"; fi
+else fail "T-4 yaris-hazirlik" "poliçe oluşturulamadı"; fi
+
+req POST "$API_URL/api/v1/billing/run" -H "Authorization: Bearer $ACCOUNTING" -H 'Content-Type: application/json' --data '{}'
+run_status="$STATUS"
+# Seed poliçeleri eski sayfalarda olsa da keyset ile bulunur.
+seed_a=""; seed_b=""; cursor=""
+while :; do
+  req GET "$API_URL/api/v1/policies?limit=100&cursor=$cursor" -H "Authorization: Bearer $ACCOUNTING"
+  found_a="$(grep -o '{"id":[^{}]*"policy_no":"GP-DEMO-OVERDUE-A"[^{}]*}' "$TMP/body" | sed -n 's/{"id":\([0-9]*\).*/\1/p')"
+  found_b="$(grep -o '{"id":[^{}]*"policy_no":"GP-DEMO-OVERDUE-B"[^{}]*}' "$TMP/body" | sed -n 's/{"id":\([0-9]*\).*/\1/p')"
+  [ -z "$found_a" ] || seed_a="$found_a"
+  [ -z "$found_b" ] || seed_b="$found_b"
+  cursor="$(field next_cursor)"
+  [ -z "$cursor" ] && break
+  [ -n "$seed_a" ] && [ -n "$seed_b" ] && break
+  [ "$STATUS" = 200 ] || break
+ done
+req GET "$API_URL/api/v1/policies/${seed_a:-0}" -H "Authorization: Bearer $ACCOUNTING"
+if [ "$run_status" = 200 ] && [ "$STATUS" = 200 ] && body_has '"status":"CANCELLED"' && body_has '"cancel_reason":"NON_PAYMENT"'; then
+  pass "F-3 gun-sonu-iptal" "Gecikmiş-A NON_PAYMENT ile iptal (tekrar çalıştırmaya uygun)"
+else fail "F-3 gun-sonu-iptal" "run=$run_status seed=$STATUS"; fi
+req GET "$API_URL/api/v1/policies/${seed_b:-0}/billing" -H "Authorization: Bearer $ACCOUNTING"
+# Her faiz kaydını kendi anapara/oran/[from,to) aralığıyla bağımsız hesapla.
+interest_check="$(grep -o '{"id":[^{}]*"accrued_from"[^{}]*}' "$TMP/body" | awk -F, '
+ function value(s) { sub(/^[^:]*:/,"",s); gsub(/["{}]/,"",s); return s }
+ function serial(s, p,a,y,m) { split(s,p,"-"); a=int((14-p[2])/12); y=p[1]+4800-a; m=p[2]+12*a-3; return p[3]+int((153*m+2)/5)+365*y+int(y/4)-int(y/100)+int(y/400)-32045 }
+ {from="";to="";principal=0;rate=0;amount=0;
+  for(i=1;i<=NF;i++) {
+   if($i ~ /"accrued_from":/) from=value($i);
+   if($i ~ /"accrued_to":/) to=value($i);
+   if($i ~ /"overdue_principal_kurus":/) principal=value($i)+0;
+   if($i ~ /"daily_rate_ppm":/) rate=value($i)+0;
+   if($i ~ /"amount_kurus":/) amount=value($i)+0;
+  }
+  days=serial(to)-serial(from); expected=int(principal*rate*days/1000000+0.5);
+  n++; if(days<0 || amount!=expected) bad++;
+ }
+ END { if(n>0 && bad==0) print "ok:" n; else print "bad:" n ":" bad+0 }')"
+if [ "$STATUS" = 200 ] && body_has '"policy_status":"ACTIVE"' && [[ "$interest_check" = ok:* ]]; then
+  pass "T-4 faiz-kayit-hesabi" "Gecikmiş-B ${interest_check#ok:} faiz kaydının her biri awk ile doğrulandı"
+else fail "T-4 faiz-kayit-hesabi" "durum=$STATUS kontrol=$interest_check"; fi
+req GET "$API_URL/api/v1/ledger/trial-balance" -H "Authorization: Bearer $ACCOUNTING"
+if [ "$STATUS" = 200 ] && body_has '"balanced":true' && body_has '"matches":true' && body_has '"empty_entries":0' && body_has '"unbalanced_entries":0'; then
+  pass "T-4 defter-mutabakat" "her yevmiye ve genel defter dengeli; 1200 = açık anapara + faiz"
+else fail "T-4 defter-mutabakat" "durum=$STATUS"; fi
+
 # --- nginx üzerinden aynı origin akışı ---
 req POST "$WEB_URL/api/v1/auth/login" -H 'Content-Type: application/json' \
   --data "{\"email\":\"acente@guvenpolice.test\",\"password\":\"$DEMO_PASSWORD\"}" -D "$TMP/headers"
@@ -359,7 +456,7 @@ else fail WEB-PROXY-LOGIN "durum=$STATUS"; fi
 
 echo
 echo "Henüz uygulanmamış şartname kimlikleri (sonraki aşamalar):"
-for id in F-3 F-7 T-4 T-5; do
+for id in F-7 T-5; do
   printf '  YAPILMADI  %s\n' "$id"
 done
 
