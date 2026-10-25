@@ -56,7 +56,7 @@ func run() error {
 	logger.Info("migrasyonlar uygulandı", "dir", cfg.MigrationsDir)
 
 	if cfg.SeedDemo {
-		if err := seed.Demo(ctx, pool, cfg.DemoPassword); err != nil {
+		if err := seed.Demo(ctx, pool, cfg.DemoPassword, seed.Options{Fraud: cfg.Fraud, Workflow: cfg.Workflow, LateInterestDailyPPM: cfg.LateInterestDailyPPM}); err != nil {
 			return fmt.Errorf("demo seed: %w", err)
 		}
 		logger.Info("demo seed yüklendi", "users", len(seed.DemoUsers))

@@ -51,8 +51,12 @@ var demoCustomers = []demoCustomer{
 
 // Demo yükler. Var olan kullanıcıların parolası DEMO_PASSWORD ile eşleşmiyorsa güncellenir;
 // böylece .env'deki parola değişince seed tekrar tutarlı hale gelir.
-func Demo(ctx context.Context, pool *pgxpool.Pool, password string) error {
-	return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
+func Demo(ctx context.Context, pool *pgxpool.Pool, password string, supplied ...Options) error {
+	options := Options{}
+	if len(supplied) > 0 {
+		options = supplied[0]
+	}
+	err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 		ids := map[string]int64{}
 		for _, u := range DemoUsers {
 			var id int64
@@ -124,4 +128,8 @@ func Demo(ctx context.Context, pool *pgxpool.Pool, password string) error {
 		}
 		return billingPolicies(ctx, tx, agentID, ids["acente@guvenpolice.test"])
 	})
+	if err != nil {
+		return err
+	}
+	return fraudScenario(ctx, pool, options)
 }
