@@ -49,7 +49,8 @@ export function QuoteDetailLoader({ id, role, onChanged }: { id: number; role: R
 
 export function QuoteDetail({ quote, role, onChanged }: { quote: Quote; role: Role; onChanged: (q: Quote) => void }) {
   // Aynı teklifin çevirme denemeleri aynı anahtarı kullanır: ağ hatasında tekrar basmak çift poliçe üretmez.
-  const [convertKey] = useState(newKey)
+  const [convertKey, setConvertKey] = useState(newKey)
+  const [installmentCount, setInstallmentCount] = useState(1)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState('')
@@ -76,6 +77,7 @@ export function QuoteDetail({ quote, role, onChanged }: { quote: Quote; role: Ro
       const p = await api<IssuedPolicy>(`/api/v1/quotes/${quote.id}/convert`, {
         method: 'POST',
         headers: { 'Idempotency-Key': convertKey },
+        body: JSON.stringify({ installment_count: installmentCount }),
       })
       setIssued(p)
       onChanged(await api<Quote>(`/api/v1/quotes/${quote.id}`))
@@ -116,9 +118,12 @@ export function QuoteDetail({ quote, role, onChanged }: { quote: Quote; role: Ro
         </div>
       )}
       {canConvert && (
+        <div>
+        <label className="inline">Taksit sayısı<select value={installmentCount} disabled={busy} onChange={(e) => { setInstallmentCount(Number(e.target.value)); setConvertKey(newKey()) }}>{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select></label>
         <button type="button" onClick={convert} disabled={busy}>
           {busy ? 'Çevriliyor…' : 'Poliçeye çevir'}
         </button>
+        </div>
       )}
       {canReview && (
         <div className="review">

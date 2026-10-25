@@ -3,6 +3,7 @@ import type { User } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { RequireRole } from '../components/RequireRole'
 import { menuFor, roleLabels } from '../roles'
+import { AccountingPage } from './AccountingPage'
 import { ClaimsPage } from './ClaimsPage'
 import { CustomersPage } from './CustomersPage'
 import { PoliciesPage } from './PoliciesPage'
@@ -55,6 +56,7 @@ export function Dashboard({ user }: { user: User }) {
           </RequireRole>
         )}
         {current.key === 'quotes' && <QuotesPage role={user.role} />}
+        {current.key === 'payments' && (user.role === 'ACCOUNTING' ? <AccountingPage /> : <PoliciesPage role={user.role} />)}
         {current.key === 'policies' && <PoliciesPage role={user.role} />}
         {(current.key === 'claims' || current.key === 'appraisals') && <ClaimsPage role={user.role} />}
         {!current.ready && (

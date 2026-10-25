@@ -126,6 +126,7 @@ export function VehicleChangeForm({ policy, onDone }: { policy: PolicyDetail; on
             {preview.data.premium_delta_kurus >= 0 ? 'Ek prim' : 'İade'}: <strong>{formatTL(Math.abs(preview.data.premium_delta_kurus))}</strong>
             {' '}(sürüm {preview.data.base_version_no} → {preview.data.new_version_no})
           </div>
+          <p>Müşteriye nakit iade: <strong>{formatTL(preview.data.cash_refund_kurus)}</strong></p>
           <CalcSteps calc={preview.data.calc_detail} />
           <Breakdown lines={preview.data.lines} coverages={preview.data.coverages} total={preview.data.new_annual_premium_kurus} />
         </div>
@@ -214,6 +215,7 @@ export function CancelForm({ policy, role, onDone }: { policy: PolicyDetail; rol
             Yazılmış prim {formatTL(preview.data.written_premium_kurus)} · İade: <strong>{formatTL(preview.data.refund_kurus)}</strong>
             {!preview.data.closes_version && ' · başlangıçtan iptal: hiçbir gün teminat kalmaz'}
           </div>
+          <p>Müşteriye nakit iade: <strong>{formatTL(preview.data.cash_refund_kurus)}</strong></p>
           <CalcSteps calc={preview.data.calc_detail} />
         </div>
       )}

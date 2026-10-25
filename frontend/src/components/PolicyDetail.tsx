@@ -4,6 +4,7 @@ import type { Role } from '../api/client'
 import type { CoverageOnDate, PolicyDetail } from '../api/types'
 import { cancelReasonLabels, errorText, formatTL, statusLabels, todayISO } from '../format'
 import { ReportClaimForm } from './ClaimForms'
+import { BillingPanel } from './BillingPanel'
 import { CalcSteps } from './CalcSteps'
 import { CancelForm, VehicleChangeForm } from './PolicyChangeForms'
 import { ErrorBox, Loading } from './States'
@@ -119,6 +120,7 @@ function PolicyDetailView({ policy, role, reload }: { policy: PolicyDetail; role
       )}
 
       <CoverageQuery policy={policy} />
+      {(['CUSTOMER', 'AGENT', 'ACCOUNTING', 'UNDERWRITER'] as Role[]).includes(role) && <BillingPanel key={`${policy.id}-${policy.endorsements.length}`} policyID={policy.id} role={role} />}
 
       {(role === 'CUSTOMER' || role === 'AGENT' || role === 'CLAIMS_ADJUSTER') && <div className="actions"><button onClick={() => setAction(action === 'claim' ? 'none' : 'claim')}>Hasar bildir</button></div>}
       {action === 'claim' && <ReportClaimForm policyID={policy.id} onDone={() => setAction('none')} />}

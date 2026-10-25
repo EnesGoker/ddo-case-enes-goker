@@ -198,6 +198,7 @@ export interface CoverageOnDate {
 }
 
 export interface VehicleChangePreview {
+  cash_refund_kurus: number
   effective_date: string
   base_version_no: number
   new_version_no: number
@@ -212,6 +213,7 @@ export interface VehicleChangePreview {
 }
 
 export interface CancelPreview {
+  cash_refund_kurus: number
   effective_date: string
   reason: string
   method: 'PRO_RATA' | 'SHORT_PERIOD'
@@ -262,4 +264,44 @@ export interface ClaimDetail extends ClaimItem {
   history: { id: number; from_status: string | null; to_status: string; note: string | null; created_at: string }[]
   appraisals: { id: number; appraiser_id: number; damage_amount_kurus: number; is_total_loss: boolean; notes: string | null; inspected_at: string }[]
   settlement: ClaimSettlement | null
+}
+
+export interface BillingPlan {
+  policy_id: number
+  policy_status: string
+  total_kurus: number
+  installment_count: number
+  open_balance_kurus: number
+  daily_rate_ppm: number
+  installments: { id: number; seq: number; due_date: string; amount_kurus: number; paid_kurus: number; status: string; overdue_days: number }[]
+  interest: { id: number; installment_id: number; accrued_from: string; accrued_to: string; overdue_principal_kurus: number; daily_rate_ppm: number; amount_kurus: number; paid_kurus: number }[]
+  payments: { id: number; kind: 'PAYMENT' | 'REFUND'; amount_kurus: number; method: string; paid_at: string; refundable_kurus: number; refund_of_payment_id: number | null; reference: string }[]
+  allocations: { id: number; payment_id: number; installment_id: number | null; late_interest_charge_id: number | null; amount_kurus: number }[]
+}
+
+export interface BillingRun {
+  as_of: string
+  accrual_count: number
+  interest_kurus: number
+  cancelled: number[]
+  skipped: { policy_id: number; reason: string }[]
+}
+
+export interface TrialBalance {
+  accounts: { code: string; name: string; debit_kurus: number; credit_kurus: number; balance_kurus: number }[]
+  total_debit_kurus: number
+  total_credit_kurus: number
+  balanced: boolean
+  empty_entries: number
+  unbalanced_entries: number
+  receivable_reconciliation: { ledger_1200: number; open_installments: number; open_interest: number; matches: boolean }
+}
+
+export interface JournalEntry {
+  id: number
+  entry_date: string
+  description: string
+  ref_type: string
+  ref_id: number
+  lines: { id: number; account_code: string; debit_kurus: number; credit_kurus: number }[]
 }

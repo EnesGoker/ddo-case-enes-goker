@@ -27,7 +27,7 @@ export const menu: MenuItem[] = [
   { key: 'customers', label: 'Müşteriler', roles: ['AGENT', 'UNDERWRITER'], ready: true },
   { key: 'claims', label: 'Hasar Dosyaları', roles: ['CUSTOMER', 'AGENT', 'UNDERWRITER', 'CLAIMS_ADJUSTER', 'APPRAISER', 'ACCOUNTING'], ready: true },
   { key: 'appraisals', label: 'Ekspertiz', roles: ['APPRAISER'], ready: true },
-  { key: 'payments', label: 'Tahsilat ve Defter', roles: ['ACCOUNTING', 'CUSTOMER'], ready: false, phase: 'A5' },
+  { key: 'payments', label: 'Tahsilat ve Defter', roles: ['ACCOUNTING', 'CUSTOMER'], ready: true },
   { key: 'reports', label: 'Raporlar', roles: ['ACCOUNTING', 'UNDERWRITER'], ready: false, phase: 'A6' },
 ]
 
