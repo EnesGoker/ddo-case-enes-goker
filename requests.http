@@ -282,3 +282,30 @@ Authorization: Bearer {{accounting.response.body.access_token}}
 ### Satırlarıyla yevmiye listesi; next_cursor ile sonraki sayfa
 GET {{api}}/api/v1/journal-entries?limit=20
 Authorization: Bearer {{accounting.response.body.access_token}}
+
+### A6 — Fraud kuyruğu (hasar uzmanı token)
+GET {{api}}/api/v1/claim-tasks?status=open&task_type=FRAUD_REVIEW
+Authorization: Bearer {{adjuster.response.body.access_token}}
+
+### A6 — İhlal görevleri (eksper tokenıyla yalnız kendi görevleri)
+GET {{api}}/api/v1/claim-tasks?status=open&breached=true&claim_id={{claim.response.body.id}}
+Authorization: Bearer {{appraiser.response.body.access_token}}
+
+### A6 — İş yükü / SLA özeti
+GET {{api}}/api/v1/claim-tasks/workload
+Authorization: Bearer {{adjuster.response.body.access_token}}
+
+###
+GET {{api}}/api/v1/claim-tasks/sla-summary
+Authorization: Bearer {{adjuster.response.body.access_token}}
+
+### A6 — İncelemeden ekspertize (güncel row_version kullanın)
+POST {{api}}/api/v1/claims/{{claim.response.body.id}}/transition
+Authorization: Bearer {{adjuster.response.body.access_token}}
+Content-Type: application/json
+
+{"to_status":"APPRAISAL","expected_row_version":3,"note":"Kurgusal inceleme tamamlandı"}
+
+### A6 — Yazılan prim raporu: bitiş günü hariç, sınırlar isteğe bağlı
+GET {{api}}/api/v1/reports/production?from=2026-10-01&to=2026-11-01&group_by=agent
+Authorization: Bearer {{accounting.response.body.access_token}}

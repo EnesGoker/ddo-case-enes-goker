@@ -71,10 +71,10 @@
 **Çıkış kapısı:** Tekrarlı ödeme mali kayıt üretmiyor; defter bakiye testi başarılı.
 
 ### A6 — T-5 + F-7: Fraud iş akışı ve raporlar (hedef 3 saat)
-- [ ] 3 şüphe kuralı ve açıklanabilir fraud skoru tanımlı.
-- [ ] Şüpheli dosya inceleme kuyruğuna düşüyor; geçişler doğrulanıyor.
-- [ ] İş yükü en az uzmana atama ve SLA takibi deneniyor.
-- [ ] Prim üretimi / hasar-prim oranı SQL/API üzerinden hesaplanıyor.
+- [x] 3 şüphe kuralı ve açıklanabilir fraud skoru tanımlı.
+- [x] Şüpheli dosya inceleme kuyruğuna düşüyor; geçişler doğrulanıyor.
+- [x] İş yükü en az uzmana atama ve SLA takibi deneniyor.
+- [x] Prim üretimi / hasar-prim oranı SQL/API üzerinden hesaplanıyor.
 
 **Çıkış kapısı:** Kasıtlı şüpheli seed senaryosu doğru skoru/kuyruğu tetikliyor; rapor toplamı veriyle uyuşuyor.
 
@@ -120,12 +120,12 @@
 | F-4 | PASS | `make verify` F-4 hasar-dosya; `TestClaimVersionSelectionAndCancellation`, `TestClaimTransitionsValidationAndRBAC` |
 | F-5 | PASS | `make verify` F-5 ekspertiz; `TestClaimLifecycleAndIdempotency` |
 | F-6 | PASS | `make verify` F-6 idempotent-onay/odeme; `TestClaimLifecycleAndIdempotency` |
-| F-7 | BEKLEMEDE | — |
+| F-7 | PASS | `TestProductionReportGoldenLedgerPeriodsAndGroups`, dönem/RBAC testi; `make verify` prim-delta, defter-mutabakati, boyut-toplami, oran |
 | T-1 | PASS | `TestGoldenKasko`, `TestGoldenKonut`, `TestBreakdownSumEqualsTotal`, `TestSelectTariffByStartDate`; `make verify` T-1 satırları |
 | T-2 | PASS | `TestGoldenVehicleChange`, `TestGoldenShortPeriodCancellation`, `TestCancellationOnLeapDay`; `make verify` T-2 satırları; eşzamanlılık `TestConcurrentEndorsements` |
 | T-3 | PASS | `TestGoldenSettlements`; `TestConcurrentClaimApprovals -count=10 -race`; mutasyon LIMIT_CHANGED; `make verify` hesap-adimlari/paralel-limit |
 | T-4 | PASS | Kayıt bazında awk faiz hesabı, gerçek paralel ödeme, 1200 mutabakatı; 10 tekrar `-race` ve kilit mutasyonu; billing %92,1 |
-| T-5 | BEKLEMEDE | — |
+| T-5 | PASS | Fraud/workflow %100; kalıcı sinyaller, görev/SLA/RBAC, 20 transaction 7/7/6 ×10 `-race`, advisory mutasyonu FAIL ve geri yükleme; `make verify` yedi T-5 satırı |
 
 ## Teslim kontrolü
 

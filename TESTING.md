@@ -123,7 +123,7 @@ Altın örneklerin elle hesabı `backend/internal/proration/proration_test.go` i
 | T-2 | PASS (`make verify` + birim/entegrasyon testleri) |
 | F-4, F-5, F-6, T-3 | PASS (A4; aşağıdaki kanıtlar) |
 | F-3, T-4 | PASS (A5; aşağıdaki kanıtlar) |
-| F-7, T-5 | YAPILMADI (A6 ve sonrası) |
+| F-7, T-5 | A6 uygulandı; aşağıdaki A6 kanıtları |
 
 ## F-4 / F-5 / F-6 — Hasar, ekspertiz ve tazminat (A4)
 
@@ -173,7 +173,7 @@ Komutlar repo kökünden çalıştırılır; parantezli komutlar kendi alt kabu�
 | Tarayıcı / 375 px | PASS; altı rol menü/liste; müşteri bildirimi → ekspertiz → onay → ödeme; hata/boş durumları; içerik genişliği 375 px, yatay taşma yok |
 | OpenAPI | Ruby YAML ayrıştırması ve 202 iç `$ref` doğrulaması PASS; dış OpenAPI linter ÇALIŞTIRILMADI (yeni araç kurulmadı) |
 
-**Bilinen sınırlar:** Uzlaşma iptali yok; APPROVED geri alınamaz. Ayrı olay limiti yok (ADR-10 varsayımı). Fraud/SLA/atama A6, taksit/prim muhasebesi A5 kapsamındadır. İdempotans JSONB yanıt sırası ve iş transaction'ı–yanıt saklama aralığı A2/A3'teki gibi kalır. UI/API testleri kurgusal demo veriyle yapılır.
+**Bilinen sınırlar:** Uzlaşma iptali yok; APPROVED geri alınamaz. Ayrı olay limiti yok (ADR-10 varsayımı). Bu A4 kontrol noktasından sonra taksit/prim muhasebesi A5, fraud/SLA/atama A6 ile eklendi. A6, idempotans yanıtını bytea ve iş anahtarıyla güçlendirdi (ADR-14). UI/API testleri kurgusal demo veriyle yapılır.
 
 ## F-3 / T-4 — Taksit, tahsilat, faiz, iade ve defter (A5)
 
@@ -261,3 +261,59 @@ end
 puts "YAML PASS; #{refs.size} refs PASS; response keys PASS"
 RUBY
 ```
+
+## A6 — Düzeltmeler, T-5 ve F-7
+
+Tüm tutar/risk oranları, fraud puanları, demo kişi ve atölyeler **kurgusaldır**. Altın veri testindeki 2025 tarihleri sabittir; demo FP-1/FP-2 tarihleri **ilk seed gününe göre** seçilir ve sonraki açılışta yerinde güncellenmez. Eski demo poliçe sürümleri ve mali kayıtları korunur.
+
+**Demo hesapları:** Önceki altı hesaba `eksper2@guvenpolice.test` ve `hasar2@guvenpolice.test` eklendi; hepsi `.env` DEMO_PASSWORD değerini kullanır. Atölyeler Kurgusal Marmara/Başkent/Ege (34/06/35). Üç pure paket adı fraud, workflow, lossratio; DB/HTTP task ve report'tur.
+
+**Seed:** `GP-DEMO-FP-1`, 34FRD123, başlangıç ilk gün−300; ilk gün−250 ve −40 tarihli iki hasar skor 0. İkinci dosya, saati ilk gün−4 olan servisle APPRAISAL'a girer (72 saat vade geçmiş). FP-1 müşteri talebiyle ilk gün−6 etkili iptal edilir. `GP-DEMO-FP-2` aynı plaka, başlangıç ilk gün−5, hasar ilk gün−2: EARLY_CLAIM 40 + REPEAT_PLATE 35 =75; FRAUD_REVIEW ve atanmış görev. İki poliçe de başlangıç tarihli tam ödenir; faiz doğmaz. Primler gerçek tarife motorundan gelir. Tekrar seed, iş anahtarları sayesinde yeni hasar/sinyal/görev/yevmiye oluşturmaz.
+
+**Arayüz denemeleri:** Hasar uzmanı → Görevler (tip/durum/yalnız SLA ihlali), Fraud kuyruğu, dosya detayı (75/60, iki açıklama, görev, sunucudan allowed_transitions); red/fraud inceleme notu zorunlu. Eksper → Görevlerim (sunucuda kendi ataması). Muhasebe/underwriter → Raporlar, dahil başlangıç/hariç bitiş, ay/ürün/acente, toplam ve yüzde oran. Alt not yazılan prim/kazanılmış prim sınırlamasını belirtir. 375 px görev listesi ve rapor ekranı ayrıca kontrol edilir; yükleniyor, boş ve hata durumları gerçek isteklere dayanır.
+
+**Kabul testleri ve komutlar:**
+
+| Komut / test | Kanıt |
+|---|---|
+| `make test` | Sıfır TransitionOptions, SLA sınırları, fraud altın değerleri, oran/taşma, env doğrulaması dahil gerçek birim testleri |
+| `./scripts/test-integration.sh` | A1–A6, gerçek geçici PostgreSQL 16; 00006–00008 Up/Down/Up dahil |
+| `./scripts/test-integration.sh -run TestConcurrent -count=10 -race` | 0. bölüm kapısında mevcut sekiz yarış testi PASS |
+| `./scripts/test-integration.sh -run 'TestConcurrentTaskAssignment\|TestFraudSeedStable' -count=10 -race -v` | 20 bağımsız transaction rol kapısında, üç yeni aktif uzman; her tekrarda 7/7/6. Seed sabitliği ve kapalı DB'de metrics 200 testi de 10 tekrar PASS (296,007 sn) |
+| `go test ./internal/fraud ./internal/workflow ./internal/lossratio -coverprofile=/tmp/gp-a6-pure.cover` (backend dizininde) | Üçünde de %100 statement coverage |
+| `TestFraudRulesPersistenceAndAutomaticWorkflow` | Her kural tek başına, 75 ve 65 birleşimleri; kalıcı sinyal detayları, NULL otomatik geçmiş aktörü, audit.New.auto, atanmış görev |
+| `TestFraudPlateWindowInclusive365` | 365 dahil, 366 hariç; önceki dosya numaraları |
+| `TestTaskLifecycleSLAAndRBAC` / `TestTaskEmptyPoolIsUnassigned` | Appraise DONE, çıkışta DONE/redde CANCELLED, boş havuz NULL; injected saat due/due+1µs; ihlal filtresi, sayısal gauge/özet; rol sınırları |
+| `TestFraudSeedStableAndMetricsDatabaseFailure` | Tekrar seed değişmeyen mali/sinyal/görev sayısı, FP-1/FP-2 0/0/75; kapalı DB'de 200 ve gauge örnekleri yok |
+| `TestBusinessRequestKeyRecovery` | Beş yazma yolunda stale IN_PROGRESS; normal bayt eşitliği; farklı gövde 422; aynı kaynak/yan etki sayıları; işaretli hasarda fraud ve görev tekrarlanmıyor |
+| `TestFraudReviewCanReturnToAppraisal` | Ekspertizsiz değerlendirme 409; ekspertizden onay/ödemeye devam |
+| `TestProductionReportGoldenLedgerPeriodsAndGroups` | İki ürün, iki acente + acentesiz; +240838/−353582 zeyil ve −18301 iptal, 50000 tazminat; Temmuz 1371738, Ağustos −341883, net1029855 kuruş; [from,to), boyut/defter eşitliği |
+| `TestProductionReportPeriodValidationAndRBAC` | Bozuk/eşit/ters dönem 422 INVALID_PERIOD; accounting/UW 200, diğer roller 403 |
+| `make lint`, `make build`, `make up`, `make verify` | Derleme/vet/ESLint ve Docker sağlık; verify gerçek curl/DB etkileriyle 59 PASS / 0 FAIL |
+
+**Mutasyonlar commit edilmez.** İade testinde poliçe kilidi kaldırılınca 201+409 CONCURRENT_PAYMENT görüldü; installments CHECK paid>=0 fazla iadeyi engelledi, test beklenen FAIL verdi. Atama advisory kilidi kaldırılınca kapıda 20 bekleyen gözlenmedi ve dağılım 5/7/8 oldu; 7/7/6 testi beklenen FAIL verdi. Her iki dosya aynı baytlarla geri yüklendi:
+
+```text
+$ git diff -- backend/internal/payment/service.go
+(çıktı yok)
+$ git diff -- backend/internal/task/store.go
+(çıktı yok)
+$ wc -c /tmp/gp-a6-refund-restored.diff /tmp/gp-a6-assignment-restored.diff
+0 /tmp/gp-a6-refund-restored.diff
+0 /tmp/gp-a6-assignment-restored.diff
+0 total
+```
+
+**Verify yeni satırları:** F-7 prim-delta, defter-mutabakati, boyut-toplami, oran; T-5 seed-supheli, esik, atama, paralel-atama (farklı poliçeler, arka plan curl + wait), inceleme, sla, yetki; T-4 idem-bayt (cmp). Her çalıştırmada yeni geçerli plaka kullanılır; fraud eşiği susturulmaz. Gün sonu seed B poliçe durumundan bağımsız her faiz kaydını anapara/oran/aralıkla denetler.
+
+**Sınırlar:** ADR-14…18. Önceden tahakkuk etmiş gelecekteki faiz, geriye dönük iptalle iade edilmez. Fraud yeniden skorlanmaz; farklı poliçelerde eşzamanlı sayım READ COMMITTED ±1 danışma sinyali olabilir. Mesai takvimi/manuel atama yok. Kazanılmış prim, muallak, IBNR yok. Gün sonunun büyük veri ölçeği ve hatada devamı A7'ye, genel okunabilirlik turu A8'e aittir. audit.go ve 00001–00005 değişmedi.
+
+Son kaynak ölçümü: **66 birim**, **67 entegrasyon** test fonksiyonu (TestMain ve alt testler dahil edilmedi). İlk son koşuda mevcut auth imza bozma testi Base64'ün kullanılmayan bitleri yüzünden FAIL verdi. Kullanıcı ayrı onay verdi; yalnız test imzanın ilk karakterini bozacak şekilde düzeltildi. Üretim auth kodu değişmedi. `go test ./internal/auth -run '^TestTokenTamperedSignature$' -count=1000` (backend dizininde): PASS.
+
+Atama/seed yarış komutunun tam kopyalanabilir biçimi:
+
+```sh
+./scripts/test-integration.sh -run 'TestConcurrentTaskAssignment|TestFraudSeedStable' -count=10 -race -v
+```
+
+375×812 tarayıcı kontrolü: görev/ihlal listesi, boş fraud filtresi, 75/60 ve iki açıklamalı dosya, eksperin yalnız kendi görevi, rapor ay/acente gruplaması ve toplam, boş dönem, eşit tarihlerde hata. Görev ve raporda `document.documentElement.scrollWidth === innerWidth === 375` ölçüldü. Son %25 sarı rozet koşulu kaynakta bulunur; **ÇALIŞTIRILMADI:** ayrıca gerçek veriyle sarı rozet senaryosu. Görsel kanıtlar yerel geçici dosyalardır: `/tmp/gp-a6-ui-tasks-375.png`, `/tmp/gp-a6-ui-report-375.png`, `/tmp/gp-a6-ui-appraiser-375.png`. Görünüm boyutu sıfırlandı ve test sekmesi kapatıldı.

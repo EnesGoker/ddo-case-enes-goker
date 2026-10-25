@@ -140,3 +140,51 @@ A4'ün 2000/5000 kayıtları aynen korunur. `ledger.Post` her olayda satırlı v
 **Gün sonu:** Açık taksitin gecikmesi >=30 günse ACTIVE poliçeyi A3 `CancelTx` ile `NON_PAYMENT/as_of` iptal eder; 29 gün yeterli değildir. Aktör muhasebe kullanıcısıdır; elle iptalin rol/gerekçe kuralı router'da korunur. A4 `CLAIMS_AFTER_EFFECTIVE_DATE` koruması veya geçersiz etki tarihi kayıt bazında raporlanır; diğer hatada ilgili poliçenin transaction'ı geri alınır. Her poliçe ayrı commit olduğundan sonraki bir hata önceki başarıları geri almaz. Aynı tarih yeni faiz/iptal üretmez (audit yazılabilir). Otomatik zamanlayıcı yok; endpoint dışarıdan çağrılır.
 
 **Sınırlar:** A5 öncesi plansız poliçe için otomatik backfill yok, 409 `BILLING_PLAN_MISSING`; yalnızca silinebilir demo ortamında kullanıcı `make reset-demo` kullanabilir. Bu aşamada mevcut veri silinmedi. İdempotans mevcut middleware ile normal tekrar/eşzamanlı istekte tek mali etki sağlar; iş transaction'ının commit'i ile yanıtın saklanması ayrı olduğundan süreç çökmesindeki tekrar işleme aralığı sürer (A2/A3 sınırlaması). Banka entegrasyonu, gerçek sigorta tarifesi/mevzuatı, kazanılmamış prim, bileşik faiz ve iptal sonrası manuel iade kapsam dışıdır.
+
+## ADR-14 — İdempotans çökme penceresi (A6)
+
+`payments`, `endorsements` ve `claims` üzerinde aktör + `request_key` kısmi UNIQUE indeksi vardır (00006). Middleware anahtarı context'e taşır. Servis, poliçe kilidinden hemen sonra, sürüm/durum/bakiye/tarih iş kontrollerinden önce bu anahtarla mevcut kaynağı arar. Otomatik nakit iadede anahtar NULL'dır. Beklenmeyen UNIQUE ihlali 409 IDEMPOTENCY_CONFLICT olur.
+
+Normal tekrarın yanıtı bytea olarak saklanır ve aynı baytlarla döner. Önceden JSONB saklanmış yanıtlar migrasyonda JSONB text biçiminden dönüştürülür; geçmiş ilk HTTP yanıtının özgün baytları geri kazanılamaz. İş commit'i sonrası, yanıt saklanmadan çökülürse bayat IN_PROGRESS devralınır: gövde hash'i önce karşılaştırılır (farklı gövde 422), aynı kaynak ve özgün HTTP durumuyla kanonik güncel yanıt döner; bu kurtarma yanıtı bayt eşitliği vaat etmez. Bildirim kurtarması fraud değerlendirmesini ve görev açmayı tekrar etmez.
+
+| Uç | İş transaction'ındaki koruma |
+|---|---|
+| Poliçe ödemesi, manuel iade | Poliçe kilidi → payments(created_by,request_key) |
+| Zeyil, iptal | Poliçe kilidi → endorsements(created_by,request_key) |
+| Hasar bildirimi | Poliçe kilidi → claims(created_by,request_key) |
+| Teklif çevirme | Teklif kilidi + durum + policies.quote_id UNIQUE |
+| Tazminat onayı / ödemesi | Hasar kilidi + durum + claim_settlements.claim_id UNIQUE / durum |
+
+## ADR-15 — Faturalama düzeltmeleri (A6)
+
+Ek prim, `max(etki, bugün)` gününden önce vadeli taksitlere yüklenmez; uygun açık taksit yoksa bu tarihte yeni taksit açılır. Saf billing.Adjust değişmez. Ayardan önce ortak config oranıyla `Accrue(min(etki, bugün))` yapılır; daha önce tahakkuk edilen aralık için yeniden ya da negatif faiz yoktur.
+
+Zeyil/iptal prim ayarı, ayar öncesi faiz yevmiyesi ve otomatik nakit iade (paid_at dahil) işlem gününde kaydedilir. Etki tarihi açıklamada/kayıtta; faiz aralığı from/to'da kalır. Ödeme payment_date, gün sonu as_of, ilk prim tahakkuku poliçe başlangıç günü taşır. Bu ayrım dönem raporunun geriye dönük zeyille kapanmış dönemi değiştirmesini önler.
+
+**Bilinen sınırlama:** Geriye dönük iptalin etki tarihinden sonrası için önceden tahakkuk etmiş faiz iade edilmez. ADR-12'deki kilit kuralı yazma yollarına aittir: GET billing ve değişiklik önizlemeleri A6'da REPEATABLE READ READ ONLY snapshot içinde kilitsizdir. Geçmişinde REJECTED olan CLOSED dosya geriye dönük değişiklik engeline dahil değildir.
+
+## ADR-16 — Fraud skoru, kurgusal danışma sinyali (A6)
+
+Bildirim transaction'ında, hasar tarihine göre bir kez değerlendirilir; yeniden skorlama yoktur. EARLY_CLAIM: başlangıçtan <15 gün, 40 puan; REPEAT_PLATE: normalize plakada bu dosya hariç [hasar−365,hasar] içinde en az 2 dosya, 35 puan; WORKSHOP_CONCENTRATION: aynı atölyede [hasar−30,hasar] içinde en az 4 dosya, 30 puan. Plakasız/atölyesiz girdide ilgili kural uygulanmaz. Eşik 60, koşul skor ≥ eşiktir; tüm değerler env ile ayarlanır ve kurgusaldır.
+
+Sinyal; puan, sayılar, pencere, önceki dosya numaraları ve Türkçe açıklamayla saklanır. İşaretli dosya Transition ile REPORTED → TRIAGED → FRAUD_REVIEW olur. Otomatik geçmiş aktörü NULL, not skoru/eşiği içerir, audit.New.auto=true olur. audit.go ve imzası değişmez; audit çağrısının istek aktörü korunur. Sistem geçişinin NULL aktörü claim_status_history'dedir.
+
+Aynı poliçedeki bildirimler poliçe kilidiyle sıralanır. Farklı poliçelerde eşzamanlı fraud sayımı READ COMMITTED görünümündedir; ±1 kaçırma kabul edilir. Sinyal karar destek içindir, otomatik red üretmez. CUSTOMER/AGENT yanıtları fraud alanlarını içermez.
+
+## ADR-17 — Görev, SLA ve atama (A6)
+
+Saf paket workflow, DB/HTTP paketi task'tır. Transition'a son parametre olarak TransitionOptions{At,SLA,Automatic} eklenir. Eksik zaman veya sıfır/negatif herhangi bir SLA süresi DB erişiminden önce hatadır. APPRAISAL/ADJUSTMENT/FRAUD_REVIEW girişinde görev açılır. Kaynak açık görev DONE, REJECTED'a çıkışta CANCELLED olur; ilk completed_at korunur. Appraise da açık APPRAISAL görevini DONE yapar. IN_PROGRESS başlatma ucu yoktur.
+
+Atama yalnız aktif kullanıcılardan, tüm tiplerdeki açık OPEN/IN_PROGRESS görev sayısı en az olana, eşitlikte küçük id'ye yapılır. APPRAISAL havuzu APPRAISER, diğer ikisi CLAIMS_ADJUSTER'dır. Sayımdan önce rol başına `pg_advisory_xact_lock(71006,hashtext(rol))` alınır. Boş havuzda assigned_to NULL'dır. Created/due servis saatinden gelir.
+
+SLA takvim saatiyle 72/48/24 saattir (env ile değişir); mesai takvimi yoktur. Açık görevde şimdi > due, kapalı görevde completed_at > due ihlaldir; tam due anı ihlal değildir. Liste done filtresi DONE/CANCELLED içerir; SLA özetindeki done/on_time_bp başarıyla DONE kapanan görevleri ölçer, iptaller bu paydaya girmez. APPRAISER görev listesinde sunucuda zorunlu kendi ataması filtresi vardır.
+
+Metrics Registry scrape sırasında, mutex dışında, tek Summary sorgusuyla ve 250 ms timeout ile iki gauge toplar; başarısız sorguda gauge örnekleri atlanır, eski değer saklanmaz, HTTP 500 oluşmaz.
+
+## ADR-18 — Yazılan prim ve hasar/prim raporu (A6)
+
+Saf oran paketi lossratio, DB/HTTP paketi report'tur. Dönem yevmiye entry_date'ine göre [from,to); eksik sınır açıktır. Yazılan net prim 4000 net alacağıdır (POLICY_ISSUE → poliçe, ENDORSEMENT → zeyil → poliçe); tahakkuk eden tazminat 5000 net borcudur (CLAIM_APPROVAL → hasar → poliçe). Poliçe adedi dönemdeki POLICY_ISSUE kayıtlarıdır. Ay, ürün ve acente aynı hareketlerden gruplanır; acentesiz kayıt ayrı gruptur. Toplam oran, satır oranlarının ortalaması yerine toplam tutarlardan hesaplanır.
+
+Oran int64 baz puandır: tazminat×10000/prim, yarımı sıfırdan uzağa yuvarlanır; prim ≤0 ise null. Çarpım ve bölüm için big.Int kullanılır. Mevcut proration.RoundDiv, MaxInt64 payda sınırında ara toplama taşması ürettiğinden lossratio içinde güvenli bölüm/kalan kullanılır; mevcut A4/A5 hesap kodu değiştirilmez. Sonuç int64'e sığmazsa null döner.
+
+**Sınırlamalar:** Yazılan prim bazlı kurgusal modeldir; kazanılmış prim/UPR, muallak ve IBNR yoktur. POLICY_ISSUE mevcut başlangıç tarihi kuralını korur; zeyil/iptal ve onay işlem günüyle raporlanır.

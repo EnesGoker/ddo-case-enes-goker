@@ -292,7 +292,7 @@ Yalnızca öneri: A6 — fraud, atama/SLA ve raporlar. Yeni onay olmadan başlan
 0.1–0.10 TAMAMLANDI; T-5/F-7 henüz bu kontrol noktasında uygulanmadı. Ek kullanıcı kararı: saf paketler workflow/lossratio; DB/HTTP task/report; audit.go değişmez; sıfır SLA seçenekleri hata verir. Kod ajanı push yapmadı.
 
 - `make test`: PASS (58 birim test fonksiyonu).
-- `./scripts/test-integration.sh`: PASS (60 entegrasyon test fonksiyonu; 00006–00008 dahil Up/Down/Up).
+- `./scripts/test-integration.sh`: PASS (59 entegrasyon testi + TestMain; 00006–00008 dahil Up/Down/Up).
 - `./scripts/test-integration.sh -run TestConcurrent -count=10 -race`: PASS; mevcut sekiz yarış testinin her biri 10 tekrar.
 - `make up`, `make verify` (geri yüklenen kaynakla): PASS; db/api/web healthy, 47 PASS / 0 FAIL.
 - İlk Docker derlemesi geçici kilit mutasyonuyla çakıştı; o imajdaki verify 46 PASS / 1 FAIL (201/409). Kaynak geri konulduktan sonra imaj yeniden üretildi, canlı verify 47/0 geçti. Mutasyon imajı kullanılmıyor.
@@ -323,3 +323,142 @@ Mevcut tarihsel seed sürümleri/yevmiye kayıtları yerinde değiştirilmedi; d
 - `ab80483 fix(seed): primleri tarifeden hesapla ve demo uzman atölye havuzunu tamamla`
 - `fa5dbec fix(payment): tarih sınırı, kilitsiz okumalar ve iade yarışını doğrula`
 - `252ea30 docs(progress): geçmiş commit hashlerini mevcut mesajlarla eşleştir`
+
+
+### A6 teslim raporu — AGENTS.md §6
+
+1. **Durum: TAMAMLANDI.** 0. bölüm kapısından sonra durulmadı; T-5 ve F-7 backend, seed, minimal frontend ve gerçek verify tamamlandı. Süre nedeniyle kapsam kesilmedi. A7'ye geçilmedi; push yapılmadı.
+2. **Değişen dosyalar:** tam yollar ve tek satırlık amaçlar aşağıdaki manifestte.
+3. **Yapılanlar:** Saf fraud/workflow/lossratio; DB/HTTP task/report paketleri. Bildirimde bir kez fraud, NULL otomatik geçmiş aktörü ve audit.New.auto; Transition görev yaşam döngüsü; rol kilitli en az yük ataması; enjekte saatli SLA, DB hatasına dayanıklı scrape; defterden dönem/boyut raporu. FP-1/FP-2 servis seed'i idempotenttir. Sıfır TransitionOptions SLA'sı hata verir. audit.go ve imzası, 00001–00005 ve saf billing.Adjust değişmedi. Genel A4 refactor yapılmadı; uzun A6 sorguları çok satırlı raw string'dir.
+4. **Testler (son kaynak):**
+   - `make test` — PASS; 66 birim test fonksiyonu.
+   - `./scripts/test-integration.sh` — PASS; 67 entegrasyon testi + TestMain; gerçek PostgreSQL 16, app 51,996 sn. Migrasyon Up/Down/Up dahil.
+   - `./scripts/test-integration.sh -run TestConcurrent -count=10 -race` — 0. bölüm kapısında PASS; mevcut sekiz yarış testi.
+   - `./scripts/test-integration.sh -run 'TestConcurrentTaskAssignment|TestFraudSeedStable' -count=10 -race -v` — PASS (296,007 sn); 20 bağımsız transaction kapıda, her tekrarda 7/7/6; seed/metrics hata testi de on tekrar.
+   - `go test ./internal/fraud ./internal/workflow ./internal/lossratio -coverprofile=/tmp/gp-a6-pure.cover` (backend dizininde) — her paket %100 PASS.
+   - `go test ./internal/auth -run '^TestTokenTamperedSignature$' -count=1000` (backend dizininde) — PASS; ayrı onaylı test düzeltmesi.
+   - `make lint build` — PASS; normal/integration Go vet, ESLint, Go ve TypeScript/Vite build.
+   - `make up`, `make ps` — PASS; db/api/web healthy.
+   - `make verify` — **59 PASS / 0 FAIL**; F-7 dört, T-5 yedi ve T-4 idem-bayt dahil.
+   - OpenAPI 0.6.0 YAML ve 265 yerel $ref hedefi Ruby YAML ile doğrulandı; 37 path, 48 schema.
+   - CUA 375×812: görev/ihlal/fraud/eksper/rapor, boş/hata ve toplam; scrollWidth=innerWidth=375. Viewport geri alındı, sekme kapandı. **ÇALIŞTIRILMADI:** sarı son-%25 rozeti için ayrıca gerçek verili görsel senaryo; koşul uygulandı. Görseller /tmp/gp-a6-ui-{tasks,report,appraiser}-375.png.
+5. **Bilinen eksikler / riskler:** Kurgusal model; yeniden fraud skoru, manuel atama/mesai takvimi, kazanılmış prim/muallak/IBNR yok. Farklı poliçelerde READ COMMITTED sayımı ±1 olabilir. Geçmişe etkili iptalde önceden tahakkuk etmiş sonraki faiz geri alınmaz. Önceden JSONB saklanmış yanıtların eski özgün HTTP baytları geri kazanılamaz; yeni normal yanıtlar bytea ile aynıdır. Eski seed mali kayıtları korunur. Gün sonu ölçek/hata devamı A7, genel okunabilirlik A8. Yeni migrasyonlar 00006–00008; geçiş geçmişi varsa 00008 Down, sıfır toplam varsa eski 00005 Down başarısız olabilir; veri silinmez.
+6. **Atılan commit'ler:** aşağıda hash + mesaj listesi; son teslim doküman commit'i `git log cca6559..HEAD` ve kullanıcıya son yanıtta yer alır. Push yok.
+7. **Sonraki görev:** yalnız öneri A7; yeni CURRENT_TASK/onay olmadan başlanmaz.
+
+**Ek onay ve ara sonuçlar:** Eski TestTokenTamperedSignature son tam koşuda FAIL verdi: son Base64 karakterinin A→B değişimi bazen aynı imza baytlarıydı. Kullanıcı yalnız test düzeltmesini ayrıca onayladı; ilk imza karakteri değiştirildi. Üretim auth kodu değişmedi; 1000 tekrar ve tam paket geçti. ad8fb22 commit'i test sonucunu okumadan yanlışlıkla atıldı; MaxInt64 payda sınırı FAIL idi, hemen b8bb4c5 ile düzeltildi. Geçmiş yeniden yazılmadı; son kaynak testleri yeşil. 0. bölümdeki geçici mutasyon imajı/ilk verify hatası yukarıda kayıtlıdır; son imaj doğru kaynakla yeniden üretildi.
+
+**Mutasyon geri alma kanıtı:** Advisory kilitsiz atama beklenen FAIL verdi (20 bekleyen yok; 5/7/8). İade mutasyonu 201/409 CHECK savunmasıyla FAIL verdi. Mutasyonlar commit edilmedi.
+
+```text
+$ git diff -- backend/internal/task/store.go
+(çıktı yok)
+$ git diff -- backend/internal/payment/service.go
+(çıktı yok)
+$ wc -c /tmp/gp-a6-assignment-restored.diff /tmp/gp-a6-refund-restored.diff
+0 /tmp/gp-a6-assignment-restored.diff
+0 /tmp/gp-a6-refund-restored.diff
+0 total
+$ git diff cca6559 -- backend/internal/audit/audit.go db/migrations/0000[1-5]*
+(çıktı yok)
+```
+
+### A6 dosya manifesti
+
+| Tam yol | Amaç |
+|---|---|
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example](</Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example>) | Kurgusal fraud puan/eşik ve SLA env ayarları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md>) | Kullanıcının onaylı A6 tanımı; ilk commit yalnız bu dosya. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md>) | ADR-14–18 kararları ve açık sınırlamalar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md>) | Eski hash eşlemesi, 0. bölüm kapısı ve kanıta dayalı teslim raporu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md>) | Yalnız A6 kutuları ve F-7/T-5 kanıt matrisi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md>) | Kabul komutları/sonuçları, seed/UI ve mutasyon kanıtları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/cmd/api/main.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/cmd/api/main.go>) | Doğrulanmış fraud/SLA ayarlarını router ve seed hizmetine taşır. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/claim_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/claim_integration_test.go>) | Mevcut hasar testlerinde bağımsız geçerli plaka fixture. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/corrections_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/corrections_integration_test.go>) | 0. bölüm finans/tarih/seed/tetikleyici/çıkmaz regresyonları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/idempotency_recovery_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/idempotency_recovery_integration_test.go>) | Beş yolun çökme kurtarması, bayt eşitliği ve fraud/görev yan etkileri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/integration_test.go>) | Migrasyon sürümü 8 ve ortak kurulum doğrulaması. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/payment_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/payment_integration_test.go>) | İade gate yarışı, faiz/nakit iade/plan tutarları ve fixture plakaları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/policy_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/policy_integration_test.go>) | CLOSED reddedilmiş hasar sonrası geriye dönük değişiklik regresyonu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/report_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/report_integration_test.go>) | İki aylık altın defter verisi, dönem/gruplama/RBAC testleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/router.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/router.go>) | Görev/rapor rotaları, config ve scrape toplayıcısı bağlantıları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/workflow_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/workflow_integration_test.go>) | Fraud kalıcılığı, görev/SLA/RBAC, 20 eşzamanlı atama, seed/metrics. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/auth/jwt_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/auth/jwt_test.go>) | Ayrı kullanıcı onayıyla yalnız imza bozma testinde anlamlı bit değişimi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/fraud.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/fraud.go>) | Hasar tarihli pencere sorgusu, bir defalık sinyal kaydı ve detay okuması. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/repo.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/repo.go>) | Role bağlı fraud/tasks/allowed_transitions alanları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/service.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/service.go>) | Bildirim kurtarması, otomatik inceleme ve Appraise görev kapanışı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/settlement.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/settlement.go>) | Onay/ödemede TransitionOptions ile saat/SLA taşır. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/transition.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/transition.go>) | Tek geçiş noktasında seçenek kontrolü, otomatik geçmiş ve görev akışı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/transition_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/transition_test.go>) | Sıfır/eksik SLA seçeneklerinin DB erişiminden önce reddi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/config/config.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/config/config.go>) | Fraud/SLA env ayarlarını okur ve doğrular. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/config/config_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/config/config_test.go>) | Varsayılan/özel/sıfır/negatif/bozuk env testleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/fraud/fraud.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/fraud/fraud.go>) | DB/saat bağımsız üç kurgusal fraud kuralı ve güvenli ayarlar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/fraud/fraud_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/fraud/fraud_test.go>) | DB/saat bağımsız üç kurgusal fraud kuralı ve güvenli ayarlar için altın/sınır testleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/idempotency/context.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/idempotency/context.go>) | Context iş anahtarı ve named UNIQUE ihlalini 409 eşleme. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/idempotency/idempotency.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/idempotency/idempotency.go>) | Normal yanıtı bytea baytlarıyla saklar ve tekrar döner. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/lossratio/lossratio.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/lossratio/lossratio.go>) | big.Int ile güvenli yarımı yukarı baz puan oranı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/lossratio/lossratio_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/lossratio/lossratio_test.go>) | big.Int ile güvenli yarımı yukarı baz puan oranı için altın/sınır testleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/repo.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/repo.go>) | GET billing kilitsiz tek REPEATABLE READ READ ONLY snapshot. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/run.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/run.go>) | Ortak faize doğru dönem/yevmiye tarihlerini geçirir. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/service.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/service.go>) | Poliçe kilidinden sonra erken iş anahtarı; ödeme tarihi alt sınırı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/accrual.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/accrual.go>) | Faiz aralığı/yevmiye tarihini ayırır; tek oran kaynağı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/adjustment.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/adjustment.go>) | Ek prim vadesi, ayar öncesi faiz, işlem tarihli mali kayıt/iade. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/payment.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/payment.go>) | Manuel iş anahtarı ve işlem tarihli otomatik nakit iade. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/replay.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/payment/store/replay.go>) | Aktör/poliçe/anahtar üzerinden mevcut ödemeyi okur. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/platform/metrics/metrics.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/platform/metrics/metrics.go>) | Mutex dışında 250 ms timeoutlu scrape toplayıcısı; hata izolasyonu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/platform/metrics/metrics_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/platform/metrics/metrics_test.go>) | Taze scrape, hatada eski değer saklamama ve kilitsiz callback. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/change.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/change.go>) | Zeyil/iptal kurtarması, saat/oran, kilitsiz önizleme ve red istisnası. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/handler.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/handler.go>) | Ortak saat/faiz oranını değişiklik hizmetine geçirir. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/replay.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/policy/replay.go>) | Poliçe kilidi sonrası zeyil/iptal iş anahtarını erken bulur. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/report/report.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/report/report.go>) | 4000/5000 defterden dönem/boyut raporu ve HTTP doğrulaması. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/billing.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/billing.go>) | A/B poliçelerini geçerli plakayla tarifeden fiyatlar; eskiyi korur. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/demo.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/demo.go>) | İkinci eksper/uzman, üç atölye ve commit sonrası servis seed akışı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/fraud.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/fraud.go>) | FP-1/FP-2 numara/iş anahtarlarıyla fraud/SLA servis senaryosu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/policy.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/seed/policy.go>) | Gerçek tarife fiyat motoru ve mevcut Issue yardımcısını kullanır. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/task/handler.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/task/handler.go>) | Görev filtre/keyset, zorunlu eksper ataması ve özet/iş yükü HTTP. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/task/repo.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/task/repo.go>) | Görev/iş yükü/SLA sorguları ve enjekte saatli yanıtlar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/task/store.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/task/store.go>) | Aynı transactionda görev aç/kapat; rol advisory kilitli atama. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/workflow/workflow.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/workflow/workflow.go>) | Saf vade/ihlal/atama/boş havuz kuralları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/workflow/workflow_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/workflow/workflow_test.go>) | Saf vade/ihlal/atama/boş havuz kuralları için altın/sınır testleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00006_business_request_keys.sql](</Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00006_business_request_keys.sql>) | İş anahtarları/kısmi UNIQUE indeksler ve JSONB→bytea. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00007_policy_endorsement_link_guard.sql](</Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00007_policy_endorsement_link_guard.sql>) | Zeyil bağını aynı poliçe ve ürettiği sürümle sınırlar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00008_claim_workflow_indexes.sql](</Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00008_claim_workflow_indexes.sql>) | Fraud→Appraisal geçişi; eksik workshop/yevmiye tarih indeksleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docker-compose.yml](</Users/macair/Okulda yapılan çalışma/guvenpolice/docker-compose.yml>) | Fraud/SLA env ayarlarını API konteynerine aktarır. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/api/types.ts](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/api/types.ts>) | Fraud, görev, iş yükü ve rapor yanıt tipleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/ClaimDetail.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/ClaimDetail.tsx>) | Fraud açıklamaları/görevler ve sunucu geçiş butonları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/TaskTable.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/components/TaskTable.tsx>) | Ortak görev tablosu ve kırmızı/sarı/yeşil SLA rozeti. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/ClaimsPage.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/ClaimsPage.tsx>) | FRAUD_REVIEW durum filtresi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/Dashboard.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/Dashboard.tsx>) | Rol korumalı görev/fraud/rapor ekranlarını bağlar. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/ReportsPage.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/ReportsPage.tsx>) | Dönem/grup seçimi, TL/yüzde/toplam ve boş/yükleniyor/hata. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/TasksPage.tsx](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/TasksPage.tsx>) | Görevlerim, görev/fraud filtresi ve uzman iş yükü paneli. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/roles.ts](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/roles.ts>) | Görev/fraud ve muhasebe/UW rapor menüleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/styles.css](</Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/styles.css>) | SLA renkleri ve 375 px görev/rapor satırları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/openapi.yaml](</Users/macair/Okulda yapılan çalışma/guvenpolice/openapi.yaml>) | 0.6.0 uç/alan/hata sözleşmesi ve dönem tanımı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http](</Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http>) | Mevcut named login değişkenleriyle A6 istek örnekleri. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/verify.sh](</Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/verify.sh>) | F-7/T-5, paralel farklı poliçe ataması ve ödeme cmp kanıtları. |
+
+### A6 yerel commitleri (teslim dokümanından önce)
+
+- `d5574a9 docs: A6 görev tanımı`
+- `16c7a6f fix(billing): geriye dönük ek prim vadesini bugünden önceye alma`
+- `62fdb8a fix(billing): prim ayarından önce ortak oranla faiz tahakkuk ettir`
+- `934ee33 fix(ledger): prim ayarı ve nakit iadeyi işlem tarihinde kaydet`
+- `f0173b1 fix(policy): reddedilip kapanmış hasarı değişiklik engeline dahil etme`
+- `67ac562 fix(idempotency): iş anahtarıyla çökme tekrarını önle ve yanıt baytlarını koru`
+- `d8edffe fix(db): zeyil bağlantısını aynı poliçe ve üretilen sürümle sınırla`
+- `24f6467 fix(claim): incelemeden ekspertize dönüşü ve ekspertiz koşulunu ekle`
+- `ab80483 fix(seed): primleri tarifeden hesapla ve demo uzman atölye havuzunu tamamla`
+- `fa5dbec fix(payment): tarih sınırı, kilitsiz okumalar ve iade yarışını doğrula`
+- `252ea30 docs(progress): geçmiş commit hashlerini mevcut mesajlarla eşleştir`
+- `c230bfb docs: A6 düzeltme kapısı ve iade mutasyonu kanıtlarını kaydet`
+- `ad8fb22 feat(domain): saf fraud, workflow SLA ve lossratio hesapları`
+- `b8bb4c5 fix(lossratio): büyük paydada yuvarlama ara taşmasını önle`
+- `84b9690 feat(task): rol kilitli atama, SLA sorguları ve scrape toplayıcısı`
+- `e92d851 feat(claim): bildirimde fraud skoru, otomatik inceleme ve SLA görev akışı`
+- `f4d987f feat(report): defterden dönem ve boyut bazlı prim hasar raporu`
+- `237f8ee feat(seed): servislerle idempotent fraud ve gecikmiş SLA örnekleri`
+- `41182ad test(auth): imza mutasyonunda anlamlı Base64 bitlerini değiştir`
+- `7799b22 fix(domain): fraud ayar taşmasını önle ve sıfır gün detayını koru`
+- `b8ca8fc test(task): seed sabitliğini, sayısal SLA ve kilit mutasyonunu doğrula`
+- `4e955a6 feat(web): fraud kuyruğu, SLA görevleri ve prim raporu ekranları`
+- `5c12355 test(verify): F-7 rapor ve T-5 paralel atama kanıtlarını ekle`
