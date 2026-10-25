@@ -16,9 +16,11 @@ func TestDefaultsAndParameters(t *testing.T) {
 	require.NoError(t, err)
 	c.Workers = 16
 	c.Live = true
-	_, b, err := c.parameters()
+	raw, b, err := c.parameters()
 	require.NoError(t, err)
 	assert.Equal(t, a, b)
+	assert.Contains(t, string(raw), `"workers":16`)
+	assert.Contains(t, string(raw), `"live":true`)
 	c.Seed++
 	_, b, err = c.parameters()
 	require.NoError(t, err)

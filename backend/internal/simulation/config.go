@@ -84,10 +84,19 @@ func (c Config) Validate() error {
 }
 
 func (c Config) parameters() ([]byte, string, error) {
-	raw, err := json.Marshal(struct {
+	business, err := json.Marshal(struct {
 		Version int `json:"version"`
 		Config
 	}{1, c})
-	sum := sha256.Sum256(raw)
-	return raw, hex.EncodeToString(sum[:]), err
+	if err != nil {
+		return nil, "", err
+	}
+	sum := sha256.Sum256(business)
+	stored, err := json.Marshal(struct {
+		Version int `json:"version"`
+		Config
+		Workers int  `json:"workers"`
+		Live    bool `json:"live"`
+	}{1, c, c.Workers, c.Live})
+	return stored, hex.EncodeToString(sum[:]), err
 }
