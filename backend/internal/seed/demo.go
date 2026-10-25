@@ -1,4 +1,4 @@
-// Package seed demo verisini (6 rol hesabı, acente, örnek müşteriler) idempotent olarak yükler.
+// Package seed demo verisini (6 rol hesabı, acente, örnek müşteriler, örnek tarifeler) idempotent olarak yükler.
 // Tüm kişi/kimlik bilgileri kurgudur.
 package seed
 
@@ -44,6 +44,7 @@ var demoCustomers = []demoCustomer{
 	{"10000000002", "Mehmet Yılmaz", "1975-02-28", "06", "", true},
 	{"10000000003", "Zeynep Kaya", "2000-02-29", "35", "", true},
 	{"10000000004", "Ali Çelik", "1962-11-30", "16", "", false},
+	{"10000000005", "Can Öztürk", "2007-05-10", "06", "", true}, // genç sürücü: UW_REVIEW senaryosu
 }
 
 // Demo yükler. Var olan kullanıcıların parolası DEMO_PASSWORD ile eşleşmiyorsa güncellenir;
@@ -109,6 +110,6 @@ func Demo(ctx context.Context, pool *pgxpool.Pool, password string) error {
 				return fmt.Errorf("demo müşteri %s: %w", c.fullName, err)
 			}
 		}
-		return nil
+		return tariffs(ctx, tx)
 	})
 }

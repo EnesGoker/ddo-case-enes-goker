@@ -14,9 +14,13 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/customer"
 	"github.com/EnesGoker/guvenpolice/backend/internal/health"
+	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/logging"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/metrics"
+	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
+	"github.com/EnesGoker/guvenpolice/backend/internal/quote"
+	"github.com/EnesGoker/guvenpolice/backend/internal/tariff"
 )
 
 type Deps struct {
@@ -27,17 +31,26 @@ type Deps struct {
 	RefreshTokenTTL time.Duration
 	CookieSecure    bool
 	RequestTimeout  time.Duration
+	// UWPremiumThresholdKurus 0 ise kural kapalı
+	UWPremiumThresholdKurus int64
+	IdempotencyStaleAfter   time.Duration
+	Now                     func() time.Time
 }
 
 func NewRouter(d Deps) http.Handler {
 	if d.RequestTimeout == 0 {
 		d.RequestTimeout = 15 * time.Second
 	}
+	if d.Now == nil {
+		d.Now = time.Now
+	}
 	reg := metrics.NewRegistry()
 	tokens := auth.NewTokenIssuer(d.JWTSecret, d.AccessTokenTTL)
 	authSvc := auth.NewService(d.Pool, tokens, d.RefreshTokenTTL)
 	authH := auth.NewHandler(authSvc, tokens, d.CookieSecure, reg)
 	customers := customer.NewRepo(d.Pool)
+	quotes := quote.NewHandler(quote.NewService(d.Pool, d.Now, d.UWPremiumThresholdKurus))
+	idem := idempotency.NewStore(d.Pool, d.IdempotencyStaleAfter)
 
 	r := chi.NewRouter()
 	r.Use(logging.RequestIDMiddleware)
@@ -62,6 +75,23 @@ func NewRouter(d Deps) http.Handler {
 			r.Use(auth.Authenticate(tokens))
 			r.With(auth.RequireRoles(auth.RoleAgent, auth.RoleUnderwriter)).
 				Get("/customers", customer.ListHandler(customers))
+			r.With(auth.RequireRoles(auth.RoleAgent, auth.RoleUnderwriter)).
+				Get("/tariffs/active", tariff.ActiveHandler(d.Pool, d.Now))
+
+			r.Route("/quotes", func(r chi.Router) {
+				agent := auth.RequireRoles(auth.RoleAgent)
+				readers := auth.RequireRoles(auth.RoleAgent, auth.RoleUnderwriter, auth.RoleCustomer)
+				r.With(agent).Post("/preview", quotes.Preview)
+				r.With(agent).Post("/", quotes.Create)
+				r.With(readers).Get("/", quotes.List)
+				r.With(readers).Get("/{id}", quotes.Get)
+				r.With(auth.RequireRoles(auth.RoleUnderwriter)).Post("/{id}/review", quotes.Review)
+				r.With(agent, idem.Middleware).Post("/{id}/convert", quotes.Convert)
+			})
+
+			r.With(auth.RequireRoles(auth.RoleCustomer, auth.RoleAgent, auth.RoleUnderwriter,
+				auth.RoleClaimsAdjuster, auth.RoleAccounting)).
+				Get("/policies", policy.ListHandler(d.Pool))
 		})
 	})
 	return r

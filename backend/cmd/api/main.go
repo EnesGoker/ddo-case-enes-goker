@@ -71,6 +71,9 @@ func run() error {
 			AccessTokenTTL:  cfg.AccessTokenTTL,
 			RefreshTokenTTL: cfg.RefreshTokenTTL,
 			CookieSecure:    cfg.CookieSecure,
+
+			UWPremiumThresholdKurus: cfg.UWPremiumThresholdKurus,
+			IdempotencyStaleAfter:   cfg.IdempotencyStaleAfter,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,

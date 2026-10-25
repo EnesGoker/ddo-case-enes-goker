@@ -20,6 +20,10 @@ type Config struct {
 	SeedDemo        bool
 	DemoPassword    string
 	LogLevel        string
+	// UWPremiumThresholdKurus bu tutarı aşan teklif underwriter onayına düşer (0 = kapalı)
+	UWPremiumThresholdKurus int64
+	// IdempotencyStaleAfter IN_PROGRESS anahtarın yeniden işlenebileceği süre
+	IdempotencyStaleAfter time.Duration
 }
 
 // Load ortamı okur ve doğrular. Eksik/zayıf secret ile servis açılmaz.
@@ -44,6 +48,17 @@ func Load() (Config, error) {
 	}
 	if c.SeedDemo, err = boolean("SEED_DEMO", true); err != nil {
 		return c, err
+	}
+	if c.IdempotencyStaleAfter, err = duration("IDEMPOTENCY_STALE_AFTER", 60*time.Second); err != nil {
+		return c, err
+	}
+	c.UWPremiumThresholdKurus = 3_000_000
+	if v := os.Getenv("UW_PREMIUM_THRESHOLD_KURUS"); v != "" {
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || n < 0 {
+			return c, fmt.Errorf("UW_PREMIUM_THRESHOLD_KURUS geçersiz: %q", v)
+		}
+		c.UWPremiumThresholdKurus = n
 	}
 
 	if c.DatabaseURL == "" {

@@ -85,6 +85,9 @@ func run(m *testing.M) int {
 		JWTSecret:       []byte("integration-secret-at-least-32-bytes"),
 		AccessTokenTTL:  time.Minute,
 		RefreshTokenTTL: time.Hour,
+
+		UWPremiumThresholdKurus: 3_000_000,
+		IdempotencyStaleAfter:   time.Minute,
 	}))
 	defer server.Close()
 	return m.Run()
@@ -122,6 +125,13 @@ func newClient(t *testing.T) *client {
 
 func (c *client) do(method, path, token string, body any) (int, map[string]any) {
 	c.t.Helper()
+	status, out, _ := c.doH(method, path, token, body, nil)
+	return status, out
+}
+
+// doH ek başlıklarla istek atar; yanıt başlıklarını da döner.
+func (c *client) doH(method, path, token string, body any, headers map[string]string) (int, map[string]any, http.Header) {
+	c.t.Helper()
 	var r io.Reader
 	if body != nil {
 		b, _ := json.Marshal(body)
@@ -133,6 +143,9 @@ func (c *client) do(method, path, token string, body any) (int, map[string]any) 
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 	resp, err := c.http.Do(req)
 	require.NoError(c.t, err)
 	defer resp.Body.Close()
@@ -141,7 +154,7 @@ func (c *client) do(method, path, token string, body any) (int, map[string]any) 
 	if len(raw) > 0 {
 		_ = json.Unmarshal(raw, &out)
 	}
-	return resp.StatusCode, out
+	return resp.StatusCode, out, resp.Header
 }
 
 func (c *client) login(email, password string) (int, map[string]any) {
@@ -254,17 +267,17 @@ func TestCustomersRBAC(t *testing.T) {
 		assert.Equal(t, "FORBIDDEN", errCode(body), email)
 	}
 
-	// Acente yalnızca kendi 3 müşterisini görür; underwriter 4'ünü
+	// Acente yalnızca kendi 4 müşterisini görür; underwriter 5'ini
 	status, body = c.do(http.MethodGet, "/api/v1/customers", tokenFor("acente@guvenpolice.test"), nil)
 	require.Equal(t, 200, status)
-	assert.Len(t, body["items"], 3)
+	assert.Len(t, body["items"], 4)
 	first := body["items"].([]any)[0].(map[string]any)
 	assert.Equal(t, "*******0001", first["national_id_masked"])
 
 	uw := tokenFor("underwriter@guvenpolice.test")
 	status, body = c.do(http.MethodGet, "/api/v1/customers", uw, nil)
 	require.Equal(t, 200, status)
-	assert.Len(t, body["items"], 4)
+	assert.Len(t, body["items"], 5)
 
 	// Keyset: limit=2 → imleç ile sonraki sayfa
 	status, body = c.do(http.MethodGet, "/api/v1/customers?limit=2", uw, nil)
@@ -358,8 +371,11 @@ func TestSeedIsIdempotent(t *testing.T) {
 	var users, customers int
 	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM users`).Scan(&users))
 	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM customers`).Scan(&customers))
-	assert.Equal(t, 6, users)
-	assert.Equal(t, 4, customers)
+	assert.GreaterOrEqual(t, users, 6, "diğer testler ek kullanıcı açabilir")
+	assert.Equal(t, 5, customers)
+	var tariffs int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM tariff_versions WHERE status = 'ACTIVE'`).Scan(&tariffs))
+	assert.Equal(t, 4, tariffs)
 }
 
 func TestMetricsExposed(t *testing.T) {
