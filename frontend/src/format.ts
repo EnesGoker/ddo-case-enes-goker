@@ -77,3 +77,8 @@ export function newIdempotencyKey(): string {
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
+
+// Dönem sonu hariçtir; bu yalnız görünüm etiketidir, veritabanı durumu değişmez.
+export function policyStatusLabel(status: string, endDate: string): string {
+  return status === 'ACTIVE' && endDate <= todayISO() ? 'Süresi doldu' : statusLabels[status] ?? status
+}

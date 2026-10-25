@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { api, ApiError } from '../api/client'
 import type { Role } from '../api/client'
 import type { CoverageOnDate, PolicyDetail } from '../api/types'
-import { cancelReasonLabels, errorText, formatTL, statusLabels, todayISO } from '../format'
+import { cancelReasonLabels, errorText, formatTL, policyStatusLabel, todayISO } from '../format'
 import { ReportClaimForm } from './ClaimForms'
 import { BillingPanel } from './BillingPanel'
 import { CalcSteps } from './CalcSteps'
@@ -54,7 +54,7 @@ function PolicyDetailView({ policy, role, reload }: { policy: PolicyDetail; role
   return (
     <section className="panel">
       <h3>
-        {policy.policy_no} · {policy.product} · <span className="badge">{statusLabels[policy.status] ?? policy.status}</span>
+        {policy.policy_no} · {policy.product} · <span className="badge">{policyStatusLabel(policy.status, policy.end_date)}</span>
       </h3>
       <dl className="profile">
         <dt>Sigortalı</dt><dd>{policy.customer_name}</dd>

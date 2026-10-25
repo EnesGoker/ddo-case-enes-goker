@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useActivity } from '../hooks/useActivity'
+import { ActivityIndicator } from '../components/ActivityIndicator'
+import { SystemPage } from './SystemPage'
 import type { User } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { RequireRole } from '../components/RequireRole'
@@ -14,6 +17,7 @@ import { ReportsPage } from './ReportsPage'
 
 export function Dashboard({ user }: { user: User }) {
   const { logout } = useAuth()
+  const activityState = useActivity()
   const items = menuFor(user.role)
   const [active, setActive] = useState(items[0].key)
   const current = items.find((i) => i.key === active) ?? items[0]
@@ -22,6 +26,7 @@ export function Dashboard({ user }: { user: User }) {
     <div className="layout">
       <header className="topbar">
         <strong>GüvenPoliçe</strong>
+        <ActivityIndicator activity={activityState.activity} error={activityState.error} checkedAt={activityState.checkedAt} />
         <span className="user">
           {user.full_name} · <span className="badge">{roleLabels[user.role]}</span>
         </span>
@@ -40,6 +45,7 @@ export function Dashboard({ user }: { user: User }) {
       </nav>
       <main className="content">
         <h2>{current.label}</h2>
+        {current.key === 'system' && <SystemPage {...activityState} />}
         {current.key === 'profile' && (
           <dl className="profile">
             <dt>Ad Soyad</dt><dd>{user.full_name}</dd>

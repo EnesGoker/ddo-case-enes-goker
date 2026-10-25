@@ -3,7 +3,7 @@ import type { Role } from '../api/client'
 import type { PolicyItem } from '../api/types'
 import { PolicyDetailLoader } from '../components/PolicyDetail'
 import { Empty, ErrorBox, Loading } from '../components/States'
-import { formatTL, statusLabels } from '../format'
+import { formatTL, policyStatusLabel } from '../format'
 import { usePaged } from '../hooks/usePaged'
 
 export function PoliciesPage({ role }: { role: Role }) {
@@ -36,7 +36,7 @@ export function PoliciesPage({ role }: { role: Role }) {
                 <td data-label="Ürün">{p.product}{p.vehicle_plate ? ` · ${p.vehicle_plate}` : ''}</td>
                 <td data-label="Sigortalı">{p.customer_name}</td>
                 <td data-label="Dönem">{p.start_date} → {p.end_date}</td>
-                <td data-label="Durum">{statusLabels[p.status] ?? p.status}</td>
+                <td data-label="Durum">{policyStatusLabel(p.status, p.end_date)}</td>
                 <td data-label="Yıllık prim" className="num">{formatTL(p.annual_premium_kurus)}</td>
               </tr>
             ))}

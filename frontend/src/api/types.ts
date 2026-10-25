@@ -343,3 +343,27 @@ export interface ProductionRow {
   loss_ratio_bp: number | null
 }
 export interface ProductionReport { group_by: string; items: ProductionRow[]; total: ProductionRow }
+
+export interface Activity {
+  db_ok: boolean
+  last_event_at: string | null
+  minutes: { at: string; count: number }[]
+  simulation: {
+    status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'LIVE'
+    phase: string
+    done: number
+    target: number
+    seed: number
+    fingerprint: string | null
+    started_at: string
+    finished_at: string | null
+    summary: {
+      policies?: { product: string; status: string; count: number }[]
+      claims?: { status: string; count: number; flagged: number }[]
+      tasks?: { open: number; breached: number }
+      ledger?: { written_premium_kurus: number; cash_kurus: number; claim_expense_kurus: number }
+      balanced?: boolean
+      receivable_matches?: boolean
+    }
+  } | null
+}

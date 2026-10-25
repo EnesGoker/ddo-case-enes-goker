@@ -176,3 +176,11 @@ details.endorsement summary { cursor: pointer; font-weight: 600; }
   .profile { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
   .profile dd { overflow-wrap: anywhere; }
 }
+
+.activity-indicator { font-size: .8rem; }
+.activity-indicator.connected { color: #176b3a; }
+.activity-indicator.disconnected { color: #a92b2b; }
+.minute-bars { display: flex; align-items: flex-end; gap: 3px; height: 110px; margin-top: 12px; }
+.minute-bars span { flex: 1; min-width: 2px; background: #2768a6; }
+.fingerprint { overflow-wrap: anywhere; font-size: .8rem; }
+progress { width: 100%; }

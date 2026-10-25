@@ -63,7 +63,8 @@ export function AccountingPage() {
       <label>Gün sonu tarihi<input type="date" required max={todayISO()} value={asOf} onChange={(e) => setAsOf(e.target.value)} disabled={busy} /></label>
       <button disabled={busy}>{busy ? 'Çalışıyor…' : 'Gün sonu çalıştır'}</button>
     </form>
-    {run && <div className="notice success" role="status">{run.done ? 'Tamamlandı' : `İşleniyor (#${run.next_after_policy_id})`} · {run.as_of}: {run.accrual_count} faiz kaydı, {formatTL(run.interest_kurus)}; iptal: {run.cancelled.join(', ') || 'yok'}; atlanan: {run.skipped.map((p) => `#${p.policy_id} ${p.reason}`).join(', ') || 'yok'}; hata: {run.failed.map((p) => `#${p.policy_id} ${p.code}`).join(', ') || 'yok'}</div>}
+    {run && <div className={`notice ${run.failed.length ? 'error' : 'success'}`} role="status">{run.done ? 'Tamamlandı' : busy ? `İşleniyor (#${run.next_after_policy_id})` : `Yarım kaldı (#${run.next_after_policy_id})`} · {run.as_of}: {run.accrual_count} faiz kaydı, {formatTL(run.interest_kurus)}; iptal: {run.cancelled.join(', ') || 'yok'}; atlanan: {run.skipped.map((p) => `#${p.policy_id} ${p.reason}`).join(', ') || 'yok'}; hata: {run.failed.map((p) => `#${p.policy_id} ${p.code}`).join(', ') || 'yok'}</div>}
+    {run && (run.failed.length > 0 || run.skipped.length > 0) && <p>Atlanan veya başarısız poliçeler yeni bir gün sonu koşusunda yeniden denenir.</p>}
     {error && <ErrorBox message={error} onRetry={reload} />}
     {!trial && !error && <Loading text="Mizan yükleniyor…" />}
     {trial && <section className="panel">
