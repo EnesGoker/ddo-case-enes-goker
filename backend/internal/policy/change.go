@@ -716,7 +716,11 @@ func concurrentChange(err error) error {
 // Hasar açma da aynı poliçe satırını kilitler: kontrol ile sürüm değişikliği arasına hasar giremez.
 func claimsAfter(ctx context.Context, q db.DBTX, policyID int64, at time.Time) error {
 	var found bool
-	if err := q.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM claims WHERE policy_id = $1 AND status <> 'REJECTED' AND loss_date >= $2)`, policyID, at).Scan(&found); err != nil {
+	if err := q.QueryRow(ctx, `
+ SELECT EXISTS (SELECT 1 FROM claims c
+  WHERE c.policy_id = $1 AND c.loss_date >= $2
+    AND NOT EXISTS (SELECT 1 FROM claim_status_history h
+                    WHERE h.claim_id=c.id AND h.to_status='REJECTED'))`, policyID, at).Scan(&found); err != nil {
 		return err
 	}
 	if found {

@@ -212,7 +212,8 @@ func TestClaimsBlockBackdatedPolicyChanges(t *testing.T) {
 			}
 		}
 	}
-	transitionClaim(t, adjuster, c, "REJECTED")
+	c = transitionClaim(t, adjuster, c, "REJECTED")
+	transitionClaim(t, adjuster, c, "CLOSED")
 	s, b, _ := postKey(t, agent, policyPath(pol)+"/endorsements", map[string]any{"effective_date": day(today, -1), "vehicle_group": "D"}, fmt.Sprintf("rejected-z-%v", pol["id"]))
 	assert.Equal(t, 201, s, b)
 }
