@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -45,12 +46,14 @@ func TestTokenTamperedSignature(t *testing.T) {
 	tok, err := iss.Issue(Principal{UserID: 1, Role: RoleCustomer})
 	require.NoError(t, err)
 
-	// İmzanın son karakterini değiştir
+	// İlk imza karakterini değiştir: son Base64 karakterinin kullanılmayan
+	// bitlerini değiştirmek aynı imza baytlarına çözülebilir.
 	b := []byte(tok)
-	if b[len(b)-1] == 'A' {
-		b[len(b)-1] = 'B'
+	signatureStart := strings.LastIndexByte(tok, '.') + 1
+	if b[signatureStart] == 'A' {
+		b[signatureStart] = 'B'
 	} else {
-		b[len(b)-1] = 'A'
+		b[signatureStart] = 'A'
 	}
 	_, err = iss.Parse(string(b))
 	assert.ErrorIs(t, err, ErrInvalidToken)
