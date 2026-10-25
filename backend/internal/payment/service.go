@@ -119,6 +119,18 @@ func (s *Service) Pay(ctx context.Context, id int64, req PayRequest) (store.Paym
 			out = previous
 			return nil
 		}
+		var issued time.Time
+		if err := tx.QueryRow(ctx, `SELECT created_at FROM policies WHERE id=$1`, id).Scan(&issued); err != nil {
+			return err
+		}
+		start, _ := caldate.Parse(h.StartDate)
+		minimum := caldate.Today(issued)
+		if start.Before(minimum) {
+			minimum = start
+		}
+		if at.Before(minimum) {
+			return httpx.NewError(http.StatusUnprocessableEntity, "PAYMENT_DATE_BEFORE_POLICY", "ödeme tarihi poliçe başlangıcı ve düzenleme gününün en küçüğünden önce olamaz")
+		}
 		state, err := store.Load(ctx, tx, id)
 		if err != nil {
 			return err

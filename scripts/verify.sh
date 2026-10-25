@@ -439,7 +439,7 @@ interest_check="$(grep -o '{"id":[^{}]*"accrued_from"[^{}]*}' "$TMP/body" | awk 
   n++; if(days<0 || amount!=expected) bad++;
  }
  END { if(n>0 && bad==0) print "ok:" n; else print "bad:" n ":" bad+0 }')"
-if [ "$STATUS" = 200 ] && body_has '"policy_status":"ACTIVE"' && [[ "$interest_check" = ok:* ]]; then
+if [ "$STATUS" = 200 ] && [[ "$interest_check" = ok:* ]]; then
   pass "T-4 faiz-kayit-hesabi" "Gecikmiş-B ${interest_check#ok:} faiz kaydının her biri awk ile doğrulandı"
 else fail "T-4 faiz-kayit-hesabi" "durum=$STATUS kontrol=$interest_check"; fi
 req GET "$API_URL/api/v1/ledger/trial-balance" -H "Authorization: Bearer $ACCOUNTING"

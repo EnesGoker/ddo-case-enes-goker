@@ -400,8 +400,8 @@ func (pl vehiclePlan) preview() VehicleChangePreview {
 
 func (s *ChangeService) PreviewVehicleChange(ctx context.Context, id int64, req VehicleChangeRequest) (VehicleChangePreview, error) {
 	var out VehicleChangePreview
-	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		pl, err := s.planVehicle(ctx, tx, id, req, true)
+	err := pgx.BeginTxFunc(ctx, s.pool, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
+		pl, err := s.planVehicle(ctx, tx, id, req, false)
 		if err != nil {
 			return err
 		}
@@ -618,8 +618,8 @@ func (pl cancelPlan) preview() CancelPreview {
 
 func (s *ChangeService) PreviewCancel(ctx context.Context, id int64, req CancelRequest) (CancelPreview, error) {
 	var out CancelPreview
-	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		pl, err := s.planCancel(ctx, tx, id, req, true)
+	err := pgx.BeginTxFunc(ctx, s.pool, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
+		pl, err := s.planCancel(ctx, tx, id, req, false)
 		if err != nil {
 			return err
 		}

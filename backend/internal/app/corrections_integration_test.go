@@ -173,3 +173,41 @@ func TestSeedPoliciesUsePricingAndValidPlates(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM workshops WHERE name LIKE 'Kurgusal %'`).Scan(&workshops))
 	assert.Equal(t, 3, workshops)
 }
+
+func TestPaymentDateBeforePolicyAndReadOnlySnapshots(t *testing.T) {
+	defer assertBillingInvariant(t)
+	account, agent := tokenFor(t, "muhasebe@guvenpolice.test"), tokenFor(t, "acente@guvenpolice.test")
+	pol := issuePolicy(t, agent)
+	yesterday := day(caldate.Today(time.Now()), -1)
+	s, b, _ := postKey(t, account, policyPath(pol)+"/payments", map[string]any{"amount_kurus": 1, "method": "CASH", "payment_date": yesterday}, fmt.Sprintf("too-early-%v", pol["id"]))
+	require.Equal(t, http.StatusUnprocessableEntity, s, b)
+	assert.Equal(t, "PAYMENT_DATE_BEFORE_POLICY", errCode(b))
+	payBilling(t, account, pol, 1, "before-start")
+	gate, err := pool.Begin(context.Background())
+	require.NoError(t, err)
+	defer gate.Rollback(context.Background())
+	_, err = gate.Exec(context.Background(), `SELECT id FROM policies WHERE id=$1 FOR UPDATE`, num(pol["id"]))
+	require.NoError(t, err)
+	result := make(chan int, 1)
+	go func() {
+		s, _ := get(t, account, policyPath(pol)+"/billing")
+		if s != http.StatusOK {
+			result <- s
+			return
+		}
+		s, _ = newClient(t).do(http.MethodPost, policyPath(pol)+"/endorsements/preview", agent, map[string]any{"effective_date": day(dateOf(t, pol["start_date"]), 10), "vehicle_group": "D"})
+		if s != http.StatusOK {
+			result <- s
+			return
+		}
+		s, _ = newClient(t).do(http.MethodPost, policyPath(pol)+"/cancel/preview", agent, map[string]any{"effective_date": day(dateOf(t, pol["start_date"]), 20), "reason": "CUSTOMER_REQUEST"})
+		result <- s
+	}()
+	select {
+	case s := <-result:
+		assert.Equal(t, http.StatusOK, s)
+	case <-time.After(2 * time.Second):
+		t.Error("salt okunur yollar poliçe satırı kilidini beklememeli")
+	}
+	require.NoError(t, gate.Rollback(context.Background()))
+}

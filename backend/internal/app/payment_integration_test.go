@@ -209,13 +209,36 @@ func TestConcurrentRefunds(t *testing.T) {
 	account := tokenFor(t, "muhasebe@guvenpolice.test")
 	pol := billingPolicy(t, 0, 1, 30000)
 	p := payBilling(t, account, pol, 20000, "pay")
-	codes := runParallel(t, 2, func(i int) int {
-		s, b, _ := postKey(t, account, fmt.Sprintf("/api/v1/payments/%v/refund", p["id"]), map[string]any{"amount_kurus": 15000, "reason": "yarış"}, fmt.Sprintf("refund-race-%v-%d", p["id"], i))
-		if s == http.StatusUnprocessableEntity {
-			assert.Equal(t, "REFUND_EXCEEDS_PAYMENT", errCode(b))
-		}
-		return s
-	})
+	gate, err := pool.Begin(context.Background())
+	require.NoError(t, err)
+	defer gate.Rollback(context.Background())
+	rows, err := gate.Query(context.Background(), `
+  SELECT i.id FROM installments i JOIN installment_plans pl ON pl.id=i.plan_id
+   WHERE pl.policy_id=$1 FOR UPDATE OF i`, num(pol["id"]))
+	require.NoError(t, err)
+	_, err = pgx.CollectRows(rows, pgx.RowTo[int64])
+	require.NoError(t, err)
+	result := make(chan []int, 1)
+	go func() {
+		codes := runParallel(t, 2, func(i int) int {
+			s, b, _ := postKey(t, account, fmt.Sprintf("/api/v1/payments/%v/refund", p["id"]), map[string]any{"amount_kurus": 15000, "reason": "yarış"}, fmt.Sprintf("refund-race-%v-%d", p["id"], i))
+			if s == http.StatusUnprocessableEntity {
+				assert.Equal(t, "REFUND_EXCEEDS_PAYMENT", errCode(b))
+			}
+			t.Logf("iade %d: HTTP %d %v", i, s, b)
+			return s
+		})
+		result <- codes
+	}()
+	require.Eventually(t, func() bool {
+		var waiting int
+		err := pool.QueryRow(context.Background(), `
+   SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock'
+    AND (query LIKE '%FROM policies p%' OR query LIKE '%UPDATE installments SET%')`).Scan(&waiting)
+		return err == nil && waiting >= 2
+	}, 5*time.Second, 10*time.Millisecond)
+	require.NoError(t, gate.Commit(context.Background()))
+	codes := <-result
 	assert.ElementsMatch(t, []int{http.StatusCreated, http.StatusUnprocessableEntity}, codes)
 	b := billingDetail(t, account, pol)
 	assert.Equal(t, int64(25000), num(b["open_balance_kurus"]))
@@ -290,6 +313,23 @@ func TestBillingPremiumAdjustmentsAndCashRefund(t *testing.T) {
 	s, minus, _ := postKey(t, agent, policyPath(pol)+"/endorsements", body, fmt.Sprintf("bill-minus-%v", pol["id"]))
 	require.Equal(t, http.StatusCreated, s, minus)
 	assert.Negative(t, num(minus["endorsement"].(map[string]any)["premium_delta_kurus"]))
+	positive := num(plus["endorsement"].(map[string]any)["premium_delta_kurus"])
+	negative := -num(minus["endorsement"].(map[string]any)["premium_delta_kurus"])
+	cash := max(int64(0), negative-positive)
+	assert.Equal(t, cash, num(minus["cash_refund_kurus"]))
+	after := billingDetail(t, account, pol)
+	assert.Equal(t, max(int64(0), positive-negative), num(after["open_balance_kurus"]))
+	second := after["installments"].([]any)[1].(map[string]any)
+	if negative >= positive {
+		assert.Equal(t, "CANCELLED", second["status"])
+		assert.Equal(t, positive, num(second["amount_kurus"]))
+	}
+	assert.Equal(t, total+max(int64(0), positive-negative), num(after["total_kurus"]))
+	var refunded int64
+	require.NoError(t, pool.QueryRow(context.Background(), `
+  SELECT coalesce(sum(amount_kurus),0) FROM payments WHERE policy_id=$1 AND kind='REFUND'`, num(pol["id"])).Scan(&refunded))
+	assert.Equal(t, cash, refunded)
+
 	assertBillingInvariant(t)
 	// Ayrı poliçede peşin ödeme: başlangıçta UW iptalinde primin tamamı nakit iade.
 	pol = issuePolicy(t, agent)

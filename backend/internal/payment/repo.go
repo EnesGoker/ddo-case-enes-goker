@@ -61,9 +61,9 @@ type BillingView struct {
 
 func (s *Service) Billing(ctx context.Context, id int64) (BillingView, error) {
 	var out BillingView
-	// Başlık ve mali görünüm aynı anlık görüntüden okunur; diğer faturalama girişleriyle aynı kilit.
-	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		h, err := s.target(ctx, tx, id, true)
+	// Salt okunur tek snapshot; mali mutasyonları bekleten satır kilidi alınmaz.
+	err := pgx.BeginTxFunc(ctx, s.pool, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
+		h, err := s.target(ctx, tx, id, false)
 		if err != nil {
 			return err
 		}
