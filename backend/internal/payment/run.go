@@ -3,9 +3,14 @@ package payment
 import (
 	"context"
 	"errors"
+	"io"
+	"net"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/audit"
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
@@ -21,15 +26,39 @@ type Skipped struct {
 	Reason   string `json:"reason"`
 }
 
-type RunResult struct {
-	AsOf          string    `json:"as_of"`
-	AccrualCount  int       `json:"accrual_count"`
-	InterestKurus int64     `json:"interest_kurus"`
-	Cancelled     []int64   `json:"cancelled"`
-	Skipped       []Skipped `json:"skipped"`
+type Failed struct {
+	PolicyID int64  `json:"policy_id"`
+	Code     string `json:"code"`
 }
 
-func (s *Service) Run(ctx context.Context, date string) (RunResult, error) {
+type RunOptions struct {
+	AfterPolicyID int64 `json:"after_policy_id"`
+	Limit         int   `json:"limit"`
+}
+
+type RunResult struct {
+	NextAfterPolicyID int64     `json:"next_after_policy_id"`
+	Done              bool      `json:"done"`
+	Failed            []Failed  `json:"failed"`
+	AsOf              string    `json:"as_of"`
+	AccrualCount      int       `json:"accrual_count"`
+	InterestKurus     int64     `json:"interest_kurus"`
+	Cancelled         []int64   `json:"cancelled"`
+	Skipped           []Skipped `json:"skipped"`
+}
+
+func (s *Service) Run(ctx context.Context, date string, options ...RunOptions) (RunResult, error) {
+	started := time.Now() // Gerçek duvar saati bütçesi; tarihsel iş saatinden bağımsız.
+	opts := RunOptions{}
+	if len(options) > 0 {
+		opts = options[0]
+	}
+	if opts.AfterPolicyID < 0 || opts.Limit < 0 || opts.Limit > 2000 {
+		return RunResult{}, httpx.Invalid(map[string]string{"pagination": "after_policy_id >= 0; limit 1–2000 olmalı"})
+	}
+	if opts.Limit == 0 {
+		opts.Limit = 500
+	}
 	asOf := caldate.Today(s.now())
 	if date != "" {
 		parsed, err := caldate.Parse(date)
@@ -41,13 +70,19 @@ func (s *Service) Run(ctx context.Context, date string) (RunResult, error) {
 	if asOf.After(caldate.Today(s.now())) {
 		return RunResult{}, httpx.NewError(http.StatusUnprocessableEntity, "AS_OF_IN_FUTURE", "gün sonu tarihi gelecekte olamaz")
 	}
-	out := RunResult{AsOf: caldate.Format(asOf), Cancelled: []int64{}, Skipped: []Skipped{}}
+	out := RunResult{AsOf: caldate.Format(asOf), Cancelled: []int64{}, Skipped: []Skipped{}, Failed: []Failed{}, NextAfterPolicyID: opts.AfterPolicyID}
 	rows, err := s.pool.Query(ctx, `
-  SELECT DISTINCT p.id
-    FROM policies p JOIN installment_plans pl ON pl.policy_id = p.id
-    JOIN installments i ON i.plan_id = pl.id
-   WHERE pl.status = 'ACTIVE' AND i.status IN ('PENDING','PARTIAL')
-   ORDER BY p.id`)
+  SELECT policy_id FROM (
+    SELECT pl.policy_id
+      FROM installments i JOIN installment_plans pl ON pl.id = i.plan_id
+     WHERE i.status IN ('PENDING','PARTIAL') AND i.due_date < $1
+       AND pl.status = 'ACTIVE' AND pl.policy_id > $2
+    UNION
+    SELECT pl.policy_id
+      FROM late_interest_charges c JOIN installments i ON i.id = c.installment_id
+      JOIN installment_plans pl ON pl.id = i.plan_id
+     WHERE c.paid_kurus < c.amount_kurus AND pl.status = 'ACTIVE' AND pl.policy_id > $2
+  ) candidates ORDER BY policy_id LIMIT $3`, asOf, opts.AfterPolicyID, opts.Limit+1)
 	if err != nil {
 		return out, err
 	}
@@ -56,7 +91,13 @@ func (s *Service) Run(ctx context.Context, date string) (RunResult, error) {
 		return out, err
 	}
 	actor, _ := auth.FromContext(ctx)
+	visited := 0
 	for _, id := range ids {
+		if visited == opts.Limit || (visited > 0 && time.Since(started) >= 8*time.Second) {
+			break
+		}
+		visited++
+		out.NextAfterPolicyID = id
 		var accrued store.Accrued
 		var cancelled bool
 		reason := ""
@@ -103,7 +144,19 @@ func (s *Service) Run(ctx context.Context, date string) (RunResult, error) {
 			}})
 		})
 		if err != nil {
-			return out, err
+			if runSystemError(ctx, err) {
+				return out, err
+			}
+			code := "POLICY_ERROR"
+			var ae *httpx.AppError
+			var pe *pgconn.PgError
+			if errors.As(err, &ae) {
+				code = ae.Code
+			} else if errors.As(err, &pe) {
+				code = "DATABASE_" + pe.Code
+			}
+			out.Failed = append(out.Failed, Failed{PolicyID: id, Code: code})
+			continue
 		}
 		out.AccrualCount += accrued.Count
 		out.InterestKurus += accrued.AmountKurus
@@ -114,5 +167,22 @@ func (s *Service) Run(ctx context.Context, date string) (RunResult, error) {
 			out.Skipped = append(out.Skipped, Skipped{PolicyID: id, Reason: reason})
 		}
 	}
+	out.Done = visited == len(ids)
 	return out, nil
+}
+
+func runSystemError(ctx context.Context, err error) bool {
+	var network net.Error
+	if ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, io.EOF) || errors.As(err, &network) {
+		return true
+	}
+	var pe *pgconn.PgError
+	if errors.As(err, &pe) {
+		for _, class := range []string{"08", "53", "57", "58", "XX"} {
+			if strings.HasPrefix(pe.Code, class) {
+				return true
+			}
+		}
+	}
+	return false
 }

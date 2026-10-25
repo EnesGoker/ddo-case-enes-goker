@@ -72,12 +72,13 @@ func (h *Handler) Refund(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Run(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		AsOf string `json:"as_of"`
+		RunOptions
 	}
 	// Gövdesiz çağrı da bugünün gün sonudur; JSON verilirse ortak katı decoder kullanılır.
 	if r.Body != nil && r.ContentLength != 0 && !httpx.Decode(w, r, &req) {
 		return
 	}
-	out, err := h.svc.Run(r.Context(), req.AsOf)
+	out, err := h.svc.Run(r.Context(), req.AsOf, req.RunOptions)
 	if err != nil {
 		httpx.Fail(w, r, err)
 		return

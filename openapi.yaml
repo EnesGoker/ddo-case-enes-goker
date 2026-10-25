@@ -922,6 +922,10 @@ paths:
         Açık anapara için basit faiz, sonra >=30 gün gecikmiş ACTIVE poliçeye mevcut iptal servisi NON_PAYMENT/as_of.
         CLAIMS_AFTER_EFFECTIVE_DATE ve uygun olmayan etki tarihi atlanır/raporlanır. Aynı as_of yeni faiz/iptal üretmez.
         Zamanlayıcı yok. İptal edilmiş poliçede faiz cancel_effective_date ile kırpılır.
+        Yalnız as_of öncesi açık vadesi veya açık faizi olan aktif planlar adaydır.
+        Varsayılan 500, en çok 2000 poliçe; gerçek saatle ~8 saniye sonra yeni poliçeye başlanmaz.
+        done=false ise next_after_policy_id ile devam edilir. İmleç kilitli ve başarısız poliçeleri de geçer.
+        Poliçe hataları failed listesinde; bağlantı/context hataları koşuyu durdurur.
       security: [{ bearerAuth: [] }]
       requestBody:
         required: false
@@ -932,6 +936,8 @@ paths:
               additionalProperties: false
               properties:
                 as_of: { type: string, format: date, description: Varsayılan bugün; gelecekte olamaz }
+                after_policy_id: { type: integer, format: int64, minimum: 0 }
+                limit: { type: integer, minimum: 1, maximum: 2000, default: 500 }
       responses:
         '200':
           description: İşlenen ve atlanan poliçeler
@@ -1832,6 +1838,15 @@ components:
     BillingRun:
       type: object
       properties:
+        next_after_policy_id: { type: integer, format: int64 }
+        done: { type: boolean }
+        failed:
+          type: array
+          items:
+            type: object
+            properties:
+              policy_id: { type: integer, format: int64 }
+              code: { type: string }
         as_of: { type: string, format: date }
         accrual_count: { type: integer }
         interest_kurus: { type: integer, format: int64 }
