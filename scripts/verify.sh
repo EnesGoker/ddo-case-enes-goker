@@ -267,6 +267,89 @@ else
   fi
 fi
 
+# --- F-4 / F-5 / F-6 / T-3: hasar, ekspertiz, tazminat ve gerçek paralel onay ---
+TODAY="$(TZ=Europe/Istanbul date +%F)"
+ADJ="${TOKEN_CLAIMS_ADJUSTER:-}"
+APPRAISER="${TOKEN_APPRAISER:-}"
+ACCOUNTING="${TOKEN_ACCOUNTING:-}"
+A4KEY="verify-a4-$$-$(date +%s)"
+
+claim_policy() { # ürün; POLICY değişkenini doldurur
+  local body
+  if [ "$1" = KASKO_RACE ]; then
+    body="{\"customer_id\":$AYSE,\"product\":\"KASKO\",\"term_start\":\"$TODAY\",\"ncd_level\":2,\"vehicle_group\":\"C\",\"plate\":\"34ABC123\",\"coverages\":[\"KASKO_ANA\",\"IMM\"]}"
+  else body="$(quote_body "$AYSE" "$TODAY")"; fi
+  req POST "$API_URL/api/v1/quotes" -H "Authorization: Bearer $AGENT" -H 'Content-Type: application/json' --data "$body"
+  local q="$(first_num id)"
+  if [ "$(field status)" = UW_REVIEW ]; then
+    req POST "$API_URL/api/v1/quotes/$q/review" -H "Authorization: Bearer $UW" -H 'Content-Type: application/json' --data '{"decision":"APPROVE","note":"verify A4"}'
+  fi
+  req POST "$API_URL/api/v1/quotes/$q/convert" -H "Authorization: Bearer $AGENT" -H "Idempotency-Key: $A4KEY-policy-$q"
+  POLICY="$(first_num id)"
+  [ "$STATUS" = 201 ] && [ -n "$POLICY" ]
+}
+ready_claim() { # poliçe, teminat, brüt; READY_CLAIM / READY_OK
+  READY_OK=yes
+  READY_SEQ=$(( ${READY_SEQ:-0} + 1 ))
+  req POST "$API_URL/api/v1/claims" -H "Authorization: Bearer $AGENT" -H "Idempotency-Key: $A4KEY-report-$1-$2-$READY_SEQ" -H 'Content-Type: application/json' \
+    --data "{\"policy_id\":$1,\"coverage_code\":\"$2\",\"loss_date\":\"$TODAY\",\"description\":\"verify A4\",\"claimed_amount_kurus\":$3}"
+  READY_CLAIM="$(first_num id)"
+  [ "$STATUS" = 201 ] && body_has '"row_version":1' || READY_OK=no
+  req POST "$API_URL/api/v1/claims/$READY_CLAIM/transition" -H "Authorization: Bearer $ADJ" -H 'Content-Type: application/json' --data '{"to_status":"TRIAGED","expected_row_version":1}'
+  [ "$STATUS" = 200 ] || READY_OK=no
+  req POST "$API_URL/api/v1/claims/$READY_CLAIM/transition" -H "Authorization: Bearer $ADJ" -H 'Content-Type: application/json' --data '{"to_status":"APPRAISAL","expected_row_version":2}'
+  [ "$STATUS" = 200 ] || READY_OK=no
+  req POST "$API_URL/api/v1/claims/$READY_CLAIM/appraisals" -H "Authorization: Bearer $APPRAISER" -H 'Content-Type: application/json' \
+    --data "{\"damage_amount_kurus\":$3,\"is_total_loss\":false,\"notes\":\"verify\",\"inspected_at\":\"${TODAY}T10:00:00+03:00\"}"
+  [ "$STATUS" = 201 ] || READY_OK=no
+  req POST "$API_URL/api/v1/claims/$READY_CLAIM/transition" -H "Authorization: Bearer $ADJ" -H 'Content-Type: application/json' --data '{"to_status":"ADJUSTMENT","expected_row_version":3}'
+  [ "$STATUS" = 200 ] || READY_OK=no
+}
+if claim_policy KASKO; then
+  ready_claim "$POLICY" CAM 2000000
+  CID="$READY_CLAIM"
+  req GET "$API_URL/api/v1/claims/$CID" -H "Authorization: Bearer $AGENT"
+  if [ "$READY_OK" = yes ] && [ "$STATUS" = 200 ] && body_has '"to_status":"REPORTED"' && body_has '"to_status":"ADJUSTMENT"'; then
+    pass "F-4 hasar-dosya" "hasar #$CID; bildirim → triage → ekspertiz → değerlendirme, geçmiş kayıtlı"
+  else fail "F-4 hasar-dosya" "durum=$STATUS hazırlık=$READY_OK"; fi
+  if body_has '"damage_amount_kurus":2000000' && body_has '"notes":"verify"'; then
+    pass "F-5 ekspertiz" "gerçek ekspertiz kaydı: 2000000 kuruş"
+  else fail "F-5 ekspertiz" "ekspertiz detayda bulunamadı"; fi
+  req POST "$API_URL/api/v1/claims/$CID/settlement/preview" -H "Authorization: Bearer $ADJ"
+  if [ "$STATUS" = 200 ] && [ "$(num_field payable_kurus)" = 1950000 ] && body_has '"code":"DEDUCTIBLE"' && body_has '"code":"ANNUAL_LIMIT"'; then
+    pass "T-3 hesap-adimlari" "2000000 − 50000 sabit muafiyet = 1950000 kuruş, altı hesap adımı"
+  else fail "T-3 hesap-adimlari" "durum=$STATUS ödeme=$(num_field payable_kurus)"; fi
+  req POST "$API_URL/api/v1/claims/$CID/settlement/approve" -H "Authorization: Bearer $ADJ" -H "Idempotency-Key: $A4KEY-approve-$CID"
+  SID="$(first_num id)"; approval_status="$STATUS"
+  req POST "$API_URL/api/v1/claims/$CID/settlement/approve" -H "Authorization: Bearer $ADJ" -H "Idempotency-Key: $A4KEY-approve-$CID" -D "$TMP/a4-idem"
+  if [ "$approval_status" = 201 ] && [ "$STATUS" = 201 ] && [ "$SID" = "$(first_num id)" ] && grep -qi '^idempotent-replayed: true' "$TMP/a4-idem"; then
+    pass "F-6 idempotent-onay" "tek tazminat #$SID; aynı anahtarda aynı kayıt"
+  else fail "F-6 idempotent-onay" "durum=$approval_status/$STATUS"; fi
+  req POST "$API_URL/api/v1/claims/$CID/pay" -H "Authorization: Bearer $ACCOUNTING" -H "Idempotency-Key: $A4KEY-pay-$CID"
+  if [ "$STATUS" = 200 ] && [ "$(field status)" = PAID ] && [ "$(num_field payable_kurus)" = 1950000 ] && [ -n "$(num_field payment_journal_entry_id)" ]; then
+    pass "F-6 odeme" "1950000 kuruş ödendi; yevmiye #$(num_field payment_journal_entry_id)"
+  else fail "F-6 odeme" "durum=$STATUS"; fi
+else fail "F-4 hazirlik" "bugün başlayan poliçe oluşturulamadı"; fi
+
+if claim_policy KASKO_RACE; then
+  RACE_POLICY="$POLICY"
+  ready_claim "$RACE_POLICY" KASKO_ANA 150000000; C1="$READY_CLAIM"; R1="$READY_OK"
+  ready_claim "$RACE_POLICY" IMM 50000000; C2="$READY_CLAIM"; R2="$READY_OK"
+  curl -sS --max-time 15 -o "$TMP/race1" -w '%{http_code}' -X POST -H "Authorization: Bearer $ADJ" -H "Idempotency-Key: $A4KEY-race-$C1" "$API_URL/api/v1/claims/$C1/settlement/approve" >"$TMP/race1-status" &
+  p1=$!
+  curl -sS --max-time 15 -o "$TMP/race2" -w '%{http_code}' -X POST -H "Authorization: Bearer $ADJ" -H "Idempotency-Key: $A4KEY-race-$C2" "$API_URL/api/v1/claims/$C2/settlement/approve" >"$TMP/race2-status" &
+  p2=$!
+  wait "$p1"; wait "$p2"
+  paid1="$(sed -n 's/.*"payable_kurus":\([0-9]*\).*/\1/p' "$TMP/race1")"
+  paid2="$(sed -n 's/.*"payable_kurus":\([0-9]*\).*/\1/p' "$TMP/race2")"
+  req GET "$API_URL/api/v1/policies/$RACE_POLICY" -H "Authorization: Bearer $ADJ"
+  annual="$(grep -o '"coverage_code":null[^}]*}' "$TMP/body")"
+  used="$(printf '%s' "$annual" | sed -n 's/.*"used_kurus":\([0-9]*\).*/\1/p')"
+  if [ "$R1" = yes ] && [ "$R2" = yes ] && [ "$C1" != "$C2" ] && [ "$(cat "$TMP/race1-status")" = 201 ] && [ "$(cat "$TMP/race2-status")" = 201 ] && [ "$used" = 180000000 ] && [ "$(( ${paid1:-0} + ${paid2:-0} ))" = 180000000 ]; then
+    pass "T-3 paralel-limit" "iki paralel onay: $paid1 + $paid2 = $used ≤ 180000000 yıllık limit"
+  else fail "T-3 paralel-limit" "durum=$(cat "$TMP/race1-status")/$(cat "$TMP/race2-status") tutar=$paid1/$paid2 kullanım=$used"; fi
+else fail "T-3 hazirlik" "yarış poliçesi oluşturulamadı"; fi
+
 # --- nginx üzerinden aynı origin akışı ---
 req POST "$WEB_URL/api/v1/auth/login" -H 'Content-Type: application/json' \
   --data "{\"email\":\"acente@guvenpolice.test\",\"password\":\"$DEMO_PASSWORD\"}" -D "$TMP/headers"
@@ -276,7 +359,7 @@ else fail WEB-PROXY-LOGIN "durum=$STATUS"; fi
 
 echo
 echo "Henüz uygulanmamış şartname kimlikleri (sonraki aşamalar):"
-for id in F-3 F-4 F-5 F-6 F-7 T-3 T-4 T-5; do
+for id in F-3 F-7 T-4 T-5; do
   printf '  YAPILMADI  %s\n' "$id"
 done
 
