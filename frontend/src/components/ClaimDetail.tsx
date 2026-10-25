@@ -9,7 +9,7 @@ const transitions: Partial<Record<ClaimStatus, ClaimStatus[]>> = {
   REPORTED: ['TRIAGED', 'REJECTED'], TRIAGED: ['APPRAISAL', 'REJECTED'],
   APPRAISAL: ['ADJUSTMENT', 'REJECTED'], ADJUSTMENT: ['REJECTED'], PAID: ['CLOSED'], REJECTED: ['CLOSED'],
 }
-export function ClaimDetailLoader({ id, role }: { id: number; role: Role }) {
+export function ClaimDetailLoader({ id, role, onChanged }: { id: number; role: Role; onChanged?: () => void }) {
   const [claim, setClaim] = useState<ClaimDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -20,7 +20,7 @@ export function ClaimDetailLoader({ id, role }: { id: number; role: Role }) {
   }, [id, attempt])
   if (error) return <ErrorBox message={error} onRetry={() => setAttempt((a) => a + 1)} />
   if (!claim || claim.id !== id) return <Loading text="Hasar dosyası yükleniyor…" />
-  return <ClaimView key={`${id}-${attempt}`} claim={claim} role={role} reload={() => setAttempt((a) => a + 1)} />
+  return <ClaimView key={`${id}-${attempt}`} claim={claim} role={role} reload={() => { setAttempt((a) => a + 1); onChanged?.() }} />
 }
 function ClaimView({ claim: c, role, reload }: { claim: ClaimDetail; role: Role; reload: () => void }) {
   const [note, setNote] = useState('')

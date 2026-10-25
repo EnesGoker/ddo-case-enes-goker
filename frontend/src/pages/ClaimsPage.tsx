@@ -22,6 +22,6 @@ export function ClaimsPage({ role }: { role: Role }) {
       </tr>)}</tbody></table></div>
       {state.next && <button className="secondary" disabled={state.loadingMore} onClick={loadMore}>{state.loadingMore ? 'Yükleniyor…' : 'Daha fazla'}</button>}
     </>)}
-    {selected !== null && <ClaimDetailLoader key={selected} id={selected} role={role} />}
+    {selected !== null && <ClaimDetailLoader key={selected} id={selected} role={role} onChanged={reload} />}
   </section>
 }
