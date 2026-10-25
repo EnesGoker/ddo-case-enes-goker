@@ -462,3 +462,17 @@ $ git diff cca6559 -- backend/internal/audit/audit.go db/migrations/0000[1-5]*
 - `b8ca8fc test(task): seed sabitliğini, sayısal SLA ve kilit mutasyonunu doğrula`
 - `4e955a6 feat(web): fraud kuyruğu, SLA görevleri ve prim raporu ekranları`
 - `5c12355 test(verify): F-7 rapor ve T-5 paralel atama kanıtlarını ekle`
+
+## A7 (ajan: Codex)
+
+Başlangıç: 2026-10-25 22:13 TRT. Kapsam onaylı A7; push ve A8 yok. Kullanıcının ek koşulları: yalnız seed/simülatör bağlam saati ayarlar; API gerçek zaman regresyon testi; simülatör oturumlarında synchronous_commit=off; 1000 ölçümünden gerekirse worker artırımı ve arka planda 100k; yarım koşu kurtarması reset-demo + simulate.
+
+### 0. bölüm — gün sonu
+
+İmleçli aday taraması, varsayılan 500 / en çok 2000, gerçek saatle 8 saniyelik başlangıç bütçesi, ayrı transaction, kilitli ve başarısız poliçede imleç ilerlemesi ve failed listesi eklendi. UI ve verify done olana kadar devam eder. Başlangıç şemasında vade indeksi bulunduğundan tekrar eklenmedi; 00009 açık faiz ve audit occurred_at indeksini, simulation_runs tablosunu ve kurgusal v0 tarifelerini ekler. Mevcut v1/v2 değişmez. Migration/seed tarihsel tarifeleri reset sonrasında aynı veriyi üretir.
+
+İlk tam entegrasyonda iki eski 2024/NO_TARIFF beklentisi yeni v0 kapsamına girdiği için kırıldı. Testler 2024'te v0'ı doğrulayacak ve tarife-yok yolunu 0001-01-01 öncesinde koruyacak şekilde güncellendi. İlk hedefli gün sonu, migration Up/Down/Up ve reset sonrası tarife eşitliği testleri PASS. Gerçek API verify ilk koşusu: 60 PASS, 0 FAIL.
+
+0. bölüm kapısı PASS: `make test`; `make test-integration` (saat bağlantısını da içeren tekrar); `./scripts/test-integration.sh -run 'TestConcurrent' -count=10 -race -v` (9 test ×10, app 371.142 s); `make lint build`; `make up` (db/api/web healthy); `make verify` (iki koşu, her biri 60 PASS / 0 FAIL). Ayrı hedefli testler üç parça/tek sonuç, hata yalıtımı+rollback, imleç, gelecekteki vade, yalnız açık faiz, API gerçek timestamp, migration Up/Down/Up ve reset sonrası v0 eşitliğini doğruladı. Loglar `/tmp/gp-a7-*-gate.log`, `/tmp/gp-a7-history.log`, `/tmp/gp-a7-clock-tests.log`, `/tmp/gp-a7-dayend-extra.log`.
+
+Kapı commitleri: 0ce7933 (görev metni), 57b2452 (gün sonu backend), aa3157d (UI/verify döngüsü), d06890b (00009/v0), 0e9d43c (v0 test sınırı), ac8d28c (bağlam saati/API-now), ab142f2 (açık faiz ve doğrulama). Kapı sonrası simülatör fazlarına devam edilir.

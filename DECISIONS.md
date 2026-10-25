@@ -188,3 +188,25 @@ Saf oran paketi lossratio, DB/HTTP paketi report'tur. Dönem yevmiye entry_date'
 Oran int64 baz puandır: tazminat×10000/prim, yarımı sıfırdan uzağa yuvarlanır; prim ≤0 ise null. Çarpım ve bölüm için big.Int kullanılır. Mevcut proration.RoundDiv, MaxInt64 payda sınırında ara toplama taşması ürettiğinden lossratio içinde güvenli bölüm/kalan kullanılır; mevcut A4/A5 hesap kodu değiştirilmez. Sonuç int64'e sığmazsa null döner.
 
 **Sınırlamalar:** Yazılan prim bazlı kurgusal modeldir; kazanılmış prim/UPR, muallak ve IBNR yoktur. POLICY_ISSUE mevcut başlangıç tarihi kuralını korur; zeyil/iptal ve onay işlem günüyle raporlanır.
+
+## ADR-19 — Simülatör ve tarihsel işlem saati (A7)
+
+İş verisi yalnız mevcut policy.Issue, ödeme, iptal ve hasar servisleriyle üretilir. Referans verisi ve simulation_runs doğrudan SQL kullanır. Poliçe/tahsilat evresi varlık başına seed+ordinal RNG ile paraleldir; hasar olayları zaman ve sabit anahtar sırasıyla tek iş parçacığında yürür. Simülatörün ayrı pgx havuzundaki bütün oturumlar synchronous_commit=off kullanır. Çökmede son commit'ler kaybolabilir; yeniden üretim yolu reset-demo ve aynı parametrelerle simulate'tir.
+
+Aynı seed, anchor ve iş parametreleriyle taze DB'de aynı iş parmak izi beklenir; worker sayısı iş parametresi değildir. Parmak izi sıralı iş alanlarından üretilir; surrogate id, hasar numarası, sistem zaman damgası ve parola hash'i dışarıda kalır. SIM numaraları sabittir. Tamamlanan aynı koşu yeniden veri üretmez; başka/yarım koşunun mevcut SIM uzayına yazması reddedilir.
+
+Tarihsel v0 tarifeleri 00009'da bağımsız sabitlerle kurulur: 2025 öncesi, v1 faktörleri ve %85 taban fiyatlar (kurgusal). Seed, reset sonrası aynı v0'ı geri kurar; v1/v2 değişmez. İşlem bağlamındaki saat yalnız simülatör ve seed tarafından ayarlanır; ayarlanmayan bağlam gerçek zamanı kullanır. API yolları bağlam saatini ayarlamaz. Servislerin mevcut enjekte saatleri iş kurallarında kalır; alt katman INSERT zamanları bağlam saatini okur. Audit yazma yolu ve audit zaman damgaları değiştirilmez; sonradan toplu tarihselleştirme UPDATE'i yapılmaz.
+
+## ADR-20 — Demo ve simülasyon ayrımı (A7)
+
+SIM- poliçe numaraları, ayrı kurgusal kimlikler, SIM plaka uzayı, acenteler, atölyeler ve rol aktörleri kullanılır. Demo hesapları korunur. Görev atama havuzu ortaktır: assigned_to demo uzmanı olabilir; bu onaylı izolasyon istisnasıdır. Bunun dışındaki müşteri/acente/atölye/oluşturan/ekspertiz aktörleri simülasyona aittir. Reset-demo tüm demo ve simülasyon verisini silerek seed'i yeniden kurar. Canlı mod gerçek saat kullanır ve deterministik değildir; LIVE durumunda verify iş mutasyonlarına başlamadan durur.
+
+## ADR-21 — Parçalı gün sonu (A7)
+
+Adaylar aktif ödeme planında as_of öncesi açık vadesi veya açık faizi olan poliçelerdir. Başlangıç şemasındaki installments_open_due_idx ve 00009'daki açık faiz indeksi kullanılır. Poliçe id anahtarına göre varsayılan 500, en çok 2000 kayıt ve gerçek saatle yaklaşık 8 saniyelik başlangıç bütçesi uygulanır. Her poliçe kendi transaction'ında önce poliçe satırını kilitler; ACTIVE olmayan poliçeye iptal uygulanmaz.
+
+İmleç son ziyaret edilendir; kilitli ve başarısız poliçeler de ilerletir. done yalnız aday taraması bitince true olur. skipped bilinen iş istisnaları ve kilitli kayıtlardır; diğer poliçe hataları failed içinde döner ve devam edilir. Context/bağlantı/kaynak/sistem hatası koşuyu durdurur. UI ve verify done olana kadar devam eder; sonraki yeni koşu atlanan/başarısız poliçeleri yeniden deneyebilir.
+
+## ADR-22 — Sistem canlılığı (A7)
+
+Canlılık kaynağı audit_log.occurred_at zamanları ve simulation_runs ilerlemesidir. API tüm giriş yapmış rollere yalnız dakikalık sayılar, son olay zamanı ve simülasyon özeti verir; audit içeriği ve kimlikleri paylaşılmaz. Son 30 dakika sorgusu ve son olay okuması occurred_at indeksiyle sınırlıdır; tablo toplamı alınmaz. Üst çubuk 15 saniyede bir yenilenir ve bağlantı hatasını gösterir.

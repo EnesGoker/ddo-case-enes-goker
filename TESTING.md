@@ -317,3 +317,24 @@ Atama/seed yarış komutunun tam kopyalanabilir biçimi:
 ```
 
 375×812 tarayıcı kontrolü: görev/ihlal listesi, boş fraud filtresi, 75/60 ve iki açıklamalı dosya, eksperin yalnız kendi görevi, rapor ay/acente gruplaması ve toplam, boş dönem, eşit tarihlerde hata. Görev ve raporda `document.documentElement.scrollWidth === innerWidth === 375` ölçüldü. Son %25 sarı rozet koşulu kaynakta bulunur; **ÇALIŞTIRILMADI:** ayrıca gerçek veriyle sarı rozet senaryosu. Görsel kanıtlar yerel geçici dosyalardır: `/tmp/gp-a6-ui-tasks-375.png`, `/tmp/gp-a6-ui-report-375.png`, `/tmp/gp-a6-ui-appraiser-375.png`. Görünüm boyutu sıfırlandı ve test sekmesi kapatıldı.
+
+## A7 simülatör kullanımı ve kurtarma
+
+Simülatör kurgusal veri üretir. Varsayılan hedef 100.000 poliçe ve 5 yıllık tarih aralığıdır. `make simulate` API açıkken ayrı compose profiliyle çalışır. Aynı seed ve anchor ile tamamlanan koşu tekrar veri eklemez; worker sayısı parmak izini değiştirmez. Ölçüm ve tekrar için anchor gününü açık verin:
+
+```sh
+SIM_ANCHOR_DATE=2026-10-25 SIM_SEED=42 SIM_POLICIES=100000 SIM_YEARS=5 SIM_WORKERS=8 make simulate
+```
+
+Simülatör bağlantıları `synchronous_commit=off` kullanır. Bu yalnız simülatör havuzuna aittir; API oturum ayarı değişmez. Bağlamdaki tarihsel saat yalnız seed/simülatör tarafından ayarlanır. Audit zamanları gerçek üretim zamanıdır; içerikleri tarihselleştirmek için UPDATE yapılmaz.
+
+Yarım koşu otomatik devam ettirilmez veya mevcut SIM kayıtlarının üzerine yazılmaz. Kurtarma için önce varsa çalışan batch/canlı simülatörü durdurun; `reset-demo` tüm demo ve simülasyon verisini siler, yeniden seed eder. Ardından **aynı seed ve anchor** ile yeniden üretin:
+
+```sh
+docker compose --profile sim stop simulator
+make reset-demo
+SIM_ANCHOR_DATE=2026-10-25 SIM_SEED=42 SIM_POLICIES=100000 SIM_YEARS=5 SIM_WORKERS=8 make simulate
+make verify
+```
+
+Canlı mod isteğe bağlıdır: `SIM_LIVE=true make simulate`. Yaklaşık 5 saniyede bir gerçek saatle poliçe/tahsilat üretir; hasar üretmez ve deterministik değildir. Verify öncesinde canlı simülatörü durdurun; `simulation_runs.status=LIVE` olduğu sürece verify mutasyonlarına başlamaz.
