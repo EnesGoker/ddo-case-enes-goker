@@ -283,3 +283,43 @@ Son A5 doküman commitinin hash'i `git log 7fa6b14..HEAD` ve teslim raporunda bu
 ### Sonraki görev
 
 Yalnızca öneri: A6 — fraud, atama/SLA ve raporlar. Yeni onay olmadan başlanmaz.
+
+
+## A6 (ajan: Codex)
+
+### Ara durum — 0. bölüm kapısı
+
+0.1–0.10 TAMAMLANDI; T-5/F-7 henüz bu kontrol noktasında uygulanmadı. Ek kullanıcı kararı: saf paketler workflow/lossratio; DB/HTTP task/report; audit.go değişmez; sıfır SLA seçenekleri hata verir. Kod ajanı push yapmadı.
+
+- `make test`: PASS (58 birim test fonksiyonu).
+- `./scripts/test-integration.sh`: PASS (60 entegrasyon test fonksiyonu; 00006–00008 dahil Up/Down/Up).
+- `./scripts/test-integration.sh -run TestConcurrent -count=10 -race`: PASS; mevcut sekiz yarış testinin her biri 10 tekrar.
+- `make up`, `make verify` (geri yüklenen kaynakla): PASS; db/api/web healthy, 47 PASS / 0 FAIL.
+- İlk Docker derlemesi geçici kilit mutasyonuyla çakıştı; o imajdaki verify 46 PASS / 1 FAIL (201/409). Kaynak geri konulduktan sonra imaj yeniden üretildi, canlı verify 47/0 geçti. Mutasyon imajı kullanılmıyor.
+- İade mutasyonu: poliçe kilidi geçici kaldırıldı; `./scripts/test-integration.sh -run TestConcurrentRefunds -count=1 -v` beklenen FAIL, 201 + 409 CONCURRENT_PAYMENT. installments CHECK paid>=0 savunması yakaladı; fazla iade commit olmadı.
+- Mutasyon commit edilmedi. `git diff -- backend/internal/payment/service.go` geri yüklemeden sonra **boş çıktı** (0 bayt); `/tmp/gp-a6-refund-restored.diff`. audit.go, saf billing.Adjust ve 00001–00005 değişmedi.
+
+```text
+$ git diff -- backend/internal/payment/service.go
+(çıktı yok)
+$ wc -c /tmp/gp-a6-refund-restored.diff
+0 /tmp/gp-a6-refund-restored.diff
+```
+
+Değişen eski beklentiler: seed B sabit 300000 yerine gerçek tarifeden 1422222 kuruş; 20 günlük ilk taksit faizi 2000 yerine 9481. İptal sonrası test ayar öncesi 100000 anaparaya 15 gün için 1500 kuruşu doğrular. CLOSED reddedilmiş hasar koruma testi genişletildi. Negatif zeyilde taksit, açık bakiye ve nakit iade tutarları artık ayrı doğrulanır.
+
+Mevcut tarihsel seed sürümleri/yevmiye kayıtları yerinde değiştirilmedi; düzeltilmiş seed temiz geçici veritabanında doğrulandı. Eski demo kaydı korunur. Geriye dönük iptalden sonra, etki tarihinden ilerisine daha önce tahakkuk etmiş faiz geri alınmaz (ADR-15'te ayrıca kaydedilecek).
+
+### 0. bölüm yerel commitleri
+
+- `d5574a9 docs: A6 görev tanımı`
+- `16c7a6f fix(billing): geriye dönük ek prim vadesini bugünden önceye alma`
+- `62fdb8a fix(billing): prim ayarından önce ortak oranla faiz tahakkuk ettir`
+- `934ee33 fix(ledger): prim ayarı ve nakit iadeyi işlem tarihinde kaydet`
+- `f0173b1 fix(policy): reddedilip kapanmış hasarı değişiklik engeline dahil etme`
+- `67ac562 fix(idempotency): iş anahtarıyla çökme tekrarını önle ve yanıt baytlarını koru`
+- `d8edffe fix(db): zeyil bağlantısını aynı poliçe ve üretilen sürümle sınırla`
+- `24f6467 fix(claim): incelemeden ekspertize dönüşü ve ekspertiz koşulunu ekle`
+- `ab80483 fix(seed): primleri tarifeden hesapla ve demo uzman atölye havuzunu tamamla`
+- `fa5dbec fix(payment): tarih sınırı, kilitsiz okumalar ve iade yarışını doğrula`
+- `252ea30 docs(progress): geçmiş commit hashlerini mevcut mesajlarla eşleştir`
