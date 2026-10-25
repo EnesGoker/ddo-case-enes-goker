@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
+	"github.com/EnesGoker/guvenpolice/backend/internal/claim"
 	"github.com/EnesGoker/guvenpolice/backend/internal/customer"
 	"github.com/EnesGoker/guvenpolice/backend/internal/health"
 	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
@@ -52,6 +53,7 @@ func NewRouter(d Deps) http.Handler {
 	quotes := quote.NewHandler(quote.NewService(d.Pool, d.Now, d.UWPremiumThresholdKurus))
 	idem := idempotency.NewStore(d.Pool, d.IdempotencyStaleAfter)
 	policies := policy.NewHandler(d.Pool)
+	claims := claim.NewHandler(claim.NewService(d.Pool, d.Now))
 
 	r := chi.NewRouter()
 	r.Use(logging.RequestIDMiddleware)
@@ -88,6 +90,19 @@ func NewRouter(d Deps) http.Handler {
 				r.With(readers).Get("/{id}", quotes.Get)
 				r.With(auth.RequireRoles(auth.RoleUnderwriter)).Post("/{id}/review", quotes.Review)
 				r.With(agent, idem.Middleware).Post("/{id}/convert", quotes.Convert)
+			})
+
+			r.Route("/claims", func(r chi.Router) {
+				readers := auth.RequireRoles(auth.RoleCustomer, auth.RoleAgent, auth.RoleUnderwriter, auth.RoleAppraiser, auth.RoleClaimsAdjuster, auth.RoleAccounting)
+				adjuster := auth.RequireRoles(auth.RoleClaimsAdjuster)
+				r.With(readers).Get("/", claims.List)
+				r.With(readers).Get("/{id}", claims.Get)
+				r.With(auth.RequireRoles(auth.RoleCustomer, auth.RoleAgent, auth.RoleClaimsAdjuster), idem.Middleware).Post("/", claims.Report)
+				r.With(adjuster).Post("/{id}/transition", claims.Transition)
+				r.With(auth.RequireRoles(auth.RoleAppraiser)).Post("/{id}/appraisals", claims.Appraise)
+				r.With(adjuster).Post("/{id}/settlement/preview", claims.Preview)
+				r.With(adjuster, idem.Middleware).Post("/{id}/settlement/approve", claims.Approve)
+				r.With(auth.RequireRoles(auth.RoleAccounting), idem.Middleware).Post("/{id}/pay", claims.Pay)
 			})
 
 			r.Route("/policies", func(r chi.Router) {
