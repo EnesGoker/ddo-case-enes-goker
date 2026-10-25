@@ -402,7 +402,7 @@ func TestMigrationsUpDownUp(t *testing.T) {
 	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "up")
 	v, err := goose.GetDBVersionContext(ctx, sqlDB)
 	require.NoError(t, err)
-	assert.Equal(t, int64(2), v)
+	assert.Equal(t, int64(3), v)
 
 	require.NoError(t, goose.DownToContext(ctx, sqlDB, migrationsDir, 0), "down")
 	var tables int
@@ -418,5 +418,17 @@ func TestMigrationsUpDownUp(t *testing.T) {
 	require.NoError(t, sqlDB.QueryRow(`SELECT count(*) FROM pg_indexes WHERE indexname IN ('journal_entries_reverses_uq','quotes_agent_idx')`).Scan(&n))
 	assert.Equal(t, 2, n)
 	require.NoError(t, sqlDB.QueryRow(`SELECT count(*) FROM pg_constraint WHERE conname IN ('policy_versions_policy_id_id_uq','claims_policy_version_match_fk')`).Scan(&n))
+	assert.Equal(t, 2, n)
+
+	// 00003 sürüm koruma tetikleyicileri devrede
+	require.NoError(t, sqlDB.QueryRow(`SELECT count(*) FROM pg_trigger WHERE tgname IN ('policy_versions_immutable','policy_version_coverages_immutable')`).Scan(&n))
+	assert.Equal(t, 2, n)
+
+	// 00003 tek başına geri alınıp tekrar uygulanabilir
+	require.NoError(t, goose.DownToContext(ctx, sqlDB, migrationsDir, 2), "00003 down")
+	require.NoError(t, sqlDB.QueryRow(`SELECT count(*) FROM pg_trigger WHERE tgname IN ('policy_versions_immutable','policy_version_coverages_immutable')`).Scan(&n))
+	assert.Equal(t, 0, n)
+	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "00003 tekrar up")
+	require.NoError(t, sqlDB.QueryRow(`SELECT count(*) FROM pg_trigger WHERE tgname IN ('policy_versions_immutable','policy_version_coverages_immutable')`).Scan(&n))
 	assert.Equal(t, 2, n)
 }
