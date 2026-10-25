@@ -1,6 +1,7 @@
 package quote
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -98,7 +99,31 @@ func (h *Handler) Convert(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p, err := h.svc.Convert(r.Context(), id)
+	count := 1
+	if r.Body != nil {
+		data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
+		if err != nil {
+			httpx.ValidationError(w, map[string]string{"body": "gövde okunamadı"})
+			return
+		}
+		if len(data) > 0 {
+			var req struct {
+				InstallmentCount *int `json:"installment_count"`
+			}
+			r.Body = io.NopCloser(strings.NewReader(string(data)))
+			if !httpx.Decode(w, r, &req) {
+				return
+			}
+			if req.InstallmentCount != nil {
+				count = *req.InstallmentCount
+			}
+		}
+	}
+	if count < 1 || count > 12 {
+		httpx.ValidationError(w, map[string]string{"installment_count": "1–12 arasında olmalı"})
+		return
+	}
+	p, err := h.svc.Convert(r.Context(), id, count)
 	if err != nil {
 		httpx.Fail(w, r, err)
 		return

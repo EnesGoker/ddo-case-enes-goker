@@ -16,6 +16,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/audit"
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
+	"github.com/EnesGoker/guvenpolice/backend/internal/payment/store"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
@@ -69,6 +70,7 @@ type writtenParts struct {
 
 // CalcDetail endorsements.calc_detail içeriğidir: saf hesap adımları + bağlam.
 type CalcDetail struct {
+	CashRefundKurus int64 `json:"cash_refund_kurus"`
 	proration.Detail
 	TariffVersionID int64           `json:"tariff_version_id"`
 	FromVersionNo   int             `json:"from_version_no"`
@@ -81,6 +83,7 @@ type CalcDetail struct {
 }
 
 type VehicleChangePreview struct {
+	CashRefundKurus  int64          `json:"cash_refund_kurus"`
 	PolicyID         int64          `json:"policy_id"`
 	Type             string         `json:"type"`
 	EffectiveDate    string         `json:"effective_date"`
@@ -97,27 +100,30 @@ type VehicleChangePreview struct {
 }
 
 type VehicleChangeResult struct {
-	Endorsement EndorsementView `json:"endorsement"`
-	Version     VersionView     `json:"version"`
+	CashRefundKurus int64           `json:"cash_refund_kurus"`
+	Endorsement     EndorsementView `json:"endorsement"`
+	Version         VersionView     `json:"version"`
 }
 
 type CancelPreview struct {
-	PolicyID       int64      `json:"policy_id"`
-	EffectiveDate  string     `json:"effective_date"`
-	Reason         string     `json:"reason"`
-	Method         string     `json:"method"`
-	BaseVersionNo  int        `json:"base_version_no"`
-	WrittenPremium int64      `json:"written_premium_kurus"`
-	RefundKurus    int64      `json:"refund_kurus"`
-	PremiumDelta   int64      `json:"premium_delta_kurus"`
-	ClosesVersion  bool       `json:"closes_version"`
-	CalcDetail     CalcDetail `json:"calc_detail"`
+	CashRefundKurus int64      `json:"cash_refund_kurus"`
+	PolicyID        int64      `json:"policy_id"`
+	EffectiveDate   string     `json:"effective_date"`
+	Reason          string     `json:"reason"`
+	Method          string     `json:"method"`
+	BaseVersionNo   int        `json:"base_version_no"`
+	WrittenPremium  int64      `json:"written_premium_kurus"`
+	RefundKurus     int64      `json:"refund_kurus"`
+	PremiumDelta    int64      `json:"premium_delta_kurus"`
+	ClosesVersion   bool       `json:"closes_version"`
+	CalcDetail      CalcDetail `json:"calc_detail"`
 }
 
 type CancelResult struct {
-	Endorsement EndorsementView `json:"endorsement"`
-	Policy      Header          `json:"policy"`
-	RefundKurus int64           `json:"refund_kurus"`
+	CashRefundKurus int64           `json:"cash_refund_kurus"`
+	Endorsement     EndorsementView `json:"endorsement"`
+	Policy          Header          `json:"policy"`
+	RefundKurus     int64           `json:"refund_kurus"`
 }
 
 // openVersion açık (effective_to NULL) sürüm.
@@ -355,6 +361,11 @@ func (s *ChangeService) planVehicle(ctx context.Context, q db.DBTX, id int64, re
 	pl.newVerNo = pl.open.VersionNo + 1
 	pl.calc = CalcDetail{Detail: det, TariffVersionID: pl.open.TariffID, FromVersionNo: pl.open.VersionNo,
 		ToVersionNo: &pl.newVerNo, Changes: changes, NewPremiumLines: pl.result.Lines}
+	adjustment, err := store.PreviewAdjustment(ctx, q, pl.h.ID, pl.calc.PremiumDeltaKurus, pl.date)
+	if err != nil {
+		return pl, err
+	}
+	pl.calc.CashRefundKurus = adjustment.CashRefund
 	return pl, nil
 }
 
@@ -374,7 +385,8 @@ func usedLimits(ctx context.Context, q db.DBTX, h Header) (map[string]int64, err
 
 func (pl vehiclePlan) preview() VehicleChangePreview {
 	return VehicleChangePreview{
-		PolicyID: pl.h.ID, Type: "VEHICLE_CHANGE", EffectiveDate: caldate.Format(pl.date),
+		CashRefundKurus: pl.calc.CashRefundKurus,
+		PolicyID:        pl.h.ID, Type: "VEHICLE_CHANGE", EffectiveDate: caldate.Format(pl.date),
 		BaseVersionNo: pl.open.VersionNo, NewVersionNo: pl.newVerNo,
 		OldAnnualPremium: pl.open.Annual, NewAnnualPremium: pl.result.TotalKurus, PremiumDelta: pl.calc.PremiumDeltaKurus,
 		VehiclePlate: pl.plate, VehicleGroup: pl.group, Coverages: pl.cov, Lines: pl.result.Lines, CalcDetail: pl.calc,
@@ -382,11 +394,16 @@ func (pl vehiclePlan) preview() VehicleChangePreview {
 }
 
 func (s *ChangeService) PreviewVehicleChange(ctx context.Context, id int64, req VehicleChangeRequest) (VehicleChangePreview, error) {
-	pl, err := s.planVehicle(ctx, s.pool, id, req, false)
-	if err != nil {
-		return VehicleChangePreview{}, err
-	}
-	return pl.preview(), nil
+	var out VehicleChangePreview
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		pl, err := s.planVehicle(ctx, tx, id, req, true)
+		if err != nil {
+			return err
+		}
+		out = pl.preview()
+		return nil
+	})
+	return out, err
 }
 
 // VehicleChange açık sürümü zeyil tarihinde kapatır, yeni sürümü açar ve zeyili kaydeder (tek transaction).
@@ -448,6 +465,12 @@ func (s *ChangeService) VehicleChange(ctx context.Context, id int64, req Vehicle
 					Message: "teminat limiti kullanılmış tutarın altına düşürülemez", Details: map[string]string{code: "kullanım değişti"}}
 			}
 		}
+		actor, _ := auth.FromContext(ctx)
+		cash, err := store.Adjust(ctx, tx, pl.h.ID, pl.calc.PremiumDeltaKurus, pl.date, e.ID, actor.UserID)
+		if err != nil {
+			return err
+		}
+		out.CashRefundKurus = cash
 		if err := audit.Write(ctx, tx, audit.Entry{Action: "POLICY_ENDORSED", EntityType: "policy", EntityID: pl.h.ID,
 			Old: map[string]any{"version_no": pl.open.VersionNo, "annual_premium_kurus": pl.open.Annual,
 				"vehicle_plate": pl.open.Risk.Plate, "vehicle_group": pl.open.Risk.VehicleGroup},
@@ -549,6 +572,11 @@ func (s *ChangeService) planCancel(ctx context.Context, q db.DBTX, id int64, req
 	pl.closes = date.After(pl.open.EffectiveFrom)
 	pl.calc = CalcDetail{Detail: det, TariffVersionID: pl.open.TariffID, FromVersionNo: pl.open.VersionNo,
 		WrittenParts: &parts, VersionClosed: &pl.closes, Note: strings.TrimSpace(req.Note)}
+	adjustment, err := store.PreviewAdjustment(ctx, q, pl.h.ID, pl.calc.PremiumDeltaKurus, pl.date)
+	if err != nil {
+		return pl, err
+	}
+	pl.calc.CashRefundKurus = adjustment.CashRefund
 	if !pl.closes {
 		pl.calc.Steps = append(pl.calc.Steps, "İptal tarihi açık sürümün başlangıç günü: sıfır uzunlukta sürüm aralığı "+
 			"CHECK ile yasak olduğundan sürüm kapatılmaz; teminat poliçe düzeyindeki iptal tarihiyle sona erer")
@@ -558,18 +586,24 @@ func (s *ChangeService) planCancel(ctx context.Context, q db.DBTX, id int64, req
 
 func (pl cancelPlan) preview() CancelPreview {
 	return CancelPreview{
-		PolicyID: pl.h.ID, EffectiveDate: caldate.Format(pl.date), Reason: pl.reason, Method: string(pl.calc.Method),
+		CashRefundKurus: pl.calc.CashRefundKurus,
+		PolicyID:        pl.h.ID, EffectiveDate: caldate.Format(pl.date), Reason: pl.reason, Method: string(pl.calc.Method),
 		BaseVersionNo: pl.open.VersionNo, WrittenPremium: pl.written, RefundKurus: -pl.calc.PremiumDeltaKurus,
 		PremiumDelta: pl.calc.PremiumDeltaKurus, ClosesVersion: pl.closes, CalcDetail: pl.calc,
 	}
 }
 
 func (s *ChangeService) PreviewCancel(ctx context.Context, id int64, req CancelRequest) (CancelPreview, error) {
-	pl, err := s.planCancel(ctx, s.pool, id, req, false)
-	if err != nil {
-		return CancelPreview{}, err
-	}
-	return pl.preview(), nil
+	var out CancelPreview
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		pl, err := s.planCancel(ctx, tx, id, req, true)
+		if err != nil {
+			return err
+		}
+		out = pl.preview()
+		return nil
+	})
+	return out, err
 }
 
 // Cancel poliçeyi iptal eder: açık sürüm iptal tarihinde kapanır (yeni sürüm açılmaz), poliçe CANCELLED olur
@@ -577,45 +611,59 @@ func (s *ChangeService) PreviewCancel(ctx context.Context, id int64, req CancelR
 func (s *ChangeService) Cancel(ctx context.Context, id int64, req CancelRequest) (CancelResult, error) {
 	var out CancelResult
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		pl, err := s.planCancel(ctx, tx, id, req, true)
-		if err != nil {
-			return err
-		}
-		if pl.closes {
-			if err := closeVersion(ctx, tx, pl.open.ID, pl.date); err != nil {
-				return err
-			}
-		}
-		tag, err := tx.Exec(ctx, `
-			UPDATE policies SET status = 'CANCELLED', cancelled_at = now(), cancel_effective_date = $2, cancel_reason = $3
-			 WHERE id = $1 AND status = 'ACTIVE'`, pl.h.ID, pl.date, pl.reason)
-		if err != nil {
-			return err
-		}
-		if tag.RowsAffected() != 1 {
-			return httpx.NewError(http.StatusConflict, "CONCURRENT_MODIFICATION", "poliçe eşzamanlı olarak değişti")
-		}
-		e, err := insertEndorsement(ctx, tx, pl.h.ID, "CANCELLATION", pl.date, pl.open.ID, nil, pl.calc.PremiumDeltaKurus, pl.calc)
-		if err != nil {
-			return err
-		}
-		refund := -pl.calc.PremiumDeltaKurus
-		if err := audit.Write(ctx, tx, audit.Entry{Action: "POLICY_CANCELLED", EntityType: "policy", EntityID: pl.h.ID,
-			Old: map[string]any{"status": pl.h.Status, "open_version_no": pl.open.VersionNo},
-			New: map[string]any{"status": "CANCELLED", "cancel_effective_date": caldate.Format(pl.date),
-				"cancel_reason": pl.reason, "method": pl.calc.Method, "refund_kurus": refund,
-				"endorsement_no": e.EndorsementNo, "version_closed": pl.closes},
-		}); err != nil {
-			return err
-		}
-		h, err := LoadHeader(ctx, tx, pl.h.ID, false)
-		if err != nil {
-			return err
-		}
-		out = CancelResult{Endorsement: e, Policy: h, RefundKurus: refund}
-		return nil
+		var err error
+		out, err = s.CancelTx(ctx, tx, id, req)
+		return err
 	})
 	return out, concurrentChange(err)
+}
+
+// CancelTx gün sonunun mevcut poliçe transaction'ına katılır; bütün iş kuralları ortaktır.
+// HTTP rol kuralı router'da kalır; sistem çağrısında aktör ACCOUNTING kullanıcısıdır.
+func (s *ChangeService) CancelTx(ctx context.Context, tx pgx.Tx, id int64, req CancelRequest) (CancelResult, error) {
+	var out CancelResult
+	pl, err := s.planCancel(ctx, tx, id, req, true)
+	if err != nil {
+		return out, err
+	}
+	if pl.closes {
+		if err := closeVersion(ctx, tx, pl.open.ID, pl.date); err != nil {
+			return out, err
+		}
+	}
+	tag, err := tx.Exec(ctx, `
+  UPDATE policies
+     SET status = 'CANCELLED', cancelled_at = now(), cancel_effective_date = $2, cancel_reason = $3
+   WHERE id = $1 AND status = 'ACTIVE'`, pl.h.ID, pl.date, pl.reason)
+	if err != nil {
+		return out, err
+	}
+	if tag.RowsAffected() != 1 {
+		return out, httpx.NewError(http.StatusConflict, "CONCURRENT_MODIFICATION", "poliçe eşzamanlı olarak değişti")
+	}
+	e, err := insertEndorsement(ctx, tx, pl.h.ID, "CANCELLATION", pl.date, pl.open.ID, nil, pl.calc.PremiumDeltaKurus, pl.calc)
+	if err != nil {
+		return out, err
+	}
+	p, _ := auth.FromContext(ctx)
+	cash, err := store.Adjust(ctx, tx, pl.h.ID, pl.calc.PremiumDeltaKurus, pl.date, e.ID, p.UserID)
+	if err != nil {
+		return out, err
+	}
+	refund := -pl.calc.PremiumDeltaKurus
+	if err := audit.Write(ctx, tx, audit.Entry{Action: "POLICY_CANCELLED", EntityType: "policy", EntityID: pl.h.ID,
+		Old: map[string]any{"status": pl.h.Status, "open_version_no": pl.open.VersionNo},
+		New: map[string]any{"status": "CANCELLED", "cancel_effective_date": caldate.Format(pl.date),
+			"cancel_reason": pl.reason, "method": pl.calc.Method, "refund_kurus": refund,
+			"endorsement_no": e.EndorsementNo, "version_closed": pl.closes, "cash_refund_kurus": cash},
+	}); err != nil {
+		return out, err
+	}
+	h, err := LoadHeader(ctx, tx, pl.h.ID, false)
+	if err != nil {
+		return out, err
+	}
+	return CancelResult{Endorsement: e, Policy: h, RefundKurus: refund, CashRefundKurus: cash}, nil
 }
 
 // closeVersion açık sürümü kapatır (00003 tetikleyicisinin izin verdiği tek değişiklik).

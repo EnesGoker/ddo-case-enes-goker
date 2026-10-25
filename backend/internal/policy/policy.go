@@ -13,6 +13,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/access"
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
+	"github.com/EnesGoker/guvenpolice/backend/internal/payment/store"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/page"
 	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
@@ -29,6 +30,9 @@ type CoverageTerm struct {
 }
 
 type IssueInput struct {
+	InstallmentCount int
+	ActorID          int64
+	PolicyNoOverride string
 	QuoteID          int64
 	Product          pricing.Product
 	CustomerID       int64
@@ -86,10 +90,17 @@ func Issue(ctx context.Context, tx pgx.Tx, in IssueInput) (Issued, error) {
 		VersionNo: 1, AnnualPremium: in.AnnualPremium, AnnualLimitKurus: in.AnnualLimitKurus,
 		VehiclePlate: in.Plate, Coverages: in.Coverages,
 	}
+	if in.PolicyNoOverride != "" {
+		out.PolicyNo = in.PolicyNoOverride
+	}
+	var quoteID *int64
+	if in.QuoteID > 0 {
+		quoteID = &in.QuoteID
+	}
 	err := tx.QueryRow(ctx, `
 		INSERT INTO policies (policy_no, product, customer_id, agent_id, quote_id, start_date, end_date)
 		VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-		out.PolicyNo, string(in.Product), in.CustomerID, in.AgentID, in.QuoteID, in.StartDate, in.EndDate).Scan(&out.ID)
+		out.PolicyNo, string(in.Product), in.CustomerID, in.AgentID, quoteID, in.StartDate, in.EndDate).Scan(&out.ID)
 	if err != nil {
 		return out, fmt.Errorf("poliçe: %w", err)
 	}
@@ -127,6 +138,29 @@ func Issue(ctx context.Context, tx pgx.Tx, in IssueInput) (Issued, error) {
 	}
 	if err := add(nil, in.AnnualLimitKurus); err != nil {
 		return out, fmt.Errorf("yıllık limit bakiyesi: %w", err)
+	}
+	// Yeni poliçe de ilk faturalama kaydından önce aynı satır kilidini alır.
+	if _, err := LoadHeader(ctx, tx, out.ID, true); err != nil {
+		return out, err
+	}
+	count := in.InstallmentCount
+	if count == 0 {
+		count = 1
+	}
+	actor := in.ActorID
+	if actor == 0 {
+		if p, ok := auth.FromContext(ctx); ok {
+			actor = p.UserID
+		}
+	}
+	if actor == 0 && in.QuoteID > 0 {
+		if err := tx.QueryRow(ctx, `
+   SELECT created_by FROM quotes WHERE id = $1`, in.QuoteID).Scan(&actor); err != nil {
+			return out, err
+		}
+	}
+	if err := store.Create(ctx, tx, out.ID, in.AnnualPremium, count, in.StartDate, actor); err != nil {
+		return out, err
 	}
 	return out, nil
 }

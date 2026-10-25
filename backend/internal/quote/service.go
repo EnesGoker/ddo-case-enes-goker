@@ -402,10 +402,14 @@ func (s *Service) Review(ctx context.Context, id int64, req ReviewRequest) (Quot
 // Convert teklifi tek transaction'da poliçeye çevirir. Teklif satırı FOR UPDATE ile kilitlenir:
 // eşzamanlı iki çevirmede ikincisi CONVERTED durumunu görür ve 409 alır; policies.quote_id UNIQUE
 // ikinci bir güvencedir.
-func (s *Service) Convert(ctx context.Context, id int64) (policy.Issued, error) {
+func (s *Service) Convert(ctx context.Context, id int64, installmentCount ...int) (policy.Issued, error) {
 	sc, _, err := s.scope(ctx)
 	if err != nil {
 		return policy.Issued{}, err
+	}
+	count := 1
+	if len(installmentCount) > 0 {
+		count = installmentCount[0]
 	}
 	var out policy.Issued
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
@@ -456,6 +460,7 @@ func (s *Service) Convert(ctx context.Context, id int64) (policy.Issued, error) 
 			QuoteID: id, Product: pricing.Product(product), CustomerID: customerID, AgentID: agentID,
 			TariffVersionID: tariffID, StartDate: start, EndDate: end, Plate: plate, RiskData: riskJSON,
 			AnnualPremium: total, AnnualLimitKurus: sel.AnnualLimitKurus, Coverages: sel.Coverages,
+			InstallmentCount: count,
 		})
 		// İkinci savunma hattı: kilit atlanmış olsa bile aynı teklifin ikinci poliçesi
 		// policies.quote_id UNIQUE'a takılır; 500 yerine iş hatası döner.
