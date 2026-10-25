@@ -65,12 +65,13 @@ func run() error {
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: app.NewRouter(app.Deps{
-			Pool:            pool,
-			Logger:          logger,
-			JWTSecret:       cfg.JWTSecret,
-			AccessTokenTTL:  cfg.AccessTokenTTL,
-			RefreshTokenTTL: cfg.RefreshTokenTTL,
-			CookieSecure:    cfg.CookieSecure,
+			Pool:                 pool,
+			LateInterestDailyPPM: cfg.LateInterestDailyPPM,
+			Logger:               logger,
+			JWTSecret:            cfg.JWTSecret,
+			AccessTokenTTL:       cfg.AccessTokenTTL,
+			RefreshTokenTTL:      cfg.RefreshTokenTTL,
+			CookieSecure:         cfg.CookieSecure,
 
 			UWPremiumThresholdKurus: cfg.UWPremiumThresholdKurus,
 			IdempotencyStaleAfter:   cfg.IdempotencyStaleAfter,

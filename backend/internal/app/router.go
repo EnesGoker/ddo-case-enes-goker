@@ -16,6 +16,8 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/customer"
 	"github.com/EnesGoker/guvenpolice/backend/internal/health"
 	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
+	"github.com/EnesGoker/guvenpolice/backend/internal/ledger"
+	"github.com/EnesGoker/guvenpolice/backend/internal/payment"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/logging"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/metrics"
@@ -25,13 +27,14 @@ import (
 )
 
 type Deps struct {
-	Pool            *pgxpool.Pool
-	Logger          *slog.Logger
-	JWTSecret       []byte
-	AccessTokenTTL  time.Duration
-	RefreshTokenTTL time.Duration
-	CookieSecure    bool
-	RequestTimeout  time.Duration
+	LateInterestDailyPPM int64
+	Pool                 *pgxpool.Pool
+	Logger               *slog.Logger
+	JWTSecret            []byte
+	AccessTokenTTL       time.Duration
+	RefreshTokenTTL      time.Duration
+	CookieSecure         bool
+	RequestTimeout       time.Duration
 	// UWPremiumThresholdKurus 0 ise kural kapalı
 	UWPremiumThresholdKurus int64
 	IdempotencyStaleAfter   time.Duration
@@ -54,6 +57,7 @@ func NewRouter(d Deps) http.Handler {
 	idem := idempotency.NewStore(d.Pool, d.IdempotencyStaleAfter)
 	policies := policy.NewHandler(d.Pool)
 	claims := claim.NewHandler(claim.NewService(d.Pool, d.Now))
+	payments := payment.NewHandler(payment.NewService(d.Pool, d.Now, d.LateInterestDailyPPM))
 
 	r := chi.NewRouter()
 	r.Use(logging.RequestIDMiddleware)
@@ -105,10 +109,20 @@ func NewRouter(d Deps) http.Handler {
 				r.With(auth.RequireRoles(auth.RoleAccounting), idem.Middleware).Post("/{id}/pay", claims.Pay)
 			})
 
+			accounting := auth.RequireRoles(auth.RoleAccounting)
+			r.With(accounting, idem.Middleware).Post("/payments/{id}/refund", payments.Refund)
+			r.With(accounting).Post("/billing/run", payments.Run)
+			r.With(accounting).Get("/ledger/trial-balance", ledger.TrialBalanceHandler(d.Pool))
+			r.With(accounting).Get("/journal-entries", ledger.EntriesHandler(d.Pool))
+
 			r.Route("/policies", func(r chi.Router) {
 				readers := auth.RequireRoles(auth.RoleCustomer, auth.RoleAgent, auth.RoleUnderwriter,
 					auth.RoleClaimsAdjuster, auth.RoleAccounting)
 				writers := auth.RequireRoles(auth.RoleAgent, auth.RoleUnderwriter)
+				r.With(auth.RequireRoles(auth.RoleCustomer, auth.RoleAgent, auth.RoleAccounting, auth.RoleUnderwriter)).
+					Get("/{id}/billing", payments.Billing)
+				r.With(auth.RequireRoles(auth.RoleCustomer, auth.RoleAccounting), idem.Middleware).
+					Post("/{id}/payments", payments.Pay)
 				r.With(readers).Get("/", policy.ListHandler(d.Pool))
 				r.With(readers).Get("/{id}", policies.Detail)
 				r.With(readers).Get("/{id}/coverage", policies.Coverage)

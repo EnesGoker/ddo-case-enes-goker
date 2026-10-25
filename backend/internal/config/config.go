@@ -10,16 +10,17 @@ import (
 )
 
 type Config struct {
-	HTTPAddr        string
-	DatabaseURL     string
-	MigrationsDir   string
-	JWTSecret       []byte
-	AccessTokenTTL  time.Duration
-	RefreshTokenTTL time.Duration
-	CookieSecure    bool
-	SeedDemo        bool
-	DemoPassword    string
-	LogLevel        string
+	LateInterestDailyPPM int64
+	HTTPAddr             string
+	DatabaseURL          string
+	MigrationsDir        string
+	JWTSecret            []byte
+	AccessTokenTTL       time.Duration
+	RefreshTokenTTL      time.Duration
+	CookieSecure         bool
+	SeedDemo             bool
+	DemoPassword         string
+	LogLevel             string
 	// UWPremiumThresholdKurus bu tutarı aşan teklif underwriter onayına düşer (0 = kapalı)
 	UWPremiumThresholdKurus int64
 	// IdempotencyStaleAfter IN_PROGRESS anahtarın yeniden işlenebileceği süre
@@ -51,6 +52,14 @@ func Load() (Config, error) {
 	}
 	if c.IdempotencyStaleAfter, err = duration("IDEMPOTENCY_STALE_AFTER", 60*time.Second); err != nil {
 		return c, err
+	}
+	c.LateInterestDailyPPM = 1000
+	if v := os.Getenv("LATE_INTEREST_DAILY_PPM"); v != "" {
+		n, err := strconv.ParseInt(v, 10, 32)
+		if err != nil || n <= 0 {
+			return c, fmt.Errorf("LATE_INTEREST_DAILY_PPM pozitif tam sayı olmalı")
+		}
+		c.LateInterestDailyPPM = n
 	}
 	c.UWPremiumThresholdKurus = 3_000_000
 	if v := os.Getenv("UW_PREMIUM_THRESHOLD_KURUS"); v != "" {

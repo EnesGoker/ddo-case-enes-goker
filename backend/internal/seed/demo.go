@@ -110,6 +110,9 @@ func Demo(ctx context.Context, pool *pgxpool.Pool, password string) error {
 				return fmt.Errorf("demo müşteri %s: %w", c.fullName, err)
 			}
 		}
-		return tariffs(ctx, tx)
+		if err := tariffs(ctx, tx); err != nil {
+			return err
+		}
+		return billingPolicies(ctx, tx, agentID, ids["acente@guvenpolice.test"])
 	})
 }
