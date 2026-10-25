@@ -385,10 +385,12 @@ func TestCancelledPolicyAcceptsRemainingBalance(t *testing.T) {
 	s, r, _ := postKey(t, uw, policyPath(pol)+"/cancel", body, fmt.Sprintf("cancel-open-%v", pol["id"]))
 	require.Equal(t, http.StatusCreated, s, r)
 	b := billingDetail(t, account, pol)
-	// İptalden önceki 15 gün: azaltılmış açık anapara üzerinde faiz; iptal tarihiyle kırpılır.
+	// Ayar öncesi ilk anapara 100000 × 1000 ppm × 15 gün / 1e6 = 1500 kuruş.
 	payBilling(t, account, pol, 1, "cancelled-pay")
 	b = billingDetail(t, account, pol)
+	require.Len(t, b["interest"], 1)
 	for _, v := range b["interest"].([]any) {
+		assert.Equal(t, int64(1500), num(v.(map[string]any)["amount_kurus"]))
 		assert.Equal(t, body["effective_date"], v.(map[string]any)["accrued_to"])
 	}
 	payBilling(t, account, pol, num(b["open_balance_kurus"]), "cancelled-close")

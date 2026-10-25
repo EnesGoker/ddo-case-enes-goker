@@ -20,8 +20,8 @@ type Handler struct {
 	changes *ChangeService
 }
 
-func NewHandler(pool *pgxpool.Pool, now func() time.Time) *Handler {
-	return &Handler{pool: pool, changes: NewChangeService(pool, now)}
+func NewHandler(pool *pgxpool.Pool, now func() time.Time, rate int64) *Handler {
+	return &Handler{pool: pool, changes: NewChangeService(pool, now, rate)}
 }
 
 func pathID(w http.ResponseWriter, r *http.Request) (int64, bool) {

@@ -48,6 +48,9 @@ func NewRouter(d Deps) http.Handler {
 	if d.Now == nil {
 		d.Now = time.Now
 	}
+	if d.LateInterestDailyPPM <= 0 {
+		d.LateInterestDailyPPM = 1000
+	}
 	reg := metrics.NewRegistry()
 	tokens := auth.NewTokenIssuer(d.JWTSecret, d.AccessTokenTTL)
 	authSvc := auth.NewService(d.Pool, tokens, d.RefreshTokenTTL)
@@ -55,7 +58,7 @@ func NewRouter(d Deps) http.Handler {
 	customers := customer.NewRepo(d.Pool)
 	quotes := quote.NewHandler(quote.NewService(d.Pool, d.Now, d.UWPremiumThresholdKurus))
 	idem := idempotency.NewStore(d.Pool, d.IdempotencyStaleAfter)
-	policies := policy.NewHandler(d.Pool, d.Now)
+	policies := policy.NewHandler(d.Pool, d.Now, d.LateInterestDailyPPM)
 	claims := claim.NewHandler(claim.NewService(d.Pool, d.Now))
 	payments := payment.NewHandler(payment.NewService(d.Pool, d.Now, d.LateInterestDailyPPM))
 

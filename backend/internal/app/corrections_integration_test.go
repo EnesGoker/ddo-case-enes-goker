@@ -44,3 +44,21 @@ func TestBackdatedAdditionalPremiumDueToday(t *testing.T) {
 		}
 	}
 }
+
+func TestCancellationAccruesBeforeAdjustment(t *testing.T) {
+	defer assertBillingInvariant(t)
+	account, uw := tokenFor(t, "muhasebe@guvenpolice.test"), tokenFor(t, "underwriter@guvenpolice.test")
+	manual, automatic := billingPolicy(t, 30, 3, 300000), billingPolicy(t, 30, 3, 300000)
+	s, b, _ := postKey(t, uw, policyPath(manual)+"/cancel", map[string]any{"effective_date": caldate.Format(caldate.Today(time.Now())), "reason": "UNDERWRITER"}, fmt.Sprintf("manual-interest-%v", manual["id"]))
+	require.Equal(t, http.StatusCreated, s, b)
+	s, b = newClient(t).do(http.MethodPost, "/api/v1/billing/run", account, nil)
+	require.Equal(t, http.StatusOK, s, b)
+	for _, pol := range []map[string]any{manual, automatic} {
+		b = billingDetail(t, account, pol)
+		assert.Equal(t, "CANCELLED", b["policy_status"])
+		charges := b["interest"].([]any)
+		require.Len(t, charges, 1)
+		// İlk vade anaparası 100000 × 1000 ppm × 30 gün / 1e6 = 3000.
+		assert.Equal(t, int64(3000), num(charges[0].(map[string]any)["amount_kurus"]))
+	}
+}
