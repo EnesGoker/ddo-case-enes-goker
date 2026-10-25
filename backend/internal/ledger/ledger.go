@@ -7,6 +7,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/clock"
+
 	"github.com/jackc/pgx/v5"
 )
 
@@ -43,7 +45,9 @@ func Post(ctx context.Context, tx pgx.Tx, entry Entry, lines []Line) (int64, err
 		return 0, fmt.Errorf("yevmiye dengede değil: %d != %d", debit, credit)
 	}
 	var id int64
-	if err := tx.QueryRow(ctx, `INSERT INTO journal_entries (entry_date, description, ref_type, ref_id, created_by) VALUES ($1,$2,$3,$4,$5) RETURNING id`, entry.Date, entry.Description, entry.RefType, entry.RefID, entry.CreatedBy).Scan(&id); err != nil {
+	if err := tx.QueryRow(ctx, `
+  INSERT INTO journal_entries (entry_date, description, ref_type, ref_id, created_by, created_at)
+  VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`, entry.Date, entry.Description, entry.RefType, entry.RefID, entry.CreatedBy, clock.Now(ctx)).Scan(&id); err != nil {
 		return 0, err
 	}
 	for _, line := range lines {

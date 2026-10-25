@@ -14,6 +14,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
 	"github.com/EnesGoker/guvenpolice/backend/internal/payment/store"
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/clock"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/page"
 	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
@@ -98,17 +99,17 @@ func Issue(ctx context.Context, tx pgx.Tx, in IssueInput) (Issued, error) {
 		quoteID = &in.QuoteID
 	}
 	err := tx.QueryRow(ctx, `
-		INSERT INTO policies (policy_no, product, customer_id, agent_id, quote_id, start_date, end_date)
-		VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-		out.PolicyNo, string(in.Product), in.CustomerID, in.AgentID, quoteID, in.StartDate, in.EndDate).Scan(&out.ID)
+		INSERT INTO policies (policy_no, product, customer_id, agent_id, quote_id, start_date, end_date, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+		out.PolicyNo, string(in.Product), in.CustomerID, in.AgentID, quoteID, in.StartDate, in.EndDate, clock.Now(ctx)).Scan(&out.ID)
 	if err != nil {
 		return out, fmt.Errorf("poliçe: %w", err)
 	}
 	err = tx.QueryRow(ctx, `
 		INSERT INTO policy_versions (policy_id, version_no, effective_from, effective_to, tariff_version_id,
-		                             vehicle_plate, risk_data, annual_premium_kurus, annual_limit_kurus)
-		VALUES ($1, 1, $2, NULL, $3, $4, $5, $6, $7) RETURNING id`,
-		out.ID, in.StartDate, in.TariffVersionID, in.Plate, in.RiskData, in.AnnualPremium, in.AnnualLimitKurus).
+		                             vehicle_plate, risk_data, annual_premium_kurus, annual_limit_kurus, recorded_at)
+		VALUES ($1, 1, $2, NULL, $3, $4, $5, $6, $7, $8) RETURNING id`,
+		out.ID, in.StartDate, in.TariffVersionID, in.Plate, in.RiskData, in.AnnualPremium, in.AnnualLimitKurus, clock.Now(ctx)).
 		Scan(&out.VersionID)
 	if err != nil {
 		return out, fmt.Errorf("poliçe sürümü: %w", err)

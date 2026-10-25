@@ -18,6 +18,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
 	"github.com/EnesGoker/guvenpolice/backend/internal/fraud"
 	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/clock"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/page"
@@ -299,7 +300,9 @@ func (s *Service) Appraise(ctx context.Context, id int64, req AppraisalRequest) 
 		}
 		p, _ := auth.FromContext(ctx)
 		out = Appraisal{AppraiserID: p.UserID, InspectedAt: inspected, DamageAmountKurus: *req.DamageAmountKurus, IsTotalLoss: req.IsTotalLoss, Notes: &req.Notes}
-		err = tx.QueryRow(ctx, `INSERT INTO appraisals (claim_id,appraiser_id,inspected_at,damage_amount_kurus,is_total_loss,notes) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,created_at`, id, p.UserID, inspected, *req.DamageAmountKurus, req.IsTotalLoss, req.Notes).Scan(&out.ID, &out.CreatedAt)
+		err = tx.QueryRow(ctx, `
+  INSERT INTO appraisals (claim_id,appraiser_id,inspected_at,damage_amount_kurus,is_total_loss,notes,created_at)
+  VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,created_at`, id, p.UserID, inspected, *req.DamageAmountKurus, req.IsTotalLoss, req.Notes, clock.Now(ctx)).Scan(&out.ID, &out.CreatedAt)
 		if err != nil {
 			return err
 		}

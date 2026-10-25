@@ -12,6 +12,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
 	"github.com/EnesGoker/guvenpolice/backend/internal/ledger"
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/clock"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/settlement"
@@ -113,11 +114,15 @@ func (s *Service) Approve(ctx context.Context, id int64) (*Settlement, error) {
 		}
 		p, _ := auth.FromContext(ctx)
 		var sid int64
-		if err := tx.QueryRow(ctx, `INSERT INTO claim_settlements (claim_id,gross_damage_kurus,deductible_kurus,payable_kurus,calc_steps,approved_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id`, id, r.GrossDamageKurus, r.DeductibleKurus, r.PayableKurus, steps, p.UserID).Scan(&sid); err != nil {
+		if err := tx.QueryRow(ctx, `
+  INSERT INTO claim_settlements (claim_id,gross_damage_kurus,deductible_kurus,payable_kurus,calc_steps,approved_by,approved_at)
+  VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`, id, r.GrossDamageKurus, r.DeductibleKurus, r.PayableKurus, steps, p.UserID, clock.Now(ctx)).Scan(&sid); err != nil {
 			return err
 		}
 		for _, b := range balances {
-			if _, err := tx.Exec(ctx, `INSERT INTO limit_consumptions (settlement_id,balance_id,amount_kurus) VALUES($1,$2,$3)`, sid, b.ID, r.PayableKurus); err != nil {
+			if _, err := tx.Exec(ctx, `
+  INSERT INTO limit_consumptions (settlement_id,balance_id,amount_kurus,created_at)
+  VALUES($1,$2,$3,$4)`, sid, b.ID, r.PayableKurus, clock.Now(ctx)); err != nil {
 				return err
 			}
 		}
@@ -161,7 +166,8 @@ func (s *Service) Pay(ctx context.Context, id int64) (*Settlement, error) {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE claim_settlements SET status='PAID',paid_at=now(),payment_journal_entry_id=$2 WHERE id=$1`, out.ID, jid); err != nil {
+		if _, err := tx.Exec(ctx, `
+  UPDATE claim_settlements SET status='PAID',paid_at=$3,payment_journal_entry_id=$2 WHERE id=$1`, out.ID, jid, clock.Now(ctx)); err != nil {
 			return err
 		}
 		if _, err := Transition(ctx, tx, id, "PAID", p, "Tazminat ödendi", c.RowVersion, TransitionOptions{At: s.now(), SLA: s.workflow}); err != nil {

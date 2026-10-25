@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/clock"
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
 	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
 	"github.com/EnesGoker/guvenpolice/backend/internal/tariff"
@@ -43,7 +44,7 @@ func issuePriced(ctx context.Context, tx pgx.Tx, customerID, agentID, actorID in
 		return policy.Issued{}, err
 	}
 	coverage, _ := pricing.CoverageSpecFor(pricing.Kasko, "KASKO_ANA")
-	return policy.Issue(ctx, tx, policy.IssueInput{
+	return policy.Issue(clock.WithTime(ctx, start), tx, policy.IssueInput{
 		PolicyNoOverride: no, ActorID: actorID, Product: pricing.Kasko, CustomerID: customerID, AgentID: &agentID,
 		TariffVersionID: selected.ID, StartDate: start, EndDate: caldate.AddYear(start), Plate: &normalized,
 		RiskData: encoded, AnnualPremium: result.TotalKurus, AnnualLimitKurus: pricing.Catalog[pricing.Kasko].AnnualLimitKurus, InstallmentCount: count,

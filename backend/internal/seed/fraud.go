@@ -12,6 +12,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/fraud"
 	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
 	"github.com/EnesGoker/guvenpolice/backend/internal/payment"
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/clock"
 	"github.com/EnesGoker/guvenpolice/backend/internal/policy"
 	"github.com/EnesGoker/guvenpolice/backend/internal/workflow"
 	"github.com/jackc/pgx/v5"
@@ -80,8 +81,12 @@ func fraudScenario(ctx context.Context, pool *pgxpool.Pool, options Options) err
 		return out, err
 	}
 	pay := func(p policy.Issued, key string) error {
-		accountCtx := auth.WithPrincipal(ctx, auth.Principal{UserID: accountUser, Role: auth.RoleAccounting})
-		_, err := payment.NewService(pool, options.Now, options.LateInterestDailyPPM).Pay(idempotency.WithKey(accountCtx, key), p.ID, payment.PayRequest{AmountKurus: &p.AnnualPremium, Method: "TRANSFER", PaymentDate: p.StartDate})
+		at, err := caldate.Parse(p.StartDate)
+		if err != nil {
+			return err
+		}
+		accountCtx := auth.WithPrincipal(clock.WithTime(ctx, at), auth.Principal{UserID: accountUser, Role: auth.RoleAccounting})
+		_, err = payment.NewService(pool, options.Now, options.LateInterestDailyPPM).Pay(idempotency.WithKey(accountCtx, key), p.ID, payment.PayRequest{AmountKurus: &p.AnnualPremium, Method: "TRANSFER", PaymentDate: p.StartDate})
 		return err
 	}
 	adjctx := auth.WithPrincipal(ctx, auth.Principal{UserID: adjusterUser, Role: auth.RoleClaimsAdjuster})
@@ -114,13 +119,13 @@ func fraudScenario(ctx context.Context, pool *pgxpool.Pool, options Options) err
 		if (to == "TRIAGED" && late.Status != "REPORTED") || (to == "APPRAISAL" && late.Status != "TRIAGED") {
 			continue
 		}
-		late, err = pastClaims.ChangeStatus(adjctx, late.ID, claim.TransitionRequest{ToStatus: to, Note: "Kurgusal geçmiş SLA örneği", ExpectedRowVersion: late.RowVersion})
+		late, err = pastClaims.ChangeStatus(clock.WithTime(adjctx, past), late.ID, claim.TransitionRequest{ToStatus: to, Note: "Kurgusal geçmiş SLA örneği", ExpectedRowVersion: late.RowVersion})
 		if err != nil {
 			return err
 		}
 	}
 	agentCtx := auth.WithPrincipal(ctx, auth.Principal{UserID: agentUser, Role: auth.RoleAgent})
-	_, err = policy.NewChangeService(pool, options.Now, options.LateInterestDailyPPM).Cancel(idempotency.WithKey(agentCtx, "seed-a6-fp1-cancel"), first.ID, policy.CancelRequest{EffectiveDate: caldate.Format(start.AddDate(0, 0, 294)), Reason: "CUSTOMER_REQUEST", Note: "Kurgusal yeni poliçe senaryosu"})
+	_, err = policy.NewChangeService(pool, options.Now, options.LateInterestDailyPPM).Cancel(idempotency.WithKey(clock.WithTime(agentCtx, options.Now()), "seed-a6-fp1-cancel"), first.ID, policy.CancelRequest{EffectiveDate: caldate.Format(start.AddDate(0, 0, 294)), Reason: "CUSTOMER_REQUEST", Note: "Kurgusal yeni poliçe senaryosu"})
 	if err != nil {
 		return err
 	}

@@ -18,6 +18,7 @@ import (
 	"github.com/EnesGoker/guvenpolice/backend/internal/caldate"
 	"github.com/EnesGoker/guvenpolice/backend/internal/idempotency"
 	"github.com/EnesGoker/guvenpolice/backend/internal/payment/store"
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/clock"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/pricing"
@@ -451,9 +452,9 @@ func (s *ChangeService) VehicleChange(ctx context.Context, id int64, req Vehicle
 		var newID int64
 		if err := tx.QueryRow(ctx, `
 			INSERT INTO policy_versions (policy_id, version_no, effective_from, effective_to, tariff_version_id,
-			                             vehicle_plate, risk_data, annual_premium_kurus, annual_limit_kurus)
-			VALUES ($1, $2, $3, NULL, $4, $5, $6, $7, $8) RETURNING id`,
-			pl.h.ID, pl.newVerNo, pl.date, pl.open.TariffID, plate, riskJSON, pl.result.TotalKurus, pl.open.AnnualLimit).
+			                             vehicle_plate, risk_data, annual_premium_kurus, annual_limit_kurus, recorded_at)
+			VALUES ($1, $2, $3, NULL, $4, $5, $6, $7, $8, $9) RETURNING id`,
+			pl.h.ID, pl.newVerNo, pl.date, pl.open.TariffID, plate, riskJSON, pl.result.TotalKurus, pl.open.AnnualLimit, clock.Now(ctx)).
 			Scan(&newID); err != nil {
 			return err
 		}
@@ -667,8 +668,8 @@ func (s *ChangeService) CancelTx(ctx context.Context, tx pgx.Tx, id int64, req C
 	}
 	tag, err := tx.Exec(ctx, `
   UPDATE policies
-     SET status = 'CANCELLED', cancelled_at = now(), cancel_effective_date = $2, cancel_reason = $3
-   WHERE id = $1 AND status = 'ACTIVE'`, pl.h.ID, pl.date, pl.reason)
+     SET status = 'CANCELLED', cancelled_at = $4, cancel_effective_date = $2, cancel_reason = $3
+   WHERE id = $1 AND status = 'ACTIVE'`, pl.h.ID, pl.date, pl.reason, clock.Now(ctx))
 	if err != nil {
 		return out, err
 	}
@@ -725,11 +726,11 @@ func insertEndorsement(ctx context.Context, tx pgx.Tx, policyID int64, typ strin
 		PremiumDelta: delta, CalcDetail: calcJSON, CreatedBy: p.UserID}
 	err = tx.QueryRow(ctx, `
 		INSERT INTO endorsements (policy_id, endorsement_no, type, effective_date, from_version_id, to_version_id,
-		                          premium_delta_kurus, calc_detail, created_by, request_key)
+		                          premium_delta_kurus, calc_detail, created_by, request_key, created_at)
 		VALUES ($1, (SELECT COALESCE(max(endorsement_no), 0) + 1 FROM endorsements WHERE policy_id = $1),
-		        $2, $3, $4, $5, $6, $7, $8, $9)
+		        $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id, endorsement_no, created_at`,
-		policyID, typ, at, fromVersion, toVersion, delta, calcJSON, p.UserID, idempotency.Key(ctx)).Scan(&e.ID, &e.EndorsementNo, &e.CreatedAt)
+		policyID, typ, at, fromVersion, toVersion, delta, calcJSON, p.UserID, idempotency.Key(ctx), clock.Now(ctx)).Scan(&e.ID, &e.EndorsementNo, &e.CreatedAt)
 	return e, err
 }
 

@@ -13,6 +13,7 @@ import (
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/billing"
 	"github.com/EnesGoker/guvenpolice/backend/internal/ledger"
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/clock"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 )
@@ -86,8 +87,8 @@ func Create(ctx context.Context, tx pgx.Tx, policyID, total int64, count int, st
 	}
 	var planID int64
 	err = tx.QueryRow(ctx, `
-  INSERT INTO installment_plans (policy_id, total_kurus, installment_count)
-  VALUES ($1,$2,$3) RETURNING id`, policyID, total, count).Scan(&planID)
+  INSERT INTO installment_plans (policy_id, total_kurus, installment_count, created_at)
+  VALUES ($1,$2,$3,$4) RETURNING id`, policyID, total, count, clock.Now(ctx)).Scan(&planID)
 	if err != nil {
 		return err
 	}
