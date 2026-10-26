@@ -73,11 +73,11 @@ const agentPerformanceSQL = `WITH issued AS (
     SELECT id, agency_name AS label FROM agents
      WHERE $3::bigint IS NULL OR id=$3
     UNION ALL
-    SELECT NULL::bigint, 'Doğrudan'
+    SELECT NULL::bigint, 'Acentesiz'
      WHERE $3::bigint IS NULL
        AND EXISTS (SELECT 1 FROM policies WHERE agent_id IS NULL)
 )
-SELECT coalesce(a.id::text,'direct') AS key, a.label,
+SELECT coalesce(a.id::text,'unassigned') AS key, a.label,
        (coalesce(i.premium,0)+coalesce(z.premium,0))::bigint AS written_premium_kurus,
        coalesce(i.policies,0)::bigint AS policy_count,
        coalesce(c.claims,0)::bigint AS incurred_claims_kurus

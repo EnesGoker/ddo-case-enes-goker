@@ -94,7 +94,7 @@ func TestAgentPerformanceAccessAndGoldenRows(t *testing.T) {
 			}
 			require.Contains(t, found, fmt.Sprint(a.id))
 			require.Contains(t, found, fmt.Sprint(b.id))
-			require.Contains(t, found, "direct")
+			require.Contains(t, found, "unassigned")
 			require.Contains(t, found, fmt.Sprint(empty.id))
 			assert.Equal(t, int64(100000), num(found[fmt.Sprint(a.id)]["written_premium_kurus"]))
 			assert.Equal(t, int64(200000), num(found[fmt.Sprint(b.id)]["written_premium_kurus"]))
@@ -107,7 +107,7 @@ func TestAgentPerformanceAccessAndGoldenRows(t *testing.T) {
 		premium int64
 	}{{a, 100000}, {b, 200000}, {empty, 0}} {
 		token := tokenFor(t, own.agency.email)
-		for _, query := range []string{"from=&to=", fmt.Sprintf("from=&to=&agent_id=%d&scope=all&group_by=agent", b.id), "from=&to=&agent_id=direct&include_total=true"} {
+		for _, query := range []string{"from=&to=", fmt.Sprintf("from=&to=&agent_id=%d&scope=all&group_by=agent", b.id), "from=&to=&agent_id=unassigned&include_total=true"} {
 			status, body := get(t, token, "/api/v1/reports/agents?"+query)
 			require.Equal(t, http.StatusOK, status, body)
 			require.NotContains(t, body, "total")
@@ -116,7 +116,7 @@ func TestAgentPerformanceAccessAndGoldenRows(t *testing.T) {
 			row := items[0].(map[string]any)
 			assert.Equal(t, fmt.Sprint(own.agency.id), row["key"])
 			assert.Equal(t, own.premium, num(row["written_premium_kurus"]))
-			assert.NotEqual(t, "direct", row["key"])
+			assert.NotEqual(t, "unassigned", row["key"])
 		}
 	}
 	status, body := get(t, tokenFor(t, noProfile.email), path)

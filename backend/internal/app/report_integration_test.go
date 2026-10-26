@@ -157,7 +157,29 @@ func TestProductionReportGoldenLedgerPeriodsAndGroups(t *testing.T) {
 		require.NoError(t, e)
 		legacy, e := report.ReadProduction(ctx, pool, report.Filter{From: period.From, To: period.To, GroupBy: "agent"})
 		require.NoError(t, e)
+		require.NotNil(t, pane.Total)
 		assert.Equal(t, legacy.Total, *pane.Total, "pano = ADR-18; zeyil/iptal/onay dahil")
+		paneRows := make(map[string]report.Row, len(pane.Items))
+		for _, row := range pane.Items {
+			require.NotContains(t, paneRows, row.Key, "pano satır anahtarı tekil olmalı")
+			paneRows[row.Key] = row
+		}
+		for _, expected := range legacy.Items {
+			actual, ok := paneRows[expected.Key]
+			require.True(t, ok, "ADR-18 acentesi panoda bulunmalı: %s", expected.Key)
+			assert.Equal(t, expected.Label, actual.Label, expected.Key)
+			assert.Equal(t, expected.PolicyCount, actual.PolicyCount, expected.Key)
+			assert.Equal(t, expected.WrittenPremium, actual.WrittenPremium, expected.Key)
+			assert.Equal(t, expected.IncurredClaims, actual.IncurredClaims, expected.Key)
+			assert.Equal(t, expected.LossRatioBP, actual.LossRatioBP, expected.Key)
+			delete(paneRows, expected.Key)
+		}
+		for _, extra := range paneRows {
+			assert.Zero(t, extra.PolicyCount, extra.Key)
+			assert.Zero(t, extra.WrittenPremium, extra.Key)
+			assert.Zero(t, extra.IncurredClaims, extra.Key)
+			assert.Nil(t, extra.LossRatioBP, extra.Key)
+		}
 	}
 
 }

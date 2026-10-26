@@ -107,7 +107,9 @@ A7 uygulaması ve altı rol375px kabulü tamamlandı. Önceki v1/v2 ölçümleri
 - [x] Public repo ve anlamlı çoklu commit geçmişi salt okunur doğrulandı; ajan push/publicayarı yapmadı.
 - [ ] Son belge commit'leri kullanıcı tarafından push edilecek; repoURL'si26Ekim23.59TRT'den önce ankete yüklenecek.
 
-**Kesilenler:** genel okunabilirlik turu ve bonus acente panosu YAPILMADI. PDF/fotoğraf bonusu yok; ekspertiz notu mevcut. Yeni roadmap aşamasına başlanmadı.
+**Bonus durumu:** acente performans panosu B1’de eklendi (ADR-27); ekspertiz notu mevcut.
+
+Poliçe PDF’i ve fotoğraf yükleme yok. Genel okunabilirlik turu YAPILMADI. Yeni roadmap aşamasına başlanmadı.
 
 **Kapanış:** teknik kapı PASS; kişisel README ve anket teslimi kullanıcıya ait.
 

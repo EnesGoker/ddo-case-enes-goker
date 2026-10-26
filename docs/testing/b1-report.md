@@ -11,7 +11,7 @@
 - Tahakkuk eden tazminat: CLAIM_APPROVAL kaynaklı 5000 net borç; tazminatın nakit ödenmesi yeniden sayılmaz.
 - Yazılan prime göre hasar/prim oranı: mevcut lossratio ile int64 baz puan; prim <=0 ise null/“—”. Genel oran toplamlardan, ortalama satır oranından değil. Toplam int64 taşması hata verir.
 
-Yevmiye entry_date [from,to). Parametreler yokken TRT bugün dahil son 12 takvim ayı: 26 Ekim'de [2025-10-27,2026-10-27); açık boş tarihler tüm zamanlar. Bütün acenteler, hareketsizler sıfır, acentesiz poliçe varsa Doğrudan; toplam en altta. AGENT yalnız kimliğinden çözülen kendi satırı, total yok; parametreyle genişleme yok. UNDERWRITER/ACCOUNTING tümü; diğer roller 403, kimliksiz 401. Mevcut ADR-18 report.go sorgusu değişmedi.
+Yevmiye entry_date [from,to). Parametreler yokken TRT bugün dahil son 12 takvim ayı: 26 Ekim'de [2025-10-27,2026-10-27); açık boş tarihler tüm zamanlar. Bütün acenteler, hareketsizler sıfır, acentesiz poliçe varsa Acentesiz; toplam en altta. AGENT yalnız kimliğinden çözülen kendi satırı, total yok; parametreyle genişleme yok. UNDERWRITER/ACCOUNTING tümü; diğer roller 403, kimliksiz 401. Mevcut ADR-18 report.go sorgusu değişmedi.
 
 ## 3. Performans ve tutarlılık
 
@@ -32,7 +32,7 @@ Yevmiye entry_date [from,to). Parametreler yokken TRT bugün dahil son 12 takvim
 | default | 229.244 | PASS |
 | narrow | 56.785 | PASS |
 
-[HTTP ham yanıtları ve kapsam](b1-http-consistency.json). AGENT'ın beklenen kimliği bağımsız DB profilinden kontrol edildi; Doğrudan/total isteği yalnız kendi satırını döndürdü.
+[HTTP ham yanıtları ve kapsam](b1-http-consistency.json). AGENT'ın beklenen kimliği bağımsız DB profilinden kontrol edildi; Acentesiz/total isteği yalnız kendi satırını döndürdü.
 
 ## 4. Testler ve tarayıcı
 
@@ -49,7 +49,7 @@ Birimlerde 20 testli Go paketi; entegrasyonda 21 testli paket (app88,777 sn). D�
 
 İlk başarılı komut dizisi de korunur. Tarayıcıda ilk boş tarih denemesi FAIL (b1-ui-first-failure.json): alanlar boşken eski tarihler gönderildi. FormData düzeltmesinden sonra bütün sıra yeniden geçti; tarayıcıda açık boş tarihler tüm zamanları getirdi. Test/FAIL kaydı silinmedi. YAML kontrolü için yerel Python/node modülleri bulunmadı; paket kurmadan sistem Ruby YAML ile belge ve 276 iç referans doğrulandı (b1-doc-check.log).
 
-Gerçek tarayıcı: 375px document=viewport375, tablo kabı341/iç tablo780; yatay kaydırma yalnız tabloda. AGENT1satır/total0, UNDERWRITER21satır/total1; masaüstü1440/1440. Ana veri kümesinde acentesiz poliçe yok; Doğrudan fixture ile sınandı. Sıralama artan/azalan, loading, empty, error/yeniden deneme, sıfır primde “—” ve tarih sıfırlama görüldü. Frontend test deseni yok, test paketi eklenmedi. Viewport sıfırlandı ve kabul sekmesi kapatıldı. [UI kaydı](b1-ui.json), [mobil](b1-ui-mobile.png), [masaüstü](b1-ui-desktop.png).
+Gerçek tarayıcı: 375px document=viewport375, tablo kabı341/iç tablo780; yatay kaydırma yalnız tabloda. AGENT1satır/total0, UNDERWRITER21satır/total1; masaüstü1440/1440. Ana veri kümesinde acentesiz poliçe yok; Acentesiz fixture ile sınandı. Sıralama artan/azalan, loading, empty, error/yeniden deneme, sıfır primde “—” ve tarih sıfırlama görüldü. Frontend test deseni yok, test paketi eklenmedi. Viewport sıfırlandı ve kabul sekmesi kapatıldı. [UI kaydı](b1-ui.json), [mobil](b1-ui-mobile.png), [masaüstü](b1-ui-desktop.png).
 
 ## 5. 100k koruması ve sınırlar
 

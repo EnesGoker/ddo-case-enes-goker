@@ -546,12 +546,14 @@ Muhasebe/UW100000/100000 ve46/9maliözetini görüyor; müşteriSistem yalnızca
 
 ### İzlenebilirlik tablosunun kapanışı
 
-Yukarıdaki “BEKLİYOR” notları ölçüm öncesi anlık kayıttır. Son durum: yeni100k, tazekurulum, CI/kapsam, verify, k6,kaos,ikiindeks veS5primkanıtı **PASS**; READMEkurulum/mimari/ölçümler tamam.173Testfonksiyonu. Kullanıcı isteğiyle READMEkişisel1/4soruları yer tutucu, sonpush/anket kullanıcıya ait. Repo public olarak saltokunur doğrulandı. Bonuspanosu/PDF/fotoğraf ve kesilebilir genelokunabilirlik **YAPILMADI**. Önceki başarısız koşular silinmedi.
+Yukarıdaki “BEKLİYOR” notları ölçüm öncesi anlık kayıttır. Son durum: yeni100k, tazekurulum, CI/kapsam, verify, k6,kaos,ikiindeks veS5primkanıtı **PASS**; READMEkurulum/mimari/ölçümler tamam.173Testfonksiyonu. Kullanıcı isteğiyle READMEkişisel1/4soruları yer tutucu, sonpush/anket kullanıcıya ait. Repo public olarak saltokunur doğrulandı. Acente performans panosu B1’de eklendi (ADR-27).
+
+Poliçe PDF’i ve fotoğraf yükleme yok. Kesilebilir genel okunabilirlik turu **YAPILMADI**. Önceki başarısız koşular silinmedi.
 
 
 ## B1 — Acente performans panosu
 
-`bonus/acente-panosu` dalı; mevcut ADR-18 sorgusu değiştirilmedi. Acente kendi satırını, underwriter/muhasebe bütün acenteler + Doğrudan + toplamı görür. Faaliyetsiz acenteler sıfırlarla, prim <=0 oranı “—” ile görünür. Müşteri/eksper/hasar uzmanı 403, kimliksiz 401. Parametreyle başka acente veya toplam istenmesi kapsamı genişletmez.
+`bonus/acente-panosu` dalı; mevcut ADR-18 sorgusu değiştirilmedi. Acente kendi satırını, underwriter/muhasebe bütün acenteler + Acentesiz + toplamı görür. Faaliyetsiz acenteler sıfırlarla, prim <=0 oranı “—” ile görünür. Müşteri/eksper/hasar uzmanı 403, kimliksiz 401. Parametreyle başka acente veya toplam istenmesi kapsamı genişletmez.
 
 Varsayılan TRT bugün dahil son 12 takvim ayıdır: 26 Ekim 2026 için [2025-10-27,2026-10-27). İki tarih boşaltılıp **Panoyu getir** seçilirse tüm zamanlar; tek sınır açıktır. Sütun başlıklarıyla artan/azalan sıralama yapılır; boş oranlar sonda kalır. Yükleniyor, hata/yeniden deneme ve boş faaliyet durumları mevcuttur. Frontend'de mevcut otomatik test deseni/çalıştırıcısı yok; yeni paket kurulmadı.
 
@@ -583,8 +585,23 @@ Bu tabloda 100000 SIM ile mevcut demo/kabul kayıtları birlikte raporlanır; 10
 
 İlk tarayıcı denemesinde alanlar boş görünürken gönderimin eski tarihleri kullandığı görüldü (FAIL, b1-ui-first-failure.json). FormData ile güncel alan değerleri tek kaynaktan gönderilerek düzeltildi; son sıralı testler ve yeniden derlenen tarayıcı kabulü PASS. Hiçbir başarısız kayıt silinmedi.
 
-375 px gerçek tarayıcı: document.scrollWidth = innerWidth = 375; tablo kabı 341 px, iç tablo 780 px. AGENT bir satır ve total yok; UNDERWRITER 21 acente ve bir toplam satırı görüyor. Ana veri kümesinde acentesiz poliçe olmadığı için Doğrudan satırı yok; bu satır geçici DB entegrasyon fixture'ında doğrulanır. Masaüstü 1440/1440; 21 satır + toplam. Artan/azalan poliçe adedi sıralaması, boş tarihle tüm zamanlar, boş dönem/sıfır primde “—”, hatalı tarihte error/yeniden deneme ve yükleniyor durumu gerçek tarayıcıda görüldü. Viewport sıfırlandı, kabul sekmesi kapatıldı. [Tarayıcı kaydı](docs/testing/b1-ui.json), [mobil](docs/testing/b1-ui-mobile.png), [masaüstü](docs/testing/b1-ui-desktop.png).
+375 px gerçek tarayıcı: document.scrollWidth = innerWidth = 375; tablo kabı 341 px, iç tablo 780 px. AGENT bir satır ve total yok; UNDERWRITER 21 acente ve bir toplam satırı görüyor. Ana veri kümesinde acentesiz poliçe olmadığı için Acentesiz satırı yok; bu satır geçici DB entegrasyon fixture'ında doğrulanır. Masaüstü 1440/1440; 21 satır + toplam. Artan/azalan poliçe adedi sıralaması, boş tarihle tüm zamanlar, boş dönem/sıfır primde “—”, hatalı tarihte error/yeniden deneme ve yükleniyor durumu gerçek tarayıcıda görüldü. Viewport sıfırlandı, kabul sekmesi kapatıldı. [Tarayıcı kaydı](docs/testing/b1-ui.json), [mobil](docs/testing/b1-ui-mobile.png), [masaüstü](docs/testing/b1-ui-desktop.png).
 
 Gerçek HTTP üçer isteğin medyanı: tüm zamanlar **432,560 ms**, son 12 ay **229,244 ms**, dar dönem **56,785 ms**. Üç dönemin dört metrikli toplamı ve hareketli satırları ADR-18 ile birebir aynı; [HTTP kayıtları](docs/testing/b1-http-consistency.json). Bu, verify sonrası mevcut demo/kabul kayıtlarıyla ayrı bir ölçümdür; önceki SQL tablosunun sayılarıyla farklı anlar karıştırılmaz.
 
 100k önce/sonra A8.1 yöntemiyle PASS: 100000 SIM poliçe, 7780 hasar, 6727 ekspertiz, 495 işaretli, 46 açık inceleme, 46 açık görev aynı. Gerçek saate bağlı SLA ihlali 46→46; düşüş yok. Kayıtlı parmak izi, eski ekspertiz alanlarının MD5'i ve volume kimliği aynı. Parmak izi yeniden hesaplanmadı. measured_at ve database_bytes farkları yalnız raporlandı. [Karşılaştırma](docs/testing/b1-comparison.json); ham b1-acceptance-before/after.json ve b1-preservation-before/after.json. Verify olağan demo/kabul işlemleri ekler; SIM iş alanları değişmedi. Simülasyon veya yeni 100k koşusu yok.
+
+
+## B1.1 — Bağımsız inceleme düzeltmeleri
+
+`TestProductionReportGoldenLedgerPeriodsAndGroups` içindeki tüm dönemlerde ADR-18 acente satırlarıyla pano satırlarının adı ve dört metriği birebir karşılaştırılır; pano anahtarları tekil olmalı, ek satırların üç tutarı/adedi sıfır ve oranı null olmalıdır. Böylece servislerle üretilen zeyil/iptal/onay fixture'ı yalnız genel toplamı değil acente değerlerini de doğrular. `TestAgentPerformanceGolden` SQL çalıştırmaz; hazır agregatlarda toplam/oran hesabını doğrular. Canlı API ve arayüzde acentesiz satırın adı/anahtarı mevcut raporla aynı **Acentesiz / unassigned** olmuştur. Eski B1 ham planları ve tarayıcı kayıtları o commit'in tarihsel kanıtıdır; geriye dönük yeniden yazılmaz.
+
+### HTTP tutarlılık kanıtını yeniden üretme
+
+Servisler yeniden derlenmiş/sağlıklı ve simülatör durmuş olmalı; karşılaştırma sırasında başka iş mutasyonu çalıştırmayın. Depo kökünde:
+
+```bash
+python3 scripts/check-agent-performance.py
+```
+
+Parola `DEMO_PASSWORD` ortamından, yoksa yerel `.env` içinden yalnız belleğe okunur; token/parola kayda veya çıktıya yazılmaz. API_URL varsayılan localhost:8080'dir. Standart Python3, Docker Compose ve mevcut DB'nin salt okunur profil sorgusu kullanılır; paket kurulmaz. Betik `docs/testing/b1-http-consistency.json` ve üç ham yanıtı yeniler. `tested_commit` gerçek HEAD'dir; commit edilmemiş kaynak değişikliği varsa FAIL verir. Varsayılan pano yanıtındaki tarihler ADR-18'e aynen aktarılır; toplamlar, dört metrikli tüm acente satırları ve ek sıfır satırlar karşılaştırılır. AGENT'ın kimliği bağımsız profil sorgusuyla kontrol edilir; parametreyle acentesiz/genel toplam isteği kendi satırıyla sınırlı kalır. Başarısızlık JSON'da FAIL olarak saklanır ve non-zero döner.

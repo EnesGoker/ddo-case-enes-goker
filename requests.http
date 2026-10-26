@@ -331,7 +331,7 @@ Content-Type: application/json
 GET {{api}}/api/v1/reports/agents
 Authorization: Bearer {{login.response.body.access_token}}
 
-### B1 — tüm zamanlar, bütün acenteler + Doğrudan + toplam
+### B1 — tüm zamanlar, bütün acenteler + Acentesiz + toplam
 GET {{api}}/api/v1/reports/agents?from=&to=
 Authorization: Bearer {{accounting.response.body.access_token}}
 
@@ -354,5 +354,5 @@ GET {{api}}/api/v1/reports/agents
 Authorization: Bearer {{b1customer.response.body.access_token}}
 
 ### B1 — parametreyle kapsam genişlemez; yine yalnız kendi acentesi, total yok
-GET {{api}}/api/v1/reports/agents?from=&to=&agent_id=direct&include_total=true
+GET {{api}}/api/v1/reports/agents?from=&to=&agent_id=unassigned&include_total=true
 Authorization: Bearer {{login.response.body.access_token}}

@@ -16,13 +16,13 @@ import (
 )
 
 func TestAgentPerformanceGolden(t *testing.T) {
-	// Issue + positive/negative endorsement; issue minus cancellation refund.
-	// Cash payments/refunds are not 4000/5000 movements and are excluded by SQL.
+	// Hazır agregat satırlarının toplamını ve oranlarını sınar; SQL çalıştırmaz.
+	// Zeyil/iptal ve nakit iadenin gerçek hareketlere etkisi integration testlerindedir.
 	rows := []Row{
 		{Key: "1", Label: "A", PolicyCount: 1, WrittenPremium: 1110900 + 240838 - 353582, IncurredClaims: 50000 + 10000},
 		{Key: "2", Label: "B", PolicyCount: 1, WrittenPremium: 20000 - 18301},
 		{Key: "3", Label: "Hareketsiz"},
-		{Key: "direct", Label: "Doğrudan", PolicyCount: 1, WrittenPremium: 30000},
+		{Key: "unassigned", Label: "Acentesiz", PolicyCount: 1, WrittenPremium: 30000},
 	}
 	out, err := agentResult(AgentFilter{}, rows)
 	require.NoError(t, err)
@@ -44,7 +44,7 @@ func TestAgentPerformanceProjectionAndOverflow(t *testing.T) {
 	out, err := agentResult(AgentFilter{AgentID: &id}, []Row{
 		{Key: "12", WrittenPremium: 100, IncurredClaims: 25},
 		{Key: "13", WrittenPremium: 900},
-		{Key: "direct", WrittenPremium: 1000},
+		{Key: "unassigned", WrittenPremium: 1000},
 	})
 	require.NoError(t, err)
 	require.Len(t, out.Items, 1)
@@ -53,7 +53,7 @@ func TestAgentPerformanceProjectionAndOverflow(t *testing.T) {
 	body, err := json.Marshal(out)
 	require.NoError(t, err)
 	assert.NotContains(t, string(body), `"total"`)
-	assert.NotContains(t, string(body), `"direct"`)
+	assert.NotContains(t, string(body), `"unassigned"`)
 	_, err = agentResult(AgentFilter{}, []Row{{WrittenPremium: math.MaxInt64}, {WrittenPremium: 1}})
 	require.Error(t, err)
 }

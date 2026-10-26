@@ -568,7 +568,7 @@ cp "$TMP/body" "$TMP/agent-panel-production.json"
 req GET "$API_URL/api/v1/reports/agents?$agent_panel_period" -H "Authorization: Bearer $UW"
 [ "$STATUS" = 200 ] || agent_panel_ok=no
 cp "$TMP/body" "$TMP/agent-panel-underwriter.json"
-req GET "$API_URL/api/v1/reports/agents?$agent_panel_period&agent_id=direct&include_total=true" -H "Authorization: Bearer $AGENT"
+req GET "$API_URL/api/v1/reports/agents?$agent_panel_period&agent_id=unassigned&include_total=true" -H "Authorization: Bearer $AGENT"
 [ "$STATUS" = 200 ] || agent_panel_ok=no
 cp "$TMP/body" "$TMP/agent-panel-own.json"
 if ! python3 - "$TMP" <<'PY_B1'
@@ -580,7 +580,7 @@ a, p, u, own = map(read, ('accounting', 'production', 'underwriter', 'own'))
 assert a['total'] == p['total'] == u['total']
 assert 'total' not in own and len(own['items']) == 1
 row = own['items'][0]
-assert row['key'] != 'direct'
+assert row['key'] != 'unassigned'
 assert row == next(item for item in a['items'] if item['key'] == row['key'])
 for field in ('policy_count', 'written_premium_kurus', 'incurred_claims_kurus'):
     assert sum(item[field] for item in a['items']) == a['total'][field]

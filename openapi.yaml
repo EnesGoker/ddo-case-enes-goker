@@ -1112,7 +1112,7 @@ paths:
         ADR-18 ile aynı journal_entries.entry_date [from,to) dönemi ve yazılan prim tanımı.
         İki tarih parametresi de verilmezse TRT bugün dahil son 12 takvim ayı;
         from=&to= tüm zamanlar, tek boş/eksik sınır açıktır. Başlangıç dahil, bitiş hariç.
-        Tüm acenteler (hareketsizler sıfır), varsa acentesiz poliçeler Doğrudan satırı.
+        Tüm acenteler (hareketsizler sıfır), varsa acentesiz poliçeler label=Acentesiz ve key=unassigned satırı.
         UNDERWRITER/ACCOUNTING bütün satırları ve toplamlardan hesaplanan total alanını görür.
         AGENT yalnız kimliğinden çözülen kendi satırını görür; total alanı yoktur.
         agent_id, group_by veya include_total gibi parametreler kapsamı genişletemez.

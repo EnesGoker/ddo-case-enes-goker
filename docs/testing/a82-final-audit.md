@@ -74,7 +74,7 @@ Gerçek görünümlü kullanılabilir sır/JWT bulunmadı; `<redacted>` uygulana
 
 ## 3. Okunabilirlik cümlesi
 
-REQUIREMENTS.md'de genel okunabilirlik turu, zorunluluk veya ayrı değerlendirme ölçütü olarak geçmiyor. İlgili kelime araması eşleşme vermedi; teslim/puan ölçütleri REQUIREMENTS.md:118–127'de. README bonus satırındaki yalnız istenen iki cümle çıkarıldı; “Bonuslar: ekspertiz notu mevcut; acente performans panosu, poliçe PDF'i ve fotoğraf yükleme **YAPILMADI**.” aynen korundu.
+REQUIREMENTS.md'de genel okunabilirlik turu, zorunluluk veya ayrı değerlendirme ölçütü olarak geçmiyor. İlgili kelime araması eşleşme vermedi; teslim/puan ölçütleri REQUIREMENTS.md:118–127'de. README bonus satırındaki yalnız istenen iki cümle çıkarıldı; o aşamadaki bonus durumu korunmuştu. Güncel durumda acente performans panosu B1’de eklendi (ADR-27); poliçe PDF’i ve fotoğraf yükleme yok.
 
 ## 4. a–j teknik doğrulaması
 
