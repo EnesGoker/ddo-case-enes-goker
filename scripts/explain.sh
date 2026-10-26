@@ -19,7 +19,7 @@ repo=(root/'backend/internal/payment/repo.go').read_text()
 query=re.search(r'(SELECT p.id, p.policy_id, p.kind.*?ORDER BY p.paid_at DESC, p.id DESC)',repo,re.S).group(1).replace('$1',str(pid))
 report=(root/'backend/internal/report/report.go').read_text()
 reportquery=re.search(r'q.Query\(ctx, `(.*?)`, filter.From',report,re.S).group(1)
-anchor=sql("SELECT parameters->>'anchor_date' FROM simulation_runs WHERE status='COMPLETED' ORDER BY id DESC LIMIT 1;").strip()
+anchor=sql("SELECT (parameters->>'anchor')::date::text FROM simulation_runs WHERE status='COMPLETED' ORDER BY id DESC LIMIT 1;").strip()
 # parameters sürümleri arasında anahtar değişmişse son iş tarihini kullan.
 if not re.fullmatch(r'\d{4}-\d{2}-\d{2}',anchor): anchor=sql("SELECT max(loss_date)::text FROM claims;").strip()
 to=datetime.date.fromisoformat(anchor)+datetime.timedelta(days=1);start=to-datetime.timedelta(days=30)
