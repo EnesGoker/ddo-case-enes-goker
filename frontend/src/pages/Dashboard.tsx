@@ -50,7 +50,9 @@ export function Dashboard({ user }: { user: User }) {
   const initials = user.full_name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toLocaleUpperCase('tr-TR')
 
   return (
-    <div className="layout">
+    <div className="layout" onKeyDown={(event) => {
+        if (event.key === 'Escape' && menuOpen) { setMenuOpen(false); menuButton.current?.focus() }
+      }}>
       <a className="skip-link" href="#workspace">İçeriğe geç</a>
       <header className="topbar">
         <div className="topbar-left">
@@ -66,9 +68,7 @@ export function Dashboard({ user }: { user: User }) {
           <button type="button" className="secondary logout" aria-label="Çıkış" onClick={() => void logout()}><UIIcon name="logout" /><span>Çıkış</span></button>
         </div>
       </header>
-      <aside id="main-navigation" className={`sidebar${menuOpen ? ' is-open' : ''}`} onKeyDown={(event) => {
-        if (event.key === 'Escape' && menuOpen) { setMenuOpen(false); menuButton.current?.focus() }
-      }}>
+      <aside id="main-navigation" className={`sidebar${menuOpen ? ' is-open' : ''}`}>
         <div className="brand"><UIIcon name="shield" /><div><strong>GüvenPoliçe</strong><small>SİGORTA YÖNETİMİ</small></div></div>
         <div className="nav-caption">Çalışma alanı</div>
         <nav className="menu" aria-label="Ana menü">

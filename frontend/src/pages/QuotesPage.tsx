@@ -5,6 +5,7 @@ import { QuoteDetailLoader } from '../components/QuoteDetail'
 import { Empty, ErrorBox, Loading } from '../components/States'
 import { formatTL, statusLabels } from '../format'
 import { usePaged } from '../hooks/usePaged'
+import { StatusBadge } from '../components/StatusBadge'
 
 const filters = ['', 'UW_REVIEW', 'CALCULATED', 'APPROVED', 'REJECTED', 'CONVERTED']
 
@@ -16,14 +17,14 @@ export function QuotesPage({ role }: { role: Role }) {
 
   return (
     <section>
-      <label className="inline">
+      <div className="filter-bar"><label className="inline">
         Durum{' '}
         <select value={status} onChange={(e) => { setStatus(e.target.value); setSelected(null) }}>
           {filters.map((f) => (
             <option key={f} value={f}>{f ? statusLabels[f] : 'Tümü'}</option>
           ))}
         </select>
-      </label>
+      </label></div>
 
       {state.kind === 'loading' && <Loading text="Teklifler yükleniyor…" />}
       {state.kind === 'error' && <ErrorBox message={state.message} onRetry={reload} />}
@@ -47,11 +48,11 @@ export function QuotesPage({ role }: { role: Role }) {
                   <tr key={q.id} className={`clickable${q.id === selected ? ' selected' : ''}`}
                     onClick={() => setSelected(q.id)} tabIndex={0}
                     onKeyDown={(e) => e.key === 'Enter' && setSelected(q.id)}>
-                    <td data-label="No">{q.id}</td>
+                    <td data-label="No" className="table-id">#{q.id}</td>
                     <td data-label="Ürün">{q.product}</td>
                     <td data-label="Sigortalı">{q.customer_name}</td>
                     <td data-label="Başlangıç">{q.term_start}</td>
-                    <td data-label="Durum">{statusLabels[q.status] ?? q.status}</td>
+                    <td data-label="Durum"><StatusBadge status={q.status} /></td>
                     <td data-label="Prim" className="num">{formatTL(q.total_premium_kurus)}</td>
                   </tr>
                 ))}

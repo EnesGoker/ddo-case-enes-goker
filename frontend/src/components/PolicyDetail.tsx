@@ -8,6 +8,7 @@ import { BillingPanel } from './BillingPanel'
 import { CalcSteps } from './CalcSteps'
 import { CancelForm, VehicleChangeForm } from './PolicyChangeForms'
 import { ErrorBox, Loading } from './States'
+import { StatusBadge } from './StatusBadge'
 
 const typeLabels: Record<string, string> = { VEHICLE_CHANGE: 'Araç değişikliği', CANCELLATION: 'İptal' }
 
@@ -52,10 +53,8 @@ function PolicyDetailView({ policy, role, reload }: { policy: PolicyDetail; role
   const current = policy.versions[policy.versions.length - 1]
 
   return (
-    <section className="panel">
-      <h3>
-        {policy.policy_no} · {policy.product} · <span className="badge">{policyStatusLabel(policy.status, policy.end_date)}</span>
-      </h3>
+    <section className="panel policy-detail">
+      <div className="section-heading"><div><div className="eyebrow">Poliçe detayı · {policy.product}</div><h3>{policy.policy_no}</h3></div><StatusBadge status={policy.status} label={policyStatusLabel(policy.status, policy.end_date)} /></div>
       <dl className="profile">
         <dt>Sigortalı</dt><dd>{policy.customer_name}</dd>
         <dt>Dönem</dt><dd>{policy.start_date} → {policy.end_date} ({policy.period_days} gün)</dd>

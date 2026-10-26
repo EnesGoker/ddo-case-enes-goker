@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { Role } from '../api/client'
 import type { IssuedPolicy, Quote } from '../api/types'
-import { errorText, formatTL, reasonLabels, statusLabels } from '../format'
+import { errorText, formatTL, reasonLabels } from '../format'
 import { Breakdown } from './Breakdown'
 import { ErrorBox, Loading } from './States'
+import { StatusBadge } from './StatusBadge'
 
 function newKey(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -95,9 +96,7 @@ export function QuoteDetail({ quote, role, onChanged }: { quote: Quote; role: Ro
 
   return (
     <section className="panel">
-      <h3>
-        Teklif #{quote.id} · {quote.product} · <span className="badge">{statusLabels[quote.status] ?? quote.status}</span>
-      </h3>
+      <div className="section-heading"><div><div className="eyebrow">Teklif detayı · {quote.product}</div><h3>Teklif #{quote.id}</h3></div><StatusBadge status={quote.status} /></div>
       <dl className="profile">
         <dt>Sigortalı</dt><dd>{quote.customer_name}</dd>
         <dt>Dönem</dt><dd>{quote.term_start} → {quote.term_end}</dd>

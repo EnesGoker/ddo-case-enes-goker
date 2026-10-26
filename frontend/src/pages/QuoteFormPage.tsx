@@ -130,8 +130,9 @@ export function QuoteFormPage() {
   }
 
   return (
-    <section>
-      <form className="form-grid" onSubmit={onPreview}>
+    <section className={`quote-form-layout${preview ? ' has-preview' : ''}`}>
+      <form className="form-grid panel quote-form" onSubmit={onPreview}>
+        <h3 className="form-section-label">Müşteri ve ürün</h3>
         <label>
           Müşteri
           <select value={customerId} onChange={(e) => update({ customerId: Number(e.target.value) })}>
@@ -150,6 +151,7 @@ export function QuoteFormPage() {
           Başlangıç tarihi
           <input type="date" value={form.termStart} onChange={(e) => update({ termStart: e.target.value })} required />
         </label>
+        <h3 className="form-section-label">Risk bilgileri</h3>
         {t && (
           <label>
             Hasarsızlık kademesi
@@ -196,8 +198,9 @@ export function QuoteFormPage() {
       </form>
 
       {preview && (
-        <section className="panel">
-          <h3>Önizleme — {formatTL(preview.total_premium_kurus)}</h3>
+        <section className="panel quote-result">
+          <div className="eyebrow">Açıklanabilir hesap</div><h3>Prim dökümü</h3>
+          <div className="financial-summary"><p>Toplam yıllık prim</p><strong>{formatTL(preview.total_premium_kurus)}</strong></div>
           {preview.review_required && (
             <div className="notice warn">
               Underwriter onayı gerekecek: {preview.review_reasons.map((r) => reasonLabels[r] ?? r).join(', ')}

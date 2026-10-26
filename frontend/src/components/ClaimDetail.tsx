@@ -5,6 +5,7 @@ import { errorText, formatTL, newIdempotencyKey, statusLabels } from '../format'
 import { AppraisalForm } from './ClaimForms'
 import { Empty, ErrorBox, Loading } from './States'
 import { TaskTable } from './TaskTable'
+import { StatusBadge } from './StatusBadge'
 
 export function ClaimDetailLoader({ id, role, onChanged }: { id: number; role: Role; onChanged?: () => void }) {
   const [claim, setClaim] = useState<ClaimDetail | null>(null)
@@ -35,15 +36,19 @@ function ClaimView({ claim: c, role, reload }: { claim: ClaimDetail; role: Role;
       else reload()
     } catch (e) { setError(errorText(e)) } finally { setBusy(false) }
   }
-  return <section className="panel">
-    <h3>{c.claim_no} · {statusLabels[c.status]} · sürüm {c.row_version}</h3>
+  return <section className="panel claim-detail">
+    <div className="section-heading"><div><div className="eyebrow">Hasar dosyası · sürüm {c.row_version}</div><h3>{c.claim_no}</h3></div><StatusBadge status={c.status} /></div>
     <dl className="profile"><dt>Poliçe</dt><dd>{c.policy_no}</dd><dt>Hasar tarihi</dt><dd>{c.loss_date}</dd><dt>Teminat / plaka</dt><dd>{c.coverage_code} / {c.plate ?? '—'}</dd><dt>Talep</dt><dd>{formatTL(c.claimed_amount_kurus)}</dd><dt>Açıklama</dt><dd>{c.description}</dd></dl>
     {c.fraud && <section className="panel"><h4>Fraud sinyalleri (kurgusal)</h4><p>Skor: <strong>{c.fraud.score} / {c.fraud.threshold}</strong> · {c.fraud.flagged ? 'İnceleme eşiğinde' : 'Eşik altında'}</p>{c.fraud.signals.length === 0 ? <Empty text="Sinyal yok." /> : <ul>{c.fraud.signals.map((s) => <li key={s.rule_code}><strong>{s.rule_code} · {s.points} puan</strong> — {s.explanation}</li>)}</ul>}</section>}
     {c.tasks && <><h4>Görevler</h4>{c.tasks.length ? <TaskTable tasks={c.tasks} /> : <Empty text="Görev yok." />}</>}
-    <h4>Durum geçmişi</h4>
-    <ol>{c.history.map((h) => <li key={h.id}>{new Date(h.created_at).toLocaleString('tr-TR')} · {h.from_status ? `${statusLabels[h.from_status]} → ` : ''}{statusLabels[h.to_status]} {h.note ? `· ${h.note}` : ''}</li>)}</ol>
-    <h4>Ekspertizler</h4>
-    {c.appraisals.length === 0 ? <Empty text="Henüz ekspertiz yok." /> : <ul>{c.appraisals.map((a) => <li key={a.id}>#{a.id} · {new Date(a.inspected_at).toLocaleString('tr-TR')} · {formatTL(a.damage_amount_kurus)} · {a.is_total_loss ? 'Tam hasar' : 'Kısmi hasar'} · {a.notes}</li>)}</ul>}
+    <div className="claim-sections">
+      <section className="claim-section"><h4>Durum geçmişi</h4>
+        <ol className="claim-history">{c.history.map((h) => <li key={h.id}><time dateTime={h.created_at}>{new Date(h.created_at).toLocaleString('tr-TR')}</time><strong>{h.from_status ? `${statusLabels[h.from_status]} → ` : ''}{statusLabels[h.to_status]}</strong>{h.note && <p>{h.note}</p>}</li>)}</ol>
+      </section>
+      <section className="claim-section"><h4>Ekspertizler</h4>
+        {c.appraisals.length === 0 ? <Empty text="Henüz ekspertiz yok." /> : <ul className="appraisal-list">{c.appraisals.map((a) => <li key={a.id}>#{a.id} · {new Date(a.inspected_at).toLocaleString('tr-TR')} · <strong>{formatTL(a.damage_amount_kurus)}</strong> · {a.is_total_loss ? 'Tam hasar' : 'Kısmi hasar'} · {a.notes}</li>)}</ul>}
+      </section>
+    </div>
     {role === 'APPRAISER' && c.status === 'APPRAISAL' && <AppraisalForm claimID={c.id} onDone={reload} />}
     {role === 'CLAIMS_ADJUSTER' && (c.allowed_transitions?.length ?? 0) > 0 && <div>
       <label>Geçiş notu (red ve fraud incelemesi için zorunlu)<textarea maxLength={4000} value={note} onChange={(e) => setNote(e.target.value)} disabled={busy} /></label>
@@ -60,5 +65,5 @@ function ClaimView({ claim: c, role, reload }: { claim: ClaimDetail; role: Role;
   </section>
 }
 function SettlementSteps({ result }: { result: SettlementPreview }) {
-  return <div><h4>Tazminat hesabı</h4><ol>{result.calc_steps.map((s) => <li key={s.code}>{s.description} → <strong>{formatTL(s.output_kurus)}</strong>{s.clipped_kurus > 0 ? ` (azalan: ${formatTL(s.clipped_kurus)})` : ''}</li>)}</ol><p>Ödenecek: <strong>{formatTL(result.payable_kurus)}</strong></p></div>
+  return <div><h4>Tazminat hesabı</h4><ol className="settlement-steps">{result.calc_steps.map((s) => <li key={s.code}>{s.description} → <strong>{formatTL(s.output_kurus)}</strong>{s.clipped_kurus > 0 ? ` (azalan: ${formatTL(s.clipped_kurus)})` : ''}</li>)}</ol><div className="financial-summary"><p>Ödenecek tazminat</p><strong>{formatTL(result.payable_kurus)}</strong></div></div>
 }

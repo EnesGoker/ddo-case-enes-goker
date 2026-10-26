@@ -5,6 +5,7 @@ import { PolicyDetailLoader } from '../components/PolicyDetail'
 import { Empty, ErrorBox, Loading } from '../components/States'
 import { formatTL, policyStatusLabel } from '../format'
 import { usePaged } from '../hooks/usePaged'
+import { StatusBadge } from '../components/StatusBadge'
 
 export function PoliciesPage({ role }: { role: Role }) {
   const { state, reload, loadMore } = usePaged<PolicyItem>('/api/v1/policies?limit=20')
@@ -15,7 +16,7 @@ export function PoliciesPage({ role }: { role: Role }) {
   if (state.items.length === 0) return <Empty text="Henüz poliçe yok." />
 
   return (
-    <section>
+    <section className="policies-page">
       <div className="table-wrap">
         <table>
           <thead>
@@ -32,11 +33,11 @@ export function PoliciesPage({ role }: { role: Role }) {
             {state.items.map((p) => (
               <tr key={p.id} className={`clickable${p.id === selected ? ' selected' : ''}`} tabIndex={0}
                 onClick={() => setSelected(p.id)} onKeyDown={(e) => e.key === 'Enter' && setSelected(p.id)}>
-                <td data-label="Poliçe no">{p.policy_no}</td>
+                <td data-label="Poliçe no" className="table-id">{p.policy_no}</td>
                 <td data-label="Ürün">{p.product}{p.vehicle_plate ? ` · ${p.vehicle_plate}` : ''}</td>
                 <td data-label="Sigortalı">{p.customer_name}</td>
-                <td data-label="Dönem">{p.start_date} → {p.end_date}</td>
-                <td data-label="Durum">{policyStatusLabel(p.status, p.end_date)}</td>
+                <td data-label="Dönem" className="table-subtle">{p.start_date} → {p.end_date}</td>
+                <td data-label="Durum"><StatusBadge status={p.status} label={policyStatusLabel(p.status, p.end_date)} /></td>
                 <td data-label="Yıllık prim" className="num">{formatTL(p.annual_premium_kurus)}</td>
               </tr>
             ))}
