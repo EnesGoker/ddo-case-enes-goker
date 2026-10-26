@@ -175,11 +175,11 @@ Aynı poliçedeki bildirimler poliçe kilidiyle sıralanır. Farklı poliçelerd
 
 ## ADR-17 — Görev, SLA ve atama (A6)
 
-Saf paket workflow, DB/HTTP paketi task'tır. Transition'a son parametre olarak TransitionOptions{At,SLA,Automatic} eklenir. Eksik zaman veya sıfır/negatif herhangi bir SLA süresi DB erişiminden önce hatadır. APPRAISAL/ADJUSTMENT/FRAUD_REVIEW girişinde görev açılır. Kaynak açık görev DONE, REJECTED'a çıkışta CANCELLED olur; ilk completed_at korunur. Appraise da açık APPRAISAL görevini DONE yapar. IN_PROGRESS başlatma ucu yoktur.
+Saf paket workflow, DB/HTTP paketi task'tır. Transition'a son parametre olarak TransitionOptions{At,SLA,Automatic} eklenir. Eksik zaman veya sıfır/negatif herhangi bir SLA süresi DB erişiminden önce hatadır. APPRAISAL/ADJUSTMENT/FRAUD_REVIEW girişinde görev açılır. Kaynak açık görev DONE, REJECTED'a çıkışta CANCELLED olur; ilk completed_at korunur. İnsan işlemi görevi kapatırken assigned_to işlemi yapana geçer; eski atanan CLAIM_TASK_TAKEN audit kaydında saklanır. Automatic geçişler atamayı değiştirmez. Appraise da açık APPRAISAL görevini DONE yapar. IN_PROGRESS başlatma ucu yoktur.
 
 Atama yalnız aktif kullanıcılardan, tüm tiplerdeki açık OPEN/IN_PROGRESS görev sayısı en az olana, eşitlikte küçük id'ye yapılır. APPRAISAL havuzu APPRAISER, diğer ikisi CLAIMS_ADJUSTER'dır. Sayımdan önce rol başına `pg_advisory_xact_lock(71006,hashtext(rol))` alınır. Boş havuzda assigned_to NULL'dır. Created/due servis saatinden gelir.
 
-SLA takvim saatiyle 72/48/24 saattir (env ile değişir); mesai takvimi yoktur. Açık görevde şimdi > due, kapalı görevde completed_at > due ihlaldir; tam due anı ihlal değildir. Liste done filtresi DONE/CANCELLED içerir; SLA özetindeki done/on_time_bp başarıyla DONE kapanan görevleri ölçer, iptaller bu paydaya girmez. APPRAISER görev listesinde sunucuda zorunlu kendi ataması filtresi vardır.
+SLA takvim saatiyle 72/48/24 saattir (env ile değişir); mesai takvimi yoktur. Açık görevde şimdi > due, DONE görevde completed_at > due ihlaldir; CANCELLED iş yapılmadığı için ihlal/başarı sayılmaz; tam due anı ihlal değildir. Liste done filtresi DONE/CANCELLED içerir; SLA özetindeki done/on_time_bp başarıyla DONE kapanan görevleri ölçer, iptaller bu paydaya girmez. APPRAISER görev listesinde sunucuda zorunlu kendi ataması filtresi vardır.
 
 Metrics Registry scrape sırasında, mutex dışında, tek Summary sorgusuyla ve 250 ms timeout ile iki gauge toplar; başarısız sorguda gauge örnekleri atlanır, eski değer saklanmaz, HTTP 500 oluşmaz.
 
@@ -218,3 +218,11 @@ Adaylar aktif ödeme planında as_of öncesi açık vadesi veya açık faizi ola
 ## ADR-22 — Sistem canlılığı (A7)
 
 Canlılık kaynağı audit_log.occurred_at zamanları ve simulation_runs ilerlemesidir. API tüm giriş yapmış rollere yalnız dakikalık sayılar, son olay zamanı ve simülasyon özeti verir; audit içeriği ve kimlikleri paylaşılmaz. Son 30 dakika sorgusu ve son olay okuması occurred_at indeksiyle sınırlıdır; tablo toplamı alınmaz. Üst çubuk 15 saniyede bir yenilenir ve bağlantı hatasını gösterir.
+
+## ADR-23 — A8 tarih sınırı, dış hasar görünümü ve açık iş penceresi
+
+00011 yalnız v0 başlangıcını2020-01-01'e daraltan onaylı metadata düzeltmesidir; kimlik/fiyat/faktör/poliçe sürümü değişmez.2020 öncesi bağlı poliçe sürümü/teklif varsa transaction hata verir. Seed aynı sınırı kurar; simülatör daha eski başlangıcı DB'ye yazmadan reddeder.00009 değiştirilmez.
+
+CUSTOMER/AGENT bildirim, liste ve detay/geçmiş projeksiyonunda FRAUD_REVIEW yerine UNDER_REVIEW alır. Sistem, incelemeye giriş ve temize çıkış notları gizlenir; red gerekçesi müşteriye gösterilir. İç rollerin görünümü korunur. Demo bildiriminin herkese açık açıklaması nötrdür; gerçek iç bilgiler geçmiş/audit alanlarında kalır.
+
+Simülatör açık iş penceresi SIM_OPEN_WINDOW (varsayılan48h) parametresidir; parametre kimliği sürüm3 olur. Pencere anchor gününün sonundan geriye hesaplanır. Tarihsel yaşam döngüsünün sonu pencere dışına sarkacaksa aynı sıradaki olaylar pencere öncesinde tamamlanacak biçimde sıkıştırılır; eski dosya açık bırakılmaz. Seyrek üçlülerde erken iki olay korunur, üçüncü tekrar/atölye örneği çoğunlukla anchor, bir kısmı önceki güne yerleştirilir; ilk iki örnek aynı gün bildirilerek küçük N'deki patlama korunur. Bu kabul verisi zamanlamasıdır, gerçek hasar dağılımı iddiası değildir. Kurallar ve puan/eşikler değişmez.

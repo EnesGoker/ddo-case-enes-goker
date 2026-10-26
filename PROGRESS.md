@@ -771,3 +771,27 @@ Test yükü bittikten sonra aynı v2 imajıyla `/usr/bin/time -p make verify`: *
 - `1934601 fix(claim): değerlendirmeye her girişte ekspertiz şartını uygula`
 - `536606b test(verify): canlı simülatörde erken durmayı ve canlılığı doğrula`
 - `2e4dd37 fix(sim): atölye çeşitliliğini artır ve şüpheli örnekleri seyrelt`
+
+## A8 (ajan: Codex)
+
+Başlangıç26 Ekim08:40TRT; onaylı0.A/0.B düzeltmeleri, CI/yük/kaos/EXPLAIN/README/temiz kurulum. Kullanıcı Opus'un salt okunur raporundaki11 düzeltmeyi ve48saatlik açık dosya penceresini onayladı. İlk commit5130f39 docs: A8 görev tanımı. Olay başı limit ayrı plan/onay bekler, uygulanmadı.
+
+Enes'in sabahki v2/100k koşusu gerçek DB'de COMPLETED/DONE100000/100000; süre29:05,060453, balanced=true/receivable_matches=true. Parmak izi6fe6f6cdb7b7c9f8f8c585b38f2f99f0be836a1bcf8282ed3df49eb4760adabd. Kullanıcı08:28'de bittiğini ve Docker'ın serbest olduğunu bildirdi. Bu başlangıç veri kümesi0.A-4 öncesidir;303 inceleme,330 açık/314 ihlalli görev için yeniden üretim açıkça onaylandı.
+
+0.A:00011 üç v0 başlangıcını2020'ye daraltır, referansları/fiyatları korur; daha eski bağlı veri varsa tüm transaction hata verir. Seed aynı tarih; config2020 öncesinde başlamaz. Test ayrımı integration&&simulation, ayrı make test-simulation; verify yalnız mizan/üretim raporu30sn.
+
+0.B1–3 ilk regresyonunda yeni görünürlük testinin fixture'ı30günlük poliçeydi, EARLY sinyali oluşmadığından beklenen otomatik inceleme oluşmadı.5günlük fixture'a düzeltildi. Test ayrıca demo bildiriminin herkese açık description alanındaki “fraud” sözcüğünü yakaladı; varsayılan seed açıklaması nötr hale getirildi (eski iş kayıtları UPDATE edilmedi; onaylı reset yeni seed'i kuracak). İlk koşu FAIL saklandı: /tmp/gp-a8-corrections-first.log. Son hedefli komut PASS: `./scripts/test-integration.sh -run 'TestV0Start|TestMigrationsUpDownUp|TestCustomerAndAgentClaimBodies|TestTaskCompletion|TestTaskLifecycle|TestHistoricalTariffs|TestTariffActiveByDate|TestQuoteValidation' -v` (app17,172sn; /tmp/gp-a8-corrections-second.log).
+
+`make test lint build`: PASS (/tmp/gp-a8-unit-lint-build.log). Sistem geçişinde atama korunur; insan kapatınca CLAIM_TASK_TAKEN eski/yeni atananı aynı transaction'da audit'e yazar. ADJUSTMENT/FRAUD_REVIEW redleri DONE; iş yapılmadan APPRAISAL reddi CANCELLED; CANCELLED liste/özet SLA ihlaline girmez.
+
+1k/10k, determinizm, canlı hata ve reset kabulü ayrı simülasyon etiketinde çalışıyor; bu sonuçlar henüz PASS sayılmadı.
+
+### 0.A/0.B1–4 ve1k/10k kapısı
+
+`GP_TEST_TAGS=integration,simulation GP_TEST_TIMEOUT=20m ./scripts/test-integration.sh -run '^(TestSimulator|TestVerifyStopsBeforeBusinessRequestsDuringLive)' -v`: **PASS,exit0**,app643,392sn (/tmp/gp-a8-simulation-acceptance.log). Anchor2026-10-25/seed42/16worker:1k85hasar/3işaretli(%3,53),2WORKSHOPsinyali,36,808sn;2açık inceleme/2görev/0ihlal.10k806hasar/40işaretli(%4,96),32WORKSHOPsinyali,445,294sn;7açık inceleme/7görev/1ihlal(%14,29). İki örnekte de pencere dışında açık görev0, DONE APPRAISAL sahibi≠eksper0, defter dengesi/1200 mutabakatı true. Parmak izleri4372fe78d91510f94bc599d47c3daa3688cf119d3ade12663450e12346f7cbdd ve6899a81df95d79ca417e1557632081b5655a3576f15ff3b448dfa00c26f804a8.
+
+Ayrıca seed42/8–16worker parmak izi aynı a8b39fb68e977f0235c227fea489726666eb161d1d95a09e6c8fe42537767a17; seed43 farklı5bc28becc308e28b8caf8b7ce6b0e895c34ffafe991ae14f06e7307d60e52a57. Canlı adres uzayı dolmasıyla gerçek hata yolunda COMPLETED/LIVE_FAILED; aynı batch reset olmadan yeniden kullanılabilir. Canlı ön kontrol ve reset kabulü PASS. Bu testler olay limiti öncesi üretici sürüm3 içindir; asıl100k son kodla bir kez üretilecek.
+
+### T-3 ek onayı ve süre kutusu
+
+Kullanıcı nullable olay limitini, katalogda en az bir kurgusal değer ve gerçek T-3 olay-limiti verify satırıyla onayladı. Süre kutusu90dk. Başlangıç26Ekim09:13TRT civarı; kesin UTC başlangıcı aşağıdaki çalışma kaydında tutulacak. Yeni sıra: kapı kaydedildi → T-3 →0.B5–11/CI/betikler → tek100k → ölçümler.100k sırasında yalnız dosya düzenlenecek. Geçmiş kayıtlar NULL; eski settlement/defter değiştirilmez.

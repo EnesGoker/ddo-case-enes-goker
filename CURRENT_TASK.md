@@ -92,7 +92,12 @@ d. Yeni veriyle verify, k6, kaos ve EXPLAIN.
 
 100k sonunda açık FRAUD_REVIEW sayısı onlar düzeyinde, açık görevlerin ihlal oranı %50'nin altında olmalı.
 
-**T-3 olay başı limiti — yalnız plan, ayrıca onay gerekli:** ADR-10 okunur. NULL=yok olacak olay başı limitin tutulacağı yer, muafiyet → olay limiti → teminat limiti → yıllık limit sırası, altın örnekler, mevcut veriye etki ve süre ara raporda önerilir. Kullanıcı ayrıca onay vermeden uygulanmaz.
+**T-3 olay başı limiti — ek plan ONAYLI:** Yeni numaralı migration ile policy_version_coverages.event_limit_kurus (NULL=yok, varsa pozitif kuruş); ürün kataloğu → teklif seçimi → poliçe/zeyil sürümü. Muafiyet → olay limiti → teminat limiti → yıllık limit; calc_steps/OpenAPI/verify güncellenir. Eski kayıtlar NULL kalır; geçmiş tazminat/defter değişmez. Altın örnekler:1.000.000−100.000 muafiyet →800.000 olay →700.000 teminat →600.000 yıllık; yalnız olay400.000; NULL, eşitlik ve MaxInt64.
+- Seed/katalogda en az bir teminata kurgusal olay limiti verilir (ör. KASKO CAM), adım demoda görünür.
+- Verify'a “T-3 olay-limiti” satırı: olay limitinin kırptığı gerçek onay.
+- ADR-10 varsayımı bu kararla değiştirilir.
+- Süre kutusu90dk; aşılırsa durulur ve raporlanır.
+- **Güncel sıra öncekinin yerine geçer:**1k/10k kabulünü kaydet → T-3 →0.B5–11,CI ve betikler → reset-demo + son kodla tek100k simulate → yeni veriyle verify/k6/kaos/EXPLAIN.100k koşarken yalnız dosya düzenlenir.
 
 ## 1. CI (`.github/workflows/ci.yml`)
 

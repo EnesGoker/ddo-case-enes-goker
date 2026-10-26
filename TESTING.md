@@ -411,3 +411,9 @@ Sarı SLA verisi kullanıcı onayıyla yalnız servislerden, tarihsel seed bağl
 Son v2 imajı derlendi ve API sağlıklı yeniden açıldı. Paralel10k entegrasyon üretimi sırasında yapılan ek `/usr/bin/time -p make verify` **58 PASS /3 FAIL**,279,62sn: T-4 mizan isteği10sn istemci süresini aştı (000); F-7 defter ve boyut kontrolleri de başarısız oldu. Bu koşu PASS sayılmadı. Önceki112,11sn/61PASS100k kabulü ayrı gerçek koşudur. Test yükü bittikten sonraki tekrarın sonucu PROGRESS'te ayrıca yer alır.
 
 Test yükü bittikten sonra aynı v2 imajıyla `/usr/bin/time -p make verify`: **61 PASS /0 FAIL,real110,74sn,exit0** (`/tmp/gp-a7-final-verify-alone.log`). Gün sonu103 parça, her yevmiye dengeli,1200 mutabık, F-7 bütün boyut toplamları aynı ve SYS canlılığı güncel. Bu son doğrulama mevcut v1/100k veri üzerinde yapıldı; v2/100k üretimi değildir.
+
+## A8 düzeltme kabulü (olay limiti öncesi)
+
+Simülasyon testleri `integration && simulation`; `make test-simulation` ayrı hedefidir. `make test-integration` ağır üretimi içermez. Varsayılan açık iş penceresi SIM_OPEN_WINDOW=48h. Taze DB'de seed42/anchor2026-10-25:1k2açık inceleme/2görev/0ihlal,10k7açık inceleme/7görev/1ihlal(%14,29); işaretli oranları%3,53/%4,96. İki örnekte DONE APPRAISAL sahibi ile ekspertiz aktörü uyuşmazlığı0 ve mali mutabakat doğru. Tam simülasyon kabul komutu PROGRESS'te; app643,392sn,exit0. Yeni100k'nın sonucu henüz bu ölçümlerden çıkarılamaz.
+
+V0 başlangıcı2020-01-01;2019-12-31 tarife-yok.00011 Up/Down/Up referans/prim koruması ve2019bağlı kayıt varken rollback testi PASS. Müşteri/acente tüm hasar yanıtlarında UNDER_REVIEW ve gizli iç notlar; red gerekçesi görünür. Görevi kapatan insan atamayı devralır/eski atanan audit'e yazılır. Karar aşaması reddi DONE, iş yapılmadan iptal CANCELLED; SLA tanımı liste/özet arasında aynı. Hedefli8DB kabulü app17,172sn PASS.
