@@ -52,13 +52,16 @@ Para `int64` kuruş; oranlar tamsayı bp/ppm. Poliçe/tarife sürümleri geçmi�
 
 Tahsilat önce poliçeyi, hasar onayı hasarı ve limit bakiyesini kilitler; limit tüketimi koşullu UPDATE ile yapılır. Defterde her iş kaydı dengeli satırlarla aynı transaction'dadır. Audit append-only'dir. Mutasyon yapan kritik mali uçlarda Idempotency-Key ve iş anahtarı veya kaynak durum/kısıt koruması vardır; ekspertiz de 00013 ile iş anahtarına bağlanmıştır. Kurtarmanın uç bazlı kapsamı ADR-14'te yazılıdır. `/metrics` yalnız kimliği doğrulanmış ACCOUNTING/UNDERWRITER rollerine açıktır; sağlık denetimi `/health` kullanır.
 
-Tazminat sırası **muafiyet → olay başı limit → teminat dönem limiti → yıllık toplam limit**. CAM için örnek olay limiti10.000 TL, dönem limiti25.000 TL, muafiyet500 TL'dir. Olay limiti her dosyaya yeniden uygulanır; dönem/yıllık tüketim ayrı tutulur. Eski sözleşmelerde NULL olay limiti yok anlamındadır; güncel katalog geçmiş sözleşmeyi değiştirmez.
+Tazminat sırası **muafiyet → olay başı limit → teminat dönem limiti → yıllık toplam limit**. CAM için örnek olay limiti 10.000 TL, dönem limiti 25.000 TL, muafiyet 500 TL'dir. Olay limiti her dosyaya yeniden uygulanır; dönem/yıllık tüketim ayrı tutulur. Eski sözleşmelerde NULL olay limiti yok anlamındadır; güncel katalog geçmiş sözleşmeyi değiştirmez.
 
 Müşteri/acente hasarında iç durum UNDER_REVIEW olarak görünür; iç inceleme/sistem notları gizlenir, red gerekçesi müşteriye gösterilir. İç rollerin görünümü korunur. Sistem mali özeti muhasebe/UW'ye; diğer rollere yalnız sayısal canlılık verilir.
 
 ### Ekran görüntüleri
 
-[Masaüstü](docs/testing/ui1/desktop.png) ve [375 px mobil](docs/testing/ui1/mobile.png) görüntüleri, altı rolün paylaştığı yeni arayüz dilini gösterir.
+![Masaüstü görünüm](docs/testing/ui1/desktop.png)
+<img src="docs/testing/ui1/mobile.png" alt="375 px mobil görünüm" width="280">
+
+Masaüstü ve 375 px mobil görüntüler, altı rolün paylaştığı arayüz dilini gösterir.
 
 ### Acente performansı (B1)
 
@@ -75,17 +78,9 @@ Acente kendi satırını; underwriter ve muhasebe bütün acenteleri, varsa **Ac
 
 Yeni sorgu kaynakları acente bazında ayrı toplar; mevcut ADR-18 raporu değişmez. 100k SIM verisinde tüm zamanlar medyanı **501,841 ms**, son 12 ay **257,549 ms** (üçer EXPLAIN ölçümü, yeni indeks yok). İlk tüm-zamanlar örneği 2113,342 ms; medyan kapısı PASS olsa da her isteğin 1 sn altında olduğu iddia edilmez. [Ham ölçümler](docs/explain/b1-after.json), [sorgu](docs/explain/b1-after.sql), [üç dönem tutarlılığı](docs/testing/b1-consistency.json), [ADR-27](DECISIONS.md#adr-27--acente-performans-panosu-b1). B1.1 kod commit’i `c374d9b` üzerinde birim/lint/build ve entegrasyon PASS; verify **64 PASS / 0 FAIL, 116,196 sn**. Yenilenen gerçek HTTP tüm zamanlar/12 ay medyanı **461,028 / 259,123 ms**; [dört metrik eşitliği](docs/testing/b1-http-consistency.json), [100k koruması](docs/testing/b1-comparison.json) ve [tarayıcı kabulü](docs/testing/b1-ui.json) kayıtlıdır. HTTP kanıtını `python3 scripts/check-agent-performance.py` üretir; 100k ortamında AGENT kapsamlı sorgunun tüm zamanlar/12 ay medyanı **3,090 / 1,525 ms** ([planlar](docs/explain/b11-agent.json)).
 
-### Arayüz adayı (UI-1)
+### Arayüz
 
-Mevcut altı rolün ekranları ortak lacivert/turkuaz tasarım dili, erişilebilir mobil menü, durum rozetleri ve daha okunur form/tablo/detay düzeniyle yenilendi. API, hesaplar, yetki ve iş akışları korunur; yeni metrik veya filtre eklenmez. Çalışma `ui/premium-arayuz` dalındadır; main'e otomatik alınmaz ve çalışan Docker web'i değiştirmez.
-
-Mevcut frontend bağımlılıklarıyla ayrı adreste inceleme:
-
-```bash
-npm --prefix frontend run dev -- --host 127.0.0.1 --port 4173 --strictPort
-```
-
-[127.0.0.1:4173](http://127.0.0.1:4173) mevcut yerel API'ye bağlanır; demo hesapları yukarıdadır. Bu, bağımsız HTML önizlemesinden farklı olarak gerçek uygulamadır. Kaydetme/ödeme gibi işlemler gerçek demo kaydı üretir. UI kabulü ve sınırları [UI-1 raporunda](docs/testing/ui1/README.md) kaydedilir. Ana uygulamaya alma ve push ayrı kullanıcı kararıdır.
+Altı rolün ekranları ortak tasarım dili, erişilebilir mobil menü ve tutarlı form, tablo ve detay düzeni kullanır. API, hesaplar, yetki ve iş akışları değişmedi. Kabul kanıtı [arayüz doğrulama özetinde](docs/testing/ui1/README.md) yer alır.
 
 ## Doğrulama
 
@@ -216,9 +211,8 @@ CI'nin ilk koşusu küçük havuzda gerçek bağlantı kilitlenmesini yakaladı.
 - Ödeme sağlayıcısı/banka entegrasyonu, mevzuat/tarife gerçekliği ve otomatik gün sonu zamanlayıcısı yok. Node 20 istenen teslim sürümüdür; bağımlılık yükseltme bu aşamanın kapsamı değildir.
 - Bonuslar: ekspertiz notu ve acente performans panosu mevcut; pano acente bazında poliçe adedi, yazılan net prim, tahakkuk eden tazminat ve yazılan prime göre hasar/prim oranını rol kapsamıyla gösterir.
 - Poliçe PDF'i ve fotoğraf yükleme **YAPILMADI**.
-- Repo public olarak salt okunur doğrulandı. Kişisel yanıtlar Enes'in metniyle A8.2/A8.3'te tamamlandı. Son push, güncel commit'in CI teyidi ve anket teslimi Enes'e aittir; uygulama testleri teslim formunu tamamlanmış saymaz.
 
-## Şartnamenin beş sorusu
+## Doğrulama Soruları
 
 1. **En zor görev, alternatifler ve eleme gerekçeleri:**
 

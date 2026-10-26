@@ -354,11 +354,11 @@ Canlı mod isteğe bağlıdır: `SIM_LIVE=true make simulate`. Yaklaşık 5 sani
 | Canlı mod / verify ön kontrolü | PASS; gerçek LIVE koşusunda verify çıkış2, iş uçlarına istek yok |
 | 100000 / 5 yıl, üretici v1 | PASS; 50 dk25,12 sn; DB 2.217.606.167 bayt (2115 MB) |
 | 100k sonrası verify | PASS; 61 PASS / 0 FAIL; 112,11 sn (<15 dk); gün sonu 103 parça |
-| Beş yıllık rapor / kuyrukta SIM hasarları | PASS; 2021-10…2026-10 aralığında 61 ay, ilk20 kuyruk satırının18'i SIM |
+| Beş yıllık rapor / kuyrukta SIM hasarları | PASS; 2021-10…2026-10 aralığında 61 ay, ilk 20 kuyruk satırının18'i SIM |
 | Her ADJUSTMENT girişinde ekspertiz | PASS; dört entegrasyon durumu, 409 APPRAISAL_REQUIRED; 375 px UI disabled |
-| Sarı SLA kabul verisi | PASS; servislerle ayrı GP-DEMO-SLA-YELLOW / GP-H-00007968; yaklaşık12 saat kalan72 saatlik görev, badge sla-soon |
+| Sarı SLA kabul verisi | PASS; servislerle ayrı GP-DEMO-SLA-YELLOW / GP-H-00007968; yaklaşık12 saat kalan 72 saatlik görev, badge sla-soon |
 
-**100k koşusunun kapsamı:** seed42, anchor2026-10-25, 5 yıl,16 worker. Bu ölçüm eski üretici sürüm1 /30 atölye içindir; paralel test, UI ve çevrimiçi indeks incelemesi vardı, izole benchmark değildir. 100.000 SIM poliçe; Kasko50.000/Trafik35.000/Konut15.000; 7.915 hasar; 1.900 işaretli; açık630/ihlalli621 görev. Özetin defter dengesi ve1200 mutabakatı true. Parmak izi: `abc70939dcba41e974d1648012141bc97015c9bb1075750aee274c6a814d8272`. Özet batch bittiği andaki görüntüdür; sonradan verify/gün sonu ve rol denemeleri ana DB'ye yeni demo işlemleri yazdı.
+**100k koşusunun kapsamı:** seed 42, anchor 2026-10-25, 5 yıl,16 worker. Bu ölçüm eski üretici sürüm 1 /30 atölye içindir; paralel test, UI ve çevrimiçi indeks incelemesi vardı, izole benchmark değildir. 100.000 SIM poliçe; Kasko50.000/Trafik35.000/Konut15.000; 7.915 hasar; 1.900 işaretli; açık630/ihlalli621 görev. Özetin defter dengesi ve 1200 mutabakatı true. Parmak izi: `abc70939dcba41e974d1648012141bc97015c9bb1075750aee274c6a814d8272`. Özet batch bittiği andaki görüntüdür; sonradan verify/gün sonu ve rol denemeleri ana DB'ye yeni demo işlemleri yazdı.
 
 ### İşaretli hasar kırılımı ve üretici v2
 
@@ -370,7 +370,7 @@ Eski100k'da oran **1.900 /7.915 =%24,01**. Kuralların kesişimi:
 | EARLY_CLAIM + REPEAT_PLATE + WORKSHOP_CONCENTRATION |599 |599 |
 | EARLY_CLAIM + REPEAT_PLATE |1 |1 |
 
-Kural katılımı EARLY1900 /REPEAT600 /WORKSHOP1899; satırlar kesiştiği için toplanmaz. 1797 kasıtlı,103 normal örnek işaretlidir. Atölye sayısı300 oldu; kasıtlı üçlüler her1000'de ikiye seyreltilirken ilk altı dosyalık yakın dönem patlama korundu. Normal Kasko sıklığı%10,7; saf100k planında yıllık toplam1201bp (Trafik628bp/Konut407bp). Bu saf plan testi DB'de100k üretimi değildir. **Fraud kuralları ve eşikleri değişmedi.**
+Kural katılımı EARLY1900 /REPEAT600 /WORKSHOP1899; satırlar kesiştiği için toplanmaz. 1797 kasıtlı,103 normal örnek işaretlidir. Atölye sayısı300 oldu; kasıtlı üçlüler her1000'de ikiye seyreltilirken ilk altı dosyalık yakın dönem patlama korundu. Normal Kasko sıklığı%10,7; saf100k planında yıllık toplam 1201bp (Trafik628bp/Konut407bp). Bu saf plan testi DB'de100k üretimi değildir. **Fraud kuralları ve eşikleri değişmedi.**
 
 Aşağıdaki gerçek DB kabulü `./scripts/test-integration.sh -run 'TestSimulatorFraudRateAt1kAnd10k|TestSimulatorDeterminismAndInvariants' -v -timeout 20m` içindeki Go testlerinde geçti:
 
@@ -379,11 +379,11 @@ Aşağıdaki gerçek DB kabulü `./scripts/test-integration.sh -run 'TestSimulat
 |1000 poliçe |300 |85 |3 |%3,53 |2 |35,516 sn |
 |10000 poliçe |300 |810 |44 |%5,43 |36 |514,073 sn |
 
-Her ikisinde defter dengesi ve1200 mutabakatı PASS. Seed42/anchor2026-10-25/16 worker, taze PostgreSQL16 DB, host→Docker bağlantısı; izole performans ölçümü değildir. Parmak izleri sırasıyla `4a689b6577278eafdfedd3f44ea0463629d9fc8d0acf423bb4e0741f786983c5` ve `92bf44c8ad91587a6b0431fe3f15615886807ce0b39558597a1aa0d97457d75a`. İşaretli dosyalarda EARLY/REPEAT/WORKSHOP katılımları 1k için3/3/2,10k için44/21/36. Ek deterministik1k testleri koşu gününün anchor değerini (2026-10-26) kullandığından farklı parmak izi üretir;8/16 worker sonucu kendi içinde aynı, seed43 farklıdır.
+Her ikisinde defter dengesi ve 1200 mutabakatı PASS. Seed 42/anchor 2026-10-25/16 worker, taze PostgreSQL 16 DB, host→Docker bağlantısı; izole performans ölçümü değildir. Parmak izleri sırasıyla `4a689b6577278eafdfedd3f44ea0463629d9fc8d0acf423bb4e0741f786983c5` ve `92bf44c8ad91587a6b0431fe3f15615886807ce0b39558597a1aa0d97457d75a`. İşaretli dosyalarda EARLY/REPEAT/WORKSHOP katılımları 1k için 3/3/2,10k için 44/21/36. Ek deterministik 1k testleri koşu gününün anchor değerini (2026-10-26) kullandığından farklı parmak izi üretir;8/16 worker sonucu kendi içinde aynı, seed 43 farklıdır.
 
-İlk hedefli komutta tüm Go paketleri PASS (app723,399sn), fakat çalışan kabuk betiği o sırada düzenlendiği için sonrasında `ette: command not found` ile127 döndü. Bu komutun tamamına PASS yazılmadı; son kaynakla `make test-integration` tekrarında komut çıkışı0, bütün paketler PASS (app880,689sn; `/tmp/gp-a7-final-integration-v2.log`). Entegrasyon betiğinin varsayılan Go bütçesi10k servis kabulü için20 dakikadır; API zaman bütçeleri değişmedi.
+İlk hedefli komutta tüm Go paketleri PASS (app 723,399 sn), fakat çalışan kabuk betiği o sırada düzenlendiği için sonrasında `ette: command not found` ile 127 döndü. Bu komutun tamamına PASS yazılmadı; son kaynakla `make test-integration` tekrarında komut çıkışı 0, bütün paketler PASS (app 880,689 sn; `/tmp/gp-a7-final-integration-v2.log`). Entegrasyon betiğinin varsayılan Go bütçesi 10k servis kabulü için 20 dakikadır; API zaman bütçeleri değişmedi.
 
-**Kalan sınırlama:** Atölye eşiği mutlak adettir; atölyenin kendi normal hacmine göre anomali ölçmez. 1k/10k oranları yeni100k oranını kanıtlamaz. Kullanıcı talimatıyla yeni100k bu gece **ÇALIŞTIRILMADI**; mevcut sürüm1 veri kümesi korunuyor. Sabah A8 ölçümlerinden önce, yeni imajla:
+**Kalan sınırlama:** Atölye eşiği mutlak adettir; atölyenin kendi normal hacmine göre anomali ölçmez. 1k/10k oranları yeni 100k oranını kanıtlamaz. Kullanıcı talimatıyla yeni 100k bu gece **ÇALIŞTIRILMADI**; mevcut sürüm 1 veri kümesi korunuyor. Sabah A8 ölçümlerinden önce, yeni imajla:
 
 ```sh
 make reset-demo
@@ -391,48 +391,48 @@ SIM_ANCHOR_DATE=2026-10-25 SIM_SEED=42 SIM_POLICIES=100000 SIM_YEARS=5 SIM_WORKE
 make verify
 ```
 
-Reset tüm demo/simülasyon kabul kayıtlarını da siler. İşlem yarıda kalırsa yukarıdaki aynı reset→simulate→verify yolu tekrarlanır. Yeni100k'nın oranı ve performansı gerçek koşudan sonra ayrıca raporlanmalıdır.
+Reset tüm demo/simülasyon kabul kayıtlarını da siler. İşlem yarıda kalırsa yukarıdaki aynı reset→simulate→verify yolu tekrarlanır. Yeni 100k'nın oranı ve performansı gerçek koşudan sonra ayrıca raporlanmalıdır.
 
 ### A7 rol kabulü (375×812, gerçek API, simülasyon yüklü)
 
 | Rol | Akış ve gözlenen sonuç | Sonuç |
 |---|---|---|
-| CUSTOMER | Kendi poliçesi34 →2000TL kısmi ödeme →fazla ödeme hatası →GP-H-00000040 bildirimi/sürüm1/takip; Sistem | PASS |
+| CUSTOMER | Kendi poliçesi34 →2000 TL kısmi ödeme →fazla ödeme hatası →GP-H-00000040 bildirimi/sürüm 1/takip; Sistem | PASS |
 | AGENT | Kendi müşteri listesi →teklif34/35 →UW sonrası çevirme →zeyil →başlangıçta iptal; Sistem | PASS |
 | UNDERWRITER |35 no'lu teklif onayı →SIM poliçede Süresi doldu/tarihsel teminat →ay/ürün raporu →boş dönem ve eşit tarih hatası; Sistem | PASS |
-| APPRAISER | Yalnız kendi görevleri →dosya40'a9000TL ekspertiz →boş İncelemede filtresi; Sistem100k özeti | PASS |
+| APPRAISER | Yalnız kendi görevleri →dosya40'a9000 TL ekspertiz →boş İncelemede filtresi; Sistem 100k özeti | PASS |
 | CLAIMS_ADJUSTER | Gerçek SIM fraud kuyruğu/sinyalleri →ekspertiz sonrası önizleme/onay; ekspertizsiz buton pasif; sarı/kırmızı SLA; Sistem | PASS |
-| ACCOUNTING | Dosya40'a8820TL ödeme; poliçe47'ye1000TL tahsilat/100TL iade →gün sonu Tamamlandı →dengeli mizan/ürün raporu/Sistem | PASS |
+| ACCOUNTING | Dosya40'a8820 TL ödeme; poliçe47'ye1000 TL tahsilat/100 TL iade →gün sonu Tamamlandı →dengeli mizan/ürün raporu/Sistem | PASS |
 
-Menü erişimleri gerçek rol oturumlarıyla denendi; listeler20 satırla başlar. Defterde Daha fazla kayıt20 ek satır getirdi. Sistem, görev ve raporda scrollWidth=innerWidth=375; geçici viewport sıfırlandı ve kabul sekmesi kapatıldı. Yükleniyor/boş/hata durumları gerçek API dönüşleriyle gözlendi. Yoğun16-worker100k üretimiyle paralel mizan sorgusu15sn bütçesini aşarak504, canlılık sorgusu bazen3sn'de503 verdi; UI hatayı/yeniden denemeyi gösterdi. Üretim bitince aynı mizan API'si200/2,670sn, defter dengeli ve mutabık. Denenen00011 kaplama indeksi varsayılan planı iyileştirmediği için Down ile geri alındı, kaynak dosyası kaldırıldı; kalıcı indeks yalnız00010'dur. Ağır yazma yükünde mizan gecikmesi bilinen sınırlamadır.
+Menü erişimleri gerçek rol oturumlarıyla denendi; listeler20 satırla başlar. Defterde Daha fazla kayıt 20 ek satır getirdi. Sistem, görev ve raporda scrollWidth=innerWidth=375; geçici viewport sıfırlandı ve kabul sekmesi kapatıldı. Yükleniyor/boş/hata durumları gerçek API dönüşleriyle gözlendi. Yoğun 16-worker 100k üretimiyle paralel mizan sorgusu15 sn bütçesini aşarak504, canlılık sorgusu bazen3 sn'de503 verdi; UI hatayı/yeniden denemeyi gösterdi. Üretim bitince aynı mizan API'si200/2,670 sn, defter dengeli ve mutabık. Denenen 00011 kaplama indeksi varsayılan planı iyileştirmediği için Down ile geri alındı, kaynak dosyası kaldırıldı; kalıcı indeks yalnız 00010'dur. Ağır yazma yükünde mizan gecikmesi bilinen sınırlamadır.
 
 Sarı SLA verisi kullanıcı onayıyla yalnız servislerden, tarihsel seed bağlamıyla üretildi; varsayılan seed'e eklenmedi. API saati değişmedi. Geçici kabul yardımcısı kaynakta kalmadı. Görsel kanıtlar: `/tmp/gp-a7-sla-yellow-375.png`, `/tmp/gp-a7-adjustment-disabled-375.png`, `/tmp/gp-a7-system-100k-375.png`, `/tmp/gp-a7-accounting-balanced-375.png`.
 
-Son v2 imajı derlendi ve API sağlıklı yeniden açıldı. Paralel10k entegrasyon üretimi sırasında yapılan ek `/usr/bin/time -p make verify` **58 PASS /3 FAIL**,279,62sn: T-4 mizan isteği10sn istemci süresini aştı (000); F-7 defter ve boyut kontrolleri de başarısız oldu. Bu koşu PASS sayılmadı. Önceki112,11sn/61PASS100k kabulü ayrı gerçek koşudur. Test yükü bittikten sonraki tekrarın sonucu PROGRESS'te ayrıca yer alır.
+Son v2 imajı derlendi ve API sağlıklı yeniden açıldı. Paralel10k entegrasyon üretimi sırasında yapılan ek `/usr/bin/time -p make verify` **58 PASS /3 FAIL**,279,62 sn: T-4 mizan isteği 10 sn istemci süresini aştı (000); F-7 defter ve boyut kontrolleri de başarısız oldu. Bu koşu PASS sayılmadı. Önceki112,11 sn/61PASS 100k kabulü ayrı gerçek koşudur. Test yükü bittikten sonraki tekrarın sonucu PROGRESS'te ayrıca yer alır.
 
-Test yükü bittikten sonra aynı v2 imajıyla `/usr/bin/time -p make verify`: **61 PASS /0 FAIL,real110,74sn,exit0** (`/tmp/gp-a7-final-verify-alone.log`). Gün sonu103 parça, her yevmiye dengeli,1200 mutabık, F-7 bütün boyut toplamları aynı ve SYS canlılığı güncel. Bu son doğrulama mevcut v1/100k veri üzerinde yapıldı; v2/100k üretimi değildir.
+Test yükü bittikten sonra aynı v2 imajıyla `/usr/bin/time -p make verify`: **61 PASS /0 FAIL,real 110,74 sn,exit 0** (`/tmp/gp-a7-final-verify-alone.log`). Gün sonu103 parça, her yevmiye dengeli,1200 mutabık, F-7 bütün boyut toplamları aynı ve SYS canlılığı güncel. Bu son doğrulama mevcut v1/100k veri üzerinde yapıldı; v2/100k üretimi değildir.
 
 ## A8 düzeltme kabulü (olay limiti öncesi)
 
-Simülasyon testleri `integration && simulation`; `make test-simulation` ayrı hedefidir. `make test-integration` ağır üretimi içermez. Varsayılan açık iş penceresi SIM_OPEN_WINDOW=48h. Taze DB'de seed42/anchor2026-10-25:1k2açık inceleme/2görev/0ihlal,10k7açık inceleme/7görev/1ihlal(%14,29); işaretli oranları%3,53/%4,96. İki örnekte DONE APPRAISAL sahibi ile ekspertiz aktörü uyuşmazlığı0 ve mali mutabakat doğru. Tam simülasyon kabul komutu PROGRESS'te; app643,392sn,exit0. Yeni100k'nın sonucu henüz bu ölçümlerden çıkarılamaz.
+Simülasyon testleri `integration && simulation`; `make test-simulation` ayrı hedefidir. `make test-integration` ağır üretimi içermez. Varsayılan açık iş penceresi SIM_OPEN_WINDOW=48h. Taze DB'de seed 42/anchor 2026-10-25:1k2 açık inceleme/2 görev/0 ihlal,10k7 açık inceleme/7 görev/1 ihlal(%14,29); işaretli oranları%3,53/%4,96. İki örnekte DONE APPRAISAL sahibi ile ekspertiz aktörü uyuşmazlığı0 ve mali mutabakat doğru. Tam simülasyon kabul komutu PROGRESS'te; app 643,392 sn,exit 0. Yeni 100k'nın sonucu henüz bu ölçümlerden çıkarılamaz.
 
-V0 başlangıcı2020-01-01;2019-12-31 tarife-yok.00011 Up/Down/Up referans/prim koruması ve2019bağlı kayıt varken rollback testi PASS. Müşteri/acente tüm hasar yanıtlarında UNDER_REVIEW ve gizli iç notlar; red gerekçesi görünür. Görevi kapatan insan atamayı devralır/eski atanan audit'e yazılır. Karar aşaması reddi DONE, iş yapılmadan iptal CANCELLED; SLA tanımı liste/özet arasında aynı. Hedefli8DB kabulü app17,172sn PASS.
+V0 başlangıcı 2020-01-01;2019-12-31 tarife-yok.00011 Up/Down/Up referans/prim koruması ve2019 bağlı kayıt varken rollback testi PASS. Müşteri/acente tüm hasar yanıtlarında UNDER_REVIEW ve gizli iç notlar; red gerekçesi görünür. Görevi kapatan insan atamayı devralır/eski atanan audit'e yazılır. Karar aşaması reddi DONE, iş yapılmadan iptal CANCELLED; SLA tanımı liste/özet arasında aynı. Hedefli8DB kabulü app 17,172 sn PASS.
 
 ### A8 T-3 olay başı limit
 
-00012: policy_version_coverages.event_limit_kurus, NULL=yok/varsa pozitif. Eski kayıtlar yeniden fiyatlanmaz. Kurgusal katalog CAM10.000TL olay/25.000TL dönem;500TL sabit muafiyet. Saf TestGoldenEventLimitsInOrder dört sınırın sırasını; TestEventLimitInt64AndValidation büyük tutar/geçersiz girişi doğrular. Yeni hesapta7adım, NULL olay adımı skipped; geçmiş settlement dökümleri korunur.
+00012: policy_version_coverages.event_limit_kurus, NULL=yok/varsa pozitif. Eski kayıtlar yeniden fiyatlanmaz. Kurgusal katalog CAM 10.000 TL olay/25.000 TL dönem;500 TL sabit muafiyet. Saf TestGoldenEventLimitsInOrder dört sınırın sırasını; TestEventLimitInt64AndValidation büyük tutar/geçersiz girişi doğrular. Yeni hesapta7adım, NULL olay adımı skipped; geçmiş settlement dökümleri korunur.
 
-TestEventLimitSnapshotAndPerClaimApproval gerçek API'de iki ayrı olayın her birinde1.000.000kuruş onayı, toplam2.000.000kuruş tüketimi, zeyilde snapshot ve eski NULL davranışını doğruladı. TestEventLimitMigrationUpDownUpAndDataGuard PASS. `make test-integration` PASS/exit0 (app70,830sn), lint/build PASS. Yeni verify T-3 olay-limiti satırı son100k sonrasında çalışacak.
+TestEventLimitSnapshotAndPerClaimApproval gerçek API'de iki ayrı olayın her birinde 1.000.000 kuruş onayı, toplam 2.000.000 kuruş tüketimi, zeyilde snapshot ve eski NULL davranışını doğruladı. TestEventLimitMigrationUpDownUpAndDataGuard PASS. `make test-integration` PASS/exit 0 (app 70,830 sn), lint/build PASS. Yeni verify T-3 olay-limiti satırı son 100k sonrasında çalışacak.
 
 ## A8 iç inceleme regresyonları
 
-`./scripts/test-integration.sh -run 'TestActivity|TestBusinessKeyRejects|TestUnchangedBilling|TestAppraisalIdempotency|TestRefundIndexRecovers|TestBusinessRequestKeyRecovery|TestMigrationsUpDownUp' -v`: PASS (app13,442sn). Yanlış kind/refund_of/tutar veya zeyil türü422, etkisiz gün sonu audit0, ekspertiz tekrarında1kayıt, INVALID çevrimiçi indeks kurtarma. Tam normal entegrasyon PASS76,972sn; simülasyon testleri ayrı.
+`./scripts/test-integration.sh -run 'TestActivity|TestBusinessKeyRejects|TestUnchangedBilling|TestAppraisalIdempotency|TestRefundIndexRecovers|TestBusinessRequestKeyRecovery|TestMigrationsUpDownUp' -v`: PASS (app 13,442 sn). Yanlış kind/refund_of/tutar veya zeyil türü422, etkisiz gün sonu audit 0, ekspertiz tekrarında1kayıt, INVALID çevrimiçi indeks kurtarma. Tam normal entegrasyon PASS 76,972 sn; simülasyon testleri ayrı.
 
 Ekspertiz isteğinde Idempotency-Key zorunlu. UI değişmeyen formu tekrar gönderirken aynı anahtarı korur; alan değişince yeniler. Sistem sayfasında tüm roller canlılık sayısını görür; mali simülasyon özeti yalnız muhasebe/UW'ye açıktır. Verify macOS BSD date üzerinde nanosaniye için Python3 gerektirir; GNU date doğrudan kullanılır.
 
 ## A8 şartname izlenebilirliği
 
-Opus'un e457cf5 üzerinden çıkardığı salt okunur tablo, A8'de uygulanmış kod/testlerle güncellendi. Eski A7 ölçümleri yeni100k kabulü yerine geçmez. Aşağıdaki PASS otomatik test veya geçmişi belirtilmiş gerçek kabul kanıtına dayanır; henüz ölçülmeyen teslim maddesi BEKLİYOR'dur.
+Opus'un e457cf5 üzerinden çıkardığı salt okunur tablo, A8'de uygulanmış kod/testlerle güncellendi. Eski A7 ölçümleri yeni 100k kabulü yerine geçmez. Aşağıdaki PASS otomatik test veya geçmişi belirtilmiş gerçek kabul kanıtına dayanır; tamamlanmış ölçümlerin son sonuçları aşağıdaki kapanış tablosundadır.
 
 | Şartname maddesi | Kanıt / deneme | Durum |
 |---|---|---|
@@ -455,11 +455,11 @@ Opus'un e457cf5 üzerinden çıkardığı salt okunur tablo, A8'de uygulanmış 
 | T-3 hasar tarihindeki sürüm | TestClaimVersionSelectionAndCancellation | PASS |
 | T-3 muafiyet→olay→teminat→yıllık | TestGoldenEventLimitsInOrder, TestEventLimitSnapshotAndPerClaimApproval, TestZeroSettlementDoesNotConsumeLimit; ADR-10 | PASS; verify T-3 olay-limiti |
 | T-3 iki eşzamanlı onay/limit | TestConcurrentClaimApprovals; A6 on tekrar-race ve mutasyon, A8 tam entegrasyon | PASS |
-| T-3 açıklama/adımlar | settlement.calc_steps7adım, nil olay skipped, golden/gerçek CAM onayı | PASS |
+| T-3 açıklama/adımlar | settlement.calc_steps 7 adım, nil olay skipped, golden/gerçek CAM onayı | PASS |
 | T-4 plan/faiz/en eski taksit/iade | TestGoldenAllocation/Interest/Split, BillingInterestAllocation... | PASS |
-| T-4 ≥30gün iptal | TestThirtyDayBoundary, TestBillingRunChunksMatchSingle; tekrar audit0 regresyonu | PASS |
+| T-4 ≥30 gün iptal | TestThirtyDayBoundary, TestBillingRunChunksMatchSingle; tekrar audit 0 regresyonu | PASS |
 | T-4 aynı anahtarla tek tahsilat | TestBillingPaymentIdempotency, TestBusinessRequestKeyRecovery, TestBusinessKeyRejectsChangedMeaningWithoutMiddlewareRecord | PASS |
-| T-4 çift taraflı defter/mutabakat | assertBillingInvariant, ledger testleri, yeni100k batch otomatik kontrolü | PASS;100k mali mutabakat true |
+| T-4 çift taraflı defter/mutabakat | assertBillingInvariant, ledger testleri, yeni 100k batch otomatik kontrolü | PASS;100k mali mutabakat true |
 | T-5 erken/plaka/atölye kuralları | TestGoldenSignalsAndThresholds, TestFraudRulesPersistenceAndAutomaticWorkflow, TestFraudPlateWindowInclusive365 | PASS |
 | T-5 inceleme kuyruğu/mahremiyet | TestCustomerAndAgentClaimBodiesHideReviewInternals, fraud geçmiş testleri | PASS |
 | T-5 durum makinesi/SLA | TestAdjustmentRequiresAppraisalOnEveryEntry, TestTaskLifecycleSLAAndRBAC, TestTaskCompletionTakesOwnershipAndRejectionIsWork | PASS |
@@ -473,80 +473,80 @@ Opus'un e457cf5 üzerinden çıkardığı salt okunur tablo, A8'de uygulanmış 
 | Append-only audit | 00001 koruma tetikleyicisi; eski/yeni/aktör servis auditleri, görev devralma regresyonu | PASS (tetikleyiciye özel test yok) |
 | Tutarlı hata/validasyon/keyset | TestErrorFormat, TestDecodeRejectsUnknownFieldsAndTrailingData, platform/page testleri | PASS |
 | API kayıtlarında gerçek saat | TestAPICreatedTimestampsUseRealNow; seed/sim dışında clock.WithTime çağrısı yok | PASS |
-| Context timeout/graceful shutdown | router timeout15sn, main srv.Shutdown10sn, config süre bütçeleri | UYGULANDI (kapanışa özel otomatik test yok) |
+| Context timeout/graceful shutdown | router timeout 15 sn, main srv.Shutdown 10 sn, config süre bütçeleri | UYGULANDI (kapanışa özel otomatik test yok) |
 | JSON log/env/secret güvenliği | slog JSON, config env, token/parola loglanmaz, .env ignore | UYGULANDI |
 | OpenAPI ve Prometheus | openapi.yaml, requests.http, TestMetricsExposed | PASS |
-| §6 cp.envexample+compose/otomatik seed | Dockerfile/compose/main, TestSeedIsIdempotent, A8 mevcut100k üzerinde migration koruma kanıtı | PASS |
-| Web3000/API8080/DB hosta kapalı | compose portları, health/service_healthy | PASS (önceki kurulum) |
-| Soğuk önbellekte ≤5dk kurulum | Boş özel builder, farklı proje/volume77,505sn; PGtabanimajcacheistisnası | PASS (ölçüm sınırı README) |
+| §6 cp.envexample+compose/otomatik seed | Dockerfile/compose/main, TestSeedIsIdempotent, A8 mevcut 100k üzerinde migration koruma kanıtı | PASS |
+| Web 3000/API 8080/DB hosta kapalı | compose portları, health/service_healthy | PASS (önceki kurulum) |
+| Soğuk önbellekte ≤5 dk kurulum | Boş özel builder, farklı proje/volume 77,505 sn; PG taban imaj cache istisnası | PASS (ölçüm sınırı README) |
 | Root olmayan/multi-stage | backend distroless nonroot, web nginx-unprivileged | UYGULANDI |
-| Deterministik ayrı simülatör100k/5y | Ayrı testler/CI PASS; v4/100k30dk26sn, parmakizi/izolasyon/mutabakat | PASS |
+| Deterministik ayrı simülatör 100k/5 y | Ayrı testler/CI PASS; v4/100k 30 dk 26 sn, parmak izi/izolasyon/mutabakat | PASS |
 | Görünür canlılık | TestActivityAllRolesAndRealEvent, TestActivitySummaryOnlyFinancialRoles; UI grafik | PASS |
-| §7 ≥40otomatik test | Kaynaklarda173ayrı Test* fonksiyonu; normal ve simulation etiketleri ayrı koşularda | PASS (≥40) |
-| Domain≥%70/CI görünür kapsam | make coverage8paket92,1–100; check-coverage.sh / Actions summary+artifact | PASS; CI40287235419 |
-| Actions build/test/lint/Docker | .github/workflows/ci.yml5iş;40287235419 | PASS |
-| verify F/T/health/auth/RBAC,<15dk,nonzero | Gerçek HTTP/DB kontrolü, hata exit1, live ön kontrol exit2; yeni100k ölçümü bekliyor | PASS62/0,98,65sn |
+| §7 ≥40 otomatik test | Kaynaklarda 173 ayrı Test* fonksiyonu; normal ve simulation etiketleri ayrı koşularda | PASS (≥40) |
+| Domain≥%70/CI görünür kapsam | make coverage 8 paket 92,1–100; check-coverage.sh / Actions summary+artifact | PASS; CI 40287235419 |
+| Actions build/test/lint/Docker | .github/workflows/ci.yml 5 iş;40287235419 | PASS |
+| verify F/T/health/auth/RBAC,<15 dk,nonzero | Gerçek HTTP/DB kontrolü, hata exit 1, live ön kontrol exit 2; 100k ölçümü tamamlandı | PASS 62/0,98,65 sn |
 | reset-demo tekrar denenebilir | TestSimulatorResetRemovesDatasetAndRestoresTariffs; compose stop eklendi; gerçek A8 reset PASS | PASS |
 | TESTING rol/F/T/manual yollar | Bu dosya ve önceki aşama senaryoları | TAMAM |
-| Bütün uçların HTTP örnekleri | requests.http/OpenAPI; appraisalheader eklendi | TAMAM |
-| k6 p50/p95/p99/hata | make load20VU3dk24088istek,%0hata; READMEtablo | PASS |
-| Kaos bağımlılık kesinti/iyileşme | make chaos a/b/c,0,475sn iyileşme, cleanup | PASS |
-| İki indeks EXPLAIN | refund178,767→0,171ms;report382,542→34,020ms; rollback | PASS |
-| En az5ADR | DECISIONS ADR-1…23, A8 ADR-10/14/17/22 güncel | TAMAM |
+| Bütün uçların HTTP örnekleri | requests.http/OpenAPI; appraisal header eklendi | TAMAM |
+| k6 p50/p95/p99/hata | make load 20 VU 3 dk 24088 istek,%0 hata; README tablo | PASS |
+| Kaos bağımlılık kesinti/iyileşme | make chaos a/b/c,0,475 sn iyileşme, cleanup | PASS |
+| İki indeks EXPLAIN | refund 178,767→0,171 ms;report 382,542→34,020 ms; rollback | PASS |
+| En az 5 ADR | DECISIONS ADR-1…23, A8 ADR-10/14/17/22 güncel | TAMAM |
 | §8 aday/kurulum/mimari/demo hesapları | README | TAMAM |
 | README S1 en zor görev | Enes'in metni A8.2'de eklendi; iki ifade A8.3'te netleştirildi | TAMAM |
 | README S2 gerçek sınır | Mutlak atölye eşiği, ağır rapor süresi ve idempotans çökme aralığı | TAMAM |
-| README S3 iki indeks ölçümü | docs/explain ve READMEgerçekmedyanlar | PASS |
+| README S3 iki indeks ölçümü | docs/explain ve README gerçek medyanlar | PASS |
 | README S4 reddedilen AI çıktısı | Enes'in somut önce/sonra örnekleri A8.2'de eklendi | TAMAM |
-| README S5 prim altın komut/çıktı | docs/testing/pricing-golden.log ve sonverify T-1 | PASS |
+| README S5 prim altın komut/çıktı | docs/testing/pricing-golden.log ve son verify T-1 | PASS |
 | §9 anlamlı commit geçmişi | Küçük testli aşama commitleri, push kullanıcıya ait | TAMAM |
-| Public repo/kullanıcı hesabı/anket23.59 | Public doğrulandı; sonpush/anket Enes'in | KULLANICIYA AİT |
-| §10bonus | Ekspertiz notu ve B1 acente panosu var; TestAgentPerformanceAccessAndGoldenRows, ADR-18 tutarlılık testi, verify B1; PDF/fotoğraf yok | KISMEN |
+| Public repo/kullanıcı hesabı/anket 23.59 | Repo teslimde public yapılır; anket bağlantısı aday tarafından gönderilir. | KULLANICIYA AİT |
+| §10 bonus | Ekspertiz notu ve B1 acente panosu var; TestAgentPerformanceAccessAndGoldenRows, ADR-18 tutarlılık testi, verify B1; PDF/fotoğraf yok | KISMEN |
 
 ## A8 ölçüm sırası ve güvenli çalışma
 
-Son uygulama kodu4155bae ile100k koşusu başladı. Koşu sırasında test, build, verify, k6 ve DB/compose işlemleri yapılmaz; yalnız dosya/belge düzenlenir. Koşu başarıyla bittikten sonra sıra: summary/SQL kabulü → verify → k6 → kaos → EXPLAIN → CI sonucu → temiz kurulum →100k son verify. Yük, gün sonu ve indeks kaldırma aynı anda çalıştırılmaz.
+Son uygulama kodu 4155bae ile 100k koşusu başladı. Koşu sırasında test, build, verify, k6 ve DB/compose işlemleri yapılmaz; yalnız dosya/belge düzenlenir. Koşu başarıyla bittikten sonra sıra: summary/SQL kabulü → verify → k6 → kaos → EXPLAIN → CI sonucu → temiz kurulum →100k son verify. Yük, gün sonu ve indeks kaldırma aynı anda çalıştırılmaz.
 
-Yük eşikleri ölçüm öncesi scripts/k6/load.js içinde: normal uçp95<1500/p99<3000ms, raporp95<5000/p99<10000ms,healthp95<500ms, hata<%1, check>%99 ve aynıanahtar aynıödeme%100. Resmî grafana/k6:2.2.0 digest9bd01d6941fca969cb61bb57d2da5ee9b385fe2aa8881df3798c196564d6ace6. `make load` setup'ta20ayrı poliçe açar, poliçe listesinde underwriter ile100k kapsamı, ölçümde1kuruş ödeme ve aynıanahtar tekrarını dener; demo verisine bu kabul kayıtları eklenir.100k iş parametresi/özetinin anlık fotoğrafı bundan önce alınır.
+Yük eşikleri ölçüm öncesi scripts/k6/load.js içinde: normal uç p95<1500/p99<3000 ms, rapor p95<5000/p99<10000 ms,health p95<500 ms, hata<%1, check>%99 ve aynı anahtar aynı ödeme %100. Resmî grafana/k6:2.2.0 digest 9bd01d6941fca969cb61bb57d2da5ee9b385fe2aa8881df3798c196564d6ace6. `make load` setup'ta 20 ayrı poliçe açar, poliçe listesinde underwriter ile 100k kapsamı, ölçümde 1 kuruş ödeme ve aynı anahtar tekrarını dener; demo verisine bu kabul kayıtları eklenir.100k iş parametresi/özetinin anlık fotoğrafı bundan önce alınır.
 
-Kaos `make chaos`: önce ayrı poliçe; DBstop→health503/JSON5xx→aynı APIid/restartcount; DBstart→<=60sn iyileşme→başarısız anahtarla tekrar→tek ödeme/yevmiye→1200mutabakat. Finally bloğu hata dahil DB'yi up--wait ile geri açar. Ana yığın `down -v` ile kaldırılmaz.
+Kaos `make chaos`: önce ayrı poliçe; DB stop→health503/JSON 5xx→aynı API id/restartcount; DB start→<=60 sn iyileşme→başarısız anahtarla tekrar→tek ödeme/yevmiye→1200mutabakat. Finally bloğu hata dahil DB'yi up--wait ile geri açar. Ana yığın `down -v` ile kaldırılmaz.
 
-EXPLAIN `make explain`: refund FK, rapor tarih ve workshop loss adayları; uygulama SQL'i aynı parametrelerle. Her varyantta metin ve3JSONplan docs/explain altında. İndekssiz transactionrollback,5sn kilit/120sn statement sınırı; geçersiz indeks kontrolü fail ile biter. Sorgu/planların yanında gerçek parametreler saklanır. Plan zorlayıcı enable_seqscan değişikliği yok.
+EXPLAIN `make explain`: refund FK, rapor tarih ve workshop loss adayları; uygulama SQL'i aynı parametrelerle. Her varyantta metin ve 3 JSON plan docs/explain altında. İndekssiz transaction rollback, 5 sn kilit/120 sn statement sınırı; geçersiz indeks kontrolü fail ile biter. Sorgu/planların yanında gerçek parametreler saklanır. Plan zorlayıcı enable_seqscan değişikliği yok.
 
-Temiz kurulum: önce≥8GiB disk; ana yığın volume korunarak down; yalnız projenin api/web imaj etiketleri kaldırılır, ortak imaj/cache'e dokunulmaz. Aynı pushlanmış HEAD yeni klasöre clone, farklı compose proje adı ve yalnız ölçüme ait boş builder. `cp .env.example .env` başlangıcından up--build--wait sonuna süre; taze verify. Yalnız clone projesi down-v; main100k tekrar açılır ve son verify. Ölçüm tamamlanmadan≤5dk/PASS yazılmaz.
+Temiz kurulum: önce≥8 GiB disk; ana yığın volume korunarak down; yalnız projenin api/web imaj etiketleri kaldırılır, ortak imaj/cache'e dokunulmaz. Aynı pushlanmış HEAD yeni klasöre clone, farklı compose proje adı ve yalnız ölçüme ait boş builder. `cp .env.example .env` başlangıcından up--build--wait sonuna süre; taze verify. Yalnız clone projesi down-v; main100k tekrar açılır ve son verify. Ölçüm tamamlanmadan≤5 dk/PASS yazılmaz.
 
-A8 UI tekrarında: müşteri/acente hasar listesinde UNDER_REVIEW filtre ve iç notların gizlenmesi; uzmanda red ipucu; ekspertiz eksikken ADJUSTMENT butonu pasif; ekspertiz kaydetmede Idempotency-Key; CAM olay limiti/adımı; muhasebe/UW Sistem özeti, diğer roller yalnız canlılık. A7'nin diğer375px kabulleri tarihsel kanıt olarak korunur; A8 tekrarının sonucu ayrıca kaydedilir.
+A8 UI tekrarında: müşteri/acente hasar listesinde UNDER_REVIEW filtre ve iç notların gizlenmesi; uzmanda red ipucu; ekspertiz eksikken ADJUSTMENT butonu pasif; ekspertiz kaydetmede Idempotency-Key; CAM olay limiti/adımı; muhasebe/UW Sistem özeti, diğer roller yalnız canlılık. A7'nin diğer 375 px kabulleri tarihsel kanıt olarak korunur; A8 tekrarının sonucu ayrıca kaydedilir.
 
 ### A8 son ölçüm tablosu
 
 | Komut | Gerçek sonuç |
 |---|---|
-| `make test-integration` (havuz düzeltmesi sonrası) | PASS/exit0, app79,391sn |
-| `make test lint build` | PASS/exit0; son uygulama kodu |
-| `make coverage` (son) | PASS; sekiz paket92,1–100%; CI tablosu docs/testing/ci-domain-coverage.md |
+| `make test-integration` (havuz düzeltmesi sonrası) | PASS/exit 0, app 79,391 sn |
+| `make test lint build` | PASS/exit 0; son uygulama kodu |
+| `make coverage` (son) | PASS; sekiz paket 92,1–100%; CI tablosu docs/testing/ci-domain-coverage.md |
 | `make test-simulation` | GitHub40287235419 simulation işi PASS; son uygulama kodu ec8fef8 |
-| `SIM_ANCHOR_DATE=2026-10-25 SIM_SEED=42 SIM_POLICIES=100000 SIM_YEARS=5 SIM_WORKERS=16 SIM_OPEN_WINDOW=48h SIM_LIVE=false make simulate` | Tekv4/100k PASS; batch1826,410sn, CLI1829,19sn |
-| `/usr/bin/time -p make verify` ilk100k | PASS62/0,114,26sn |
-| `/usr/bin/time -p make load` sonimaj | PASS/exit0;24088istek,20VU3dk, bütün eşikler, bütün uçlarda%0hata;CLI182,54sn |
-| `/usr/bin/time -p make chaos` | a/b/cPASS; DBiyileşme0,475sn; APIrestart0;teködeme/yevmiye;toplam12,01sn |
-| `/usr/bin/time -p make explain` | PASS17,09sn;3indeks rollback sonrasıvalid/ready; READMEikiindeksmedyanı |
-| `cp .env.example .env` → ayrı projede `up --build -d --wait` | PASS77,505sn; boşözelbuilder/PGtabanimajcacheistisnası |
-| Tazeklon `/usr/bin/time -p make verify` | PASS62/0,6,22sn |
-| Ana100kson `/usr/bin/time -p make verify` | PASS62/0,98,65sn; veri/volume korundu |
-| `cd backend && go test ./internal/pricing -run 'TestGolden\|TestBreakdownSumEqualsTotal\|TestDeterminism' -count=1 -v` | PASS0,496sn; docs/testing/pricing-golden.log |
-| `bash -n scripts/*.sh`, YAMLparse, `git diff --check` | PASS |
+| `SIM_ANCHOR_DATE=2026-10-25 SIM_SEED=42 SIM_POLICIES=100000 SIM_YEARS=5 SIM_WORKERS=16 SIM_OPEN_WINDOW=48h SIM_LIVE=false make simulate` | Tek v4/100k PASS; batch 1826,410 sn, CLI 1829,19 sn |
+| `/usr/bin/time -p make verify` ilk 100k | PASS 62/0,114,26 sn |
+| `/usr/bin/time -p make load` son imaj | PASS/exit 0;24088 istek,20 VU 3 dk, bütün eşikler, bütün uçlarda %0 hata;CLI 182,54 sn |
+| `/usr/bin/time -p make chaos` | a/b/c PASS; DB iyileşme 0,475 sn; API restart 0;tek ödeme/yevmiye;toplam 12,01 sn |
+| `/usr/bin/time -p make explain` | PASS 17,09 sn;3 indeks rollback sonrası valid/ready; README iki indeks medyanı |
+| `cp .env.example .env` → ayrı projede `up --build -d --wait` | PASS 77,505 sn; boş özel builder/PG taban imaj cache istisnası |
+| Taze klon `/usr/bin/time -p make verify` | PASS 62/0,6,22 sn |
+| Ana 100k son `/usr/bin/time -p make verify` | PASS 62/0,98,65 sn; veri/volume korundu |
+| `cd backend && go test ./internal/pricing -run 'TestGolden\|TestBreakdownSumEqualsTotal\|TestDeterminism' -count=1 -v` | PASS 0,496 sn; docs/testing/pricing-golden.log |
+| `bash -n scripts/*.sh`, YAML parse, `git diff --check` | PASS |
 
-İlk CI40281907975 entegrasyonFAIL, diğer4işPASS; gerçek havuz hatası düzeltildi. YeniCI40287235419 **5/5PASS**, ec8fef8. Son veri üstündeki ilk finalverify UI'da geç kapatılan seed görevini varsayılanopen filtresinde aradığı için61/1FAIL verdi (docs/testing/a8-verify-after-ui-failed.log). Betikstatus=all yapıldı; DONEgeçkapanma ihlali korunur, veri geri alınmaz. Son62/0çıktı a8-verify-final.log. K6ilkPASS before-pool-fix dosyalarında korunur; sonJSON ayrı.
+İlk CI 40281907975 entegrasyon FAIL, diğer 4 iş PASS; gerçek havuz hatası düzeltildi. Yeni CI 40287235419 **5/5 PASS**, ec8fef8. Son veri üstündeki ilk final verify UI'da geç kapatılan seed görevini varsayılan open filtresinde aradığı için 61/1 FAIL verdi (docs/testing/a8-verify-after-ui-failed.log). Betik status=all yapıldı; DONE geç kapanma ihlali korunur, veri geri alınmaz. Son 62/0 çıktı a8-verify-final.log. K6 ilk PASS before-pool-fix dosyalarında korunur; son JSON ayrı.
 
 ### A8 gerçek tarayıcı kabulü (375×812)
 
-Müşteri/acente İncelemede filtresinin DOMdeğeri UNDER_REVIEW; GP-H-00000003 geçmişinde içnot yok ve görünür gövdede fraud sözcüğü yok; yatay taşma yok. İçhasar uzmanı kendi sinyal/geçmişini görüyor. GP-H-00007789 ekspertizsizken ADJUSTMENTpasif, redin müşteriye gösterileceği ipucu mevcut. FRAUD_REVIEW'a hiç girmemiş GP-H-00000002'ye eksper2 arayüzden100000kuruş ekspertiz#6731 ekledi; anahtarzorunlu uçta başarı. GörevDONE/aktör7/sahip7, audit eskiatanan4→7; sonra hasaruzmanında ADJUSTMENTaktif. Yeni FRAUD_REVIEW dönüşü yapılmadı.
+Müşteri/acente İncelemede filtresinin DOM değeri UNDER_REVIEW; GP-H-00000003 geçmişinde iç not yok ve görünür gövdede fraud sözcüğü yok; yatay taşma yok. İç hasar uzmanı kendi sinyal/geçmişini görüyor. GP-H-00007789 ekspertizsizken ADJUSTMENT pasif, redin müşteriye gösterileceği ipucu mevcut. FRAUD_REVIEW'a hiç girmemiş GP-H-00000002'ye eksper2 arayüzden100000 kuruş ekspertiz#6731 ekledi; anahtar zorunlu uçta başarı. Görev DONE/aktör7/sahip7, audit eski atanan4→7; sonra hasar uzmanında ADJUSTMENT aktif. Yeni FRAUD_REVIEW dönüşü yapılmadı.
 
-Muhasebe/UW100000/100000 ve46/9maliözetini görüyor; müşteriSistem yalnızcanlılık. UWödenmişCAMdosyasında19500TL→10000TL olay sınırı/9500TLkırpılma adımını gördü. Altırol kabulü (ekspertiz rolünde eksper2) yapıldı. Görseller docs/testing/ui; geçicisekme kapandı,375px viewport sıfırlandı. Normaldemo kullanıcı işlemleri DB'de bırakıldı; SIMparmakizi batchsonunu temsil eder.
+Muhasebe/UW 100000/100000 ve 46/9mali özetini görüyor; müşteri Sistem yalnız canlılık. UW ödenmiş CAM dosyasında 19500 TL→10000 TL olay sınırı/9500 TL kırpılma adımını gördü. Altı rol kabulü (ekspertiz rolünde eksper2) yapıldı. Görseller docs/testing/ui; geçici sekme kapandı,375 px viewport sıfırlandı. Normal demo kullanıcı işlemleri DB'de bırakıldı; SIM parmak izi batch sonunu temsil eder.
 
 ### İzlenebilirlik tablosunun kapanışı
 
-Yukarıdaki “BEKLİYOR” notları ölçüm öncesi anlık kayıttır. Son durum: yeni100k, tazekurulum, CI/kapsam, verify, k6,kaos,ikiindeks veS5primkanıtı **PASS**; READMEkurulum/mimari/ölçümler tamam.173Testfonksiyonu. README kişisel 1/4 cevapları A8.2/A8.3'te tamamlandı; son push/CI teyidi ve anket kullanıcıya ait. Repo public olarak saltokunur doğrulandı. Acente performans panosu B1’de eklendi (ADR-27).
+Yukarıdaki “BEKLİYOR” notları ölçüm öncesi anlık kayıttır. Son durum: yeni 100k, taze kurulum, CI/kapsam, verify, k6,kaos,iki indeks ve S5 prim kanıtı **PASS**; README kurulum/mimari/ölçümler tamam. 173 Test fonksiyonu. README kişisel 1/4 cevapları A8.2/A8.3'te tamamlandı; son push/CI teyidi ve anket kullanıcıya ait. Repo teslimde public yapılır; anket bağlantısı aday tarafından gönderilir. Acente performans panosu B1’de eklendi (ADR-27).
 
 Poliçe PDF’i ve fotoğraf yükleme yok. Kesilebilir genel okunabilirlik turu **YAPILMADI**. Önceki başarısız koşular silinmedi.
 
@@ -614,7 +614,7 @@ Test edilen gerçek kod commit’i: **c374d9b6f96dabd180a0d655f85dfb7452064e87**
 | Komut | Sonuç | Süre |
 |---|---|---:|
 | `make test lint build` | PASS; 20 testli Go paketi + vet/ESLint/TypeScript/Vite | 9,339 sn |
-| `make test-integration` | PASS; 21 testli paket, app88,465 sn; dört dönem acente satırı/toplamı | 96,582 sn |
+| `make test-integration` | PASS; 21 testli paket, app 88,465 sn; dört dönem acente satırı/toplamı | 96,582 sn |
 | `docker compose up --build -d --no-deps --wait api web` | PASS; yalnız api/web, DB aynı | 34,901 sn |
 | `make verify` | 64 PASS / 0 FAIL | 116,196 sn |
 | `python3 scripts/check-agent-performance.py` | Üç dönem satır/toplam eşitliği + AGENT izolasyonu PASS | 5,487 sn |
@@ -634,22 +634,19 @@ AGENT kapsamlı SQL, 100000 SIM poliçe bulunan aynı DB'de ve eşzamanlı test/
 
 Son staging taramasında yeni kanıtlarla birlikte 344 izlenen dosyada da eşleşme yok; çıktı b11-status-grep.txt içinde korunur.
 
-## UI-1 — Premium arayüz adayı (26 Ekim 2026)
+## UI-1 — Arayüz yenilemesi
 
-Yalnız `ui/premium-arayuz`; taban/main `2fd6ffe`, test edilen uygulama kodu **4290dd85ef384ddffd39d963447c45dc96e96cf7**. Backend, API/auth/hooks/roles/format, şema, compose, CI, k6 ve simülatör kaynakları aynı. Mevcut altı rolün ekranlarında ortak CSS, navigasyon/login, form/tablo/detay ve durum sunumu yenilendi. Yeni iş özelliği, metrik veya filtre yok. Çalışan Docker web/API yeniden derlenmedi veya başlatılmadı; aday mevcut bağımlılıklarla `http://127.0.0.1:4173` adresindeki Vite sunucusudur.
+Altı rolün mevcut ekranlarında ortak CSS, navigasyon, mobil menü ve form/tablo/detay sunumu yenilendi. Backend, API, hesaplar, yetki, idempotans, şema ve simülatör kaynakları değiştirilmedi.
 
 | Komut / kabul | Sonuç | Süre |
 |---|---|---:|
 | `make test lint build` | PASS; 20 testli Go paket + frontend/vet | 10,947 sn |
 | `make test-integration` | PASS; 21 testli paket, app 92,300 sn; ayrı geçici PostgreSQL | 98,737 sn |
-| `WEB_URL=http://127.0.0.1:4173 make verify` | **64 PASS / 0 FAIL** | 107,206 sn |
-| [Önceki kaynak kontrolü özeti](docs/testing/ui1/README.md) | PASS; 115 API/hook, 287 olay/key/validasyon/rol niteliği, 146 initializer; 10 SSR kontrolü | Ayrı süre ölçülmedi |
+| `make verify` | **64 PASS / 0 FAIL** | 107,206 sn |
 | Gerçek tarayıcı | 40 rol/menü × 4 genişlik = 160; ek 20 detay/giriş + 1 mobil menü ölçümü; taşma yok | Performans ölçümü değildir |
 
-Kasko/CAM preview 15.774,80 TL ve aynı girdilerle tekrar aynı; Konut 1.950,00 TL, Trafik 9.315,00 TL. Teklif kaydedilmedi. AGENT 1 satır/toplamsız; UW/muhasebe 21 satır/toplamlı. Panoda boş tarih, sıralama, sıfır primde “—”, ters tarihte hata ve toparlanma doğrulandı. Poliçe Enter/detay; müşteri/acente hasar mahremiyeti; iç rolde sinyal/görev ve ekspertizsiz ADJUSTMENT pasifliği; gerçek 7 adım/10.000 TL CAM; login hata/toparlanma ve mobil Escape/odak geçişi çalıştı. 375 px document=375; pano kabı 341/780. Seçili 9 metin renk çifti ≥4,5:1; tam WCAG denetimi değil.
+Bu koşular kaynak uygulama kodu `4290dd8` üzerinde yapıldı. Tarayıcı kabulü 1440/1024/768/375 px genişliklerini, rol görünürlüğünü, teklif önizlemesini, pano tarih/sıralama durumlarını ve mobil menüyü kapsar; bütün yazma akışlarının eksiksiz testi değildir.
 
-100k önce/sonra kabulü PASS: 100000 poliçe, 7780 hasar, 6727 ekspertiz, 495 işaretli, 46 açık inceleme ve 46 açık görev aynı; anlık SLA 46→46. İş alanları, kayıtlı fingerprint ve ekspertiz eski alan MD5'i aynı; fingerprint yeniden hesaplanmadı. Volume, db/api/web ID+imajları aynı; başlama anları görev öncesi. Kardeş HTML önizlemesinin üç dosya hash'i aynı. Verify olağan demo kabul verisi ekler; SIM korunur. Main `2fd6ffe` aynı; merge/push yok.
+Gerçek cihaz, ekran okuyucu, %200 metin büyütme ve yeni canlı sarı SLA kontrolü yapılmadı. Frontend için otomatik test yok; görünüm ve davranış tarayıcıda doğrulandı.
 
-İlk kaynak kontrolü FAIL'i (ikon name prop'u), browser bekleme/seçici denemeleri ve belge helper'ının strip kaynaklı yanlış FAIL'i saklandı ve açıklandı. Uygulama testleri ve verify PASS. Kaynak kontrolleri genel davranış/RBAC eşdeğerliği veya CSS kanıtı değildir; gerçek tarayıcı ve backend testleri ayrı kanıttır. Gerçek cihaz, ekran okuyucu, %200 metin büyütme, sarı SLA için yeni canlı veri, yeni CI/k6/kaos/simülasyon/temiz kurulum ÇALIŞTIRILMADI. İş yazma formlarının tamamı tarayıcıdan yeniden gönderilmedi; API yazma kabulü verify'dadır. Kullanıcı incelemesi ve ana uygulamaya alma ayrı adım.
-
-Tam komut/SHA/loglar: [Doğrulama özeti ve loglar](docs/testing/ui1/README.md). [Tarayıcı kabulü](docs/testing/ui1/README.md), [koruma karşılaştırması](docs/testing/ui1/README.md), [konteynerler](docs/testing/ui1/README.md), [kontrast](docs/testing/ui1/README.md), [AGENTS §6 raporu ve tam dosya envanteri](docs/testing/ui1/README.md).
+Komutların tarihsel kayıtları ve kapsam sınırları [arayüz kabul özetinde](docs/testing/ui1/README.md) bulunur.
