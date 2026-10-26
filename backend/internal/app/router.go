@@ -167,6 +167,7 @@ func NewRouter(d Deps) http.Handler {
 					Post("/{id}/payments", payments.Pay)
 				r.With(readers).Get("/", policy.ListHandler(d.Pool))
 				r.With(readers).Get("/{id}", policies.Detail)
+				r.With(readers).Get("/{id}/pdf", policies.PDF)
 				r.With(readers).Get("/{id}/coverage", policies.Coverage)
 				r.With(writers).Post("/{id}/endorsements/preview", policies.PreviewVehicleChange)
 				r.With(writers, idem.Middleware).Post("/{id}/endorsements", policies.VehicleChange)
