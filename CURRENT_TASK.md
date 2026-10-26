@@ -1,209 +1,217 @@
 # CURRENT_TASK — Sadece aktif ve onaylı iş
 
-**Aktif aşama:** A7 — Gün sonu ölçeklemesi + simülatör (100.000 poliçe, 5 yıl) + canlılık göstergesi + 6 rol ekranlarının gözden geçirilmesi
+**Aktif aşama:** A8 — Teslim hazırlığı: düzeltmeler, CI, yük testi, kaos, EXPLAIN, README, temiz kurulum
 
-**Durum:** ONAYLI. A8'e geçmek için yeni onay gerekir.
+**Durum:** ONAYLI. Teslimden önceki son aşama.
 
-**Ajan notu:** A6'yı yapan ajan devam ediyor. Kurallar aynı (`AGENTS.md` §8 dahil).
-- Mevcut kalıpları yeniden kullan:
-  - `policy.Issue` (`PolicyNoOverride`, `ActorID`),
-  - ödeme servisi ve `store`,
-  - `claim` servisleri ve `Transition`,
-  - `task` ve `fraud`,
-  - enjekte saat ve seed kalıbı,
-  - `ledger`, `page`, `platform/metrics`.
-- Simülatör iş verisini **yalnızca servis koduyla** üretir.
-- Refactor yok. Yeni kod A1–A3 kalıbında yazılır.
-- `PROGRESS.md`'ye "A7 (ajan: Codex)" başlığı açılır.
-- İlk commit: `docs: A7 görev tanımı`.
+**Ajan notu:** A7'yi yapan ajan devam ediyor.
+- Kurallar aynı (`AGENTS.md` §8 dahil).
+- `PROGRESS.md`'ye "A8 (ajan: Codex)" başlığı aç.
+- İlk commit: `docs: A8 görev tanımı`.
+- Push yok; push'u Enes yapar.
+- CI sonucunu `gh run list` / `gh run view` ile okuyabiliyorsan oku, okuyamıyorsan Enes'ten iste.
+- Bu sabah Opus aynı repoda salt okunur inceleme yapıyor. Bulguları geldikçe 0.B olarak eklenecek.
 
-**Süre kutusu:** ~4 saat.
+**Docker kuralı (kritik):** Enes'in başlattığı 100k simülasyon bitene kadar şunlar **yasak**:
+- `make up`, `make reset-demo`,
+- `docker compose down` / `docker compose restart`,
+- entegrasyon testleri, `make verify`, k6.
 
-**Kapı:** 0. bölüm bitince şunlar yeşil olmadan simülatöre geçme:
-- `make test`
-- entegrasyon testleri
-- yarış testleri `-count=10 -race`
-- `make verify`
+Bu sürede yalnızca şunlar yapılır:
+- kod düzeltmeleri ve birim testleri,
+- CI dosyası,
+- k6, kaos ve EXPLAIN betikleri,
+- README iskeleti.
 
-**Kesme sırası** (süre yetmezse önce bunlar kesilir):
-1. Canlı mod.
-2. Sistem sayfasındaki dakikalık grafik (üst çubuk göstergesi kalır).
-3. Rol ekranlarında engelleyici olmayan iyileştirmeler.
+Simülasyonun bittiğini `docker compose ps` ya da `simulation_runs` durumundan salt okunur olarak anla.
 
-Kesilen her madde `YAPILMADI` olarak yazılır. 100k hedefi süre yüzünden tutmazsa varsayılan değeri düşürme; ölçülen değeri `KISMEN` olarak yaz.
+**26 Ekim 08:28 güncellemesi:** Enes'in başlattığı 100k koşusu COMPLETED; süre 29 dakika, balanced ve receivable_matches true. Docker serbest. Aşağıdaki düzeltmelerden sonra başlatılacak yeni 100k koşusu sırasında yine yalnız Docker gerektirmeyen işlere geçilir.
 
-## 0. Gün sonu ölçeklemesi (Opus #7)
+**Saat hedefleri:**
 
-- **Aday seçimi.**
-  - Yalnızca vadesi `as_of`'tan önce olan açık taksiti ya da açık faizi bulunan poliçeler seçilir.
-  - İptal adımı yalnızca `ACTIVE` poliçelere uygulanır.
-  - Sorgu indeksli olmalı. Yoksa `00009` içinde `installments (due_date) WHERE status IN ('PENDING','PARTIAL')` eklenir.
-- **Parçalı çalışma.**
-  - İstek: `{as_of, after_policy_id?, limit?}`. `limit` varsayılan 500, en fazla 2000.
-  - ~8 saniyelik bütçe dolunca yeni poliçeye başlanmaz.
-  - Yanıt: mevcut alanlar + `next_after_policy_id` ve `done`.
-  - Aynı `as_of` ile tekrar çalıştırma zaten idempotent.
-- **Hata yalıtımı.**
-  - Beyaz liste dışındaki poliçe hatası `failed [{policy_id, code}]` listesine yazılır, koşu devam eder.
-  - Sistemik hatada (context iptali, bağlantı hatası) koşu durur.
-- **Döngü.** UI'daki "Gün sonu çalıştır" düğmesi `done` olana kadar döngüde çalışır ve ilerlemeyi gösterir. Verify de döngüye geçer.
-- **Testler.**
-  - Küçük `limit` ile 3 parçalık koşu, tek koşuyla aynı sonucu verir.
-  - Test kancasıyla bir poliçede hata zorlanır → diğer poliçeler işlenir, hata `failed` listesinde görünür.
-  - `after_policy_id` sınırı doğru işler.
+| Saat | Bitmiş olacaklar |
+|---|---|
+| 12:00 | 0. bölüm, k6, kaos, EXPLAIN |
+| 15:00 | CI yeşil, README taslağı, temiz kurulum ölçümü |
+| 18:00 | Her şey; son verify |
+| 22:30 | Teslim |
 
-## 1. Kararlar (`DECISIONS.md`, ADR-19'dan devam)
+**Kesme sırası:**
+1. Okunabilirlik turu.
+2. Bonus acente panosu. Yalnızca her şey bitip 18:00'den önce vakit kalırsa yapılır.
+3. Kaosun (c) adımı. (a) ve (b) kalır.
 
-- **ADR-19 Simülatör.**
-  - İş verisi doğrudan SQL'le değil, servis katmanıyla üretilir. Böylece defter dengesi, 1200 mutabakatı ve tetikleyiciler yapı gereği korunur; fraud sinyalleri gerçek motordan gelir.
-  - Hız için çalışan havuzu kullanılır; simülatör oturumlarında `synchronous_commit=off`. Çökmede son işlemler kaybolabilir ama tutarlılık bozulmaz.
-  - Hasar evresi tek iş parçacıklıdır, çünkü fraud sayımı ve atama sıraya bağlıdır.
-  - Determinizm tanımı: aynı tohum + aynı anchor + taze DB → aynı parmak izi.
-- **ADR-20 Demo/simülasyon ayrımı.**
-  - Acente, müşteri, atölye, uzman ve plaka uzayları ayrıdır; poliçe numaraları `SIM-` önekli.
-  - Demo hesapları ve demo senaryoları etkilenmez.
-  - Atama havuzu ortaktır (simülasyon uzmanları da dahil).
-  - `make reset-demo` simülasyon verisini de siler.
-- **ADR-21 Gün sonu.** Aday seçimi, parçalı çalışma ve hata yalıtımı.
-- **ADR-22 Canlılık.** Kaynaklar: `audit_log` zaman damgaları (yalnızca sayılar, içerik yok) ve `simulation_runs`.
+Kesilen her madde `YAPILMADI` olarak yazılır.
 
-## 2. Simülatör
+## 0. Düzeltmeler
 
-**Çalıştırma ve kayıt**
-- **Binary ve compose.**
-  - `cmd/simulator`, aynı backend imajında ikinci binary olarak derlenir (root olmayan kullanıcı).
-  - Compose'ta `simulator` servisi `profiles: ["sim"]` ile tanımlanır. Böylece varsayılan `docker compose up` ve 5 dakika hedefi etkilenmez.
-  - `depends_on: api (service_healthy)`.
-  - `make simulate` hedefi eklenir.
-- **Env** (`.env.example`'a da eklenir):
+**0.A — Koordinatör bulguları**
 
-  | Değişken | Varsayılan |
+1. **v0 tarifesi.**
+   - Sorun: `00009`'daki v0 `valid_from='0001-01-01'`. Bu, tarifeyi geçmişte sınırsız geçerli yapıyor; "tarife yok" testi de 1. yıldan önceye taşınmış.
+   - Düzeltme:
+     - Yeni bir migrasyonla (`00011`) v0'ın başlangıcı `2020-01-01` olur. `00009`'a dokunma.
+     - Mevcut 100k veri silinmeden uygulanmalı (bütün simülasyon poliçeleri ≥ 2021).
+     - "Tarife yok" testi 2019-12-31'e döner.
+     - `anchor − SIM_YEARS` 2020-01-01'den önceye düşüyorsa simülatör açık bir hatayla başlamaz.
+   - Tarife sürümleri için değişmezlik kuralı ya da tetikleyici varsa, yöntemi planında gerekçelendir.
+2. **Test süresi.**
+   - Simülatör entegrasyon testleri ayrı bir etikete taşınır (ör. `-tags integration,simulation`) ve `make test-simulation` ile koşar.
+   - `make test-integration` yeniden ~5–6 dakikaya iner.
+   - CI'da simülatör testleri ayrı iş olur.
+3. **Ağır uçlar.**
+   - Durum: mizan ve sınırsız dönem raporu 100k veride ~2,7 sn sürüyor, yük altında 10 sn'yi aşıyor.
+   - Verify'da bu iki ucun istemci zaman aşımı 30 sn olur. Gerekçe: verify doğruluğu sınar, gecikme k6'da raporlanır.
+   - README'de ölçülen süreyle birlikte sınırlama olarak yazılır.
+   - Basit ve güvenli bir hızlandırma (ör. kapsayan indeks) EXPLAIN ile kanıtlanırsa uygulanabilir. Kanıtlanamazsa dokunma.
+
+4. **Simülatörün açık dosya penceresi.**
+   - Son koşuda 303 FRAUD_REVIEW; 330 açık görevin 314'ü SLA ihlalinde. Sebep son 30 günün açık bırakılması.
+   - Pencere varsayılan 48 saat olacak ve parametre yapılacak.
+   - Pencere dışındaki işaretli dosyalar da tarihsel olanlar gibi incelenip kapatılacak.
+
+**0.B — Opus incelemesi (kullanıcı tarafından onaylı düzeltmeler)**
+
+1. **#1 YÜKSEK — Hasar yanıtlarında iç inceleme bilgisi.** CUSTOMER/AGENT için bildirim, liste, detay ve geçmişte sistem geçişlerinin notu, FRAUD_REVIEW'a giriş ve FRAUD_REVIEW'dan temize çıkış notu gizlenir. Red gerekçesi (→ REJECTED) gösterilmeye devam eder; UI'da “müşteriye gösterilir” ipucu olur. FRAUD_REVIEW yerine UNDER_REVIEW görünür; liste filtresi UNDER_REVIEW ile çalışır. Kabul: müşteri ve acente yanıt gövdelerinde “fraud” ve “FRAUD_REVIEW” hiç geçmez; iç rollerin yanıtı değişmez.
+2. **#3 — İşi yapan görev sahibi.** Görevi kapatan kişi, görev başkasına atanmışsa görevi üstlenir (assigned_to = işlemi yapan); eski atanan audit'e yazılır. Sistem geçişlerinde uygulanmaz. Simülasyon sonrası DONE APPRAISAL görevlerinde assigned_to ≠ ekspertizi yapan sayısı 0 olmalı.
+3. **#7 — Redle kapanan görev.** ADJUSTMENT ve FRAUD_REVIEW'dan redle çıkan görev DONE kapanır. CANCELLED yalnız iş yapılmadan kapanan görevler içindir (ör. ekspertizi girilmemiş APPRAISAL). İhlal listesi ve özet aynı tanımı kullanır. ADR-17 güncellenir.
+4. **#2 — Canlı mod hatası.** Tamamlanmış koşu FAILED yapılmaz; durum COMPLETED, faz LIVE_FAILED kalır. Run içindeki FAILED güncellemesi yalnız status='RUNNING' iken çalışır.
+5. **#4 — Sistem özeti yetkisi.** summary yalnız ACCOUNTING/UNDERWRITER'a döner; diğer roller yalnız canlılık sayılarını görür.
+6. **#6 — İş anahtarı içeriği.** request_key tekrarında ödeme/iade kind ve refund_of ile aranır; tutar farklıysa 422. Zeyil tekrarında tür karşılaştırılır.
+7. **#5 — Değişmeyen gün sonu.** Hiçbir şey değişmeyen poliçeye audit yazılmaz.
+8. **#8 — Verify plakası.** Nanosaniyeden türetilen 3 harf + 4 rakamla geniş plaka uzayı kullanılır.
+9. **#9 — Reset öncesi simülatör.** TRUNCATE'ten önce simulator servisi compose ile durdurulur.
+10. **#10 — Yarım indeks kurtarma.** 00010 önce DROP INDEX CONCURRENTLY IF EXISTS, ardından IF NOT EXISTS olmadan CREATE yapar. Bu migration yalnız yerelde uygulandı; kullanıcı değiştirmeye izin verdi.
+11. **Ekspertiz idempotansı.** Ekspertiz ucu Idempotency-Key alır (mevcut middleware yeterli); UI anahtar gönderir. ADR-14 tablosuna eklenir.
+
+**Uygulama sırası ve kabul:**
+a. 0.A ve 0.B 1–4; pencere, görev sahibi ve red kapanışı simülatör sonucundan önce düzeltilir.
+b. 1k/10k doğrulaması.
+c. reset-demo + 100k simulate (~30 dk); bu sırada CI/betikler/README iskeleti ve 0.B 5–11 gibi Docker gerektirmeyen işler.
+d. Yeni veriyle verify, k6, kaos ve EXPLAIN.
+
+100k sonunda açık FRAUD_REVIEW sayısı onlar düzeyinde, açık görevlerin ihlal oranı %50'nin altında olmalı.
+
+**T-3 olay başı limiti — yalnız plan, ayrıca onay gerekli:** ADR-10 okunur. NULL=yok olacak olay başı limitin tutulacağı yer, muafiyet → olay limiti → teminat limiti → yıllık limit sırası, altın örnekler, mevcut veriye etki ve süre ara raporda önerilir. Kullanıcı ayrıca onay vermeden uygulanmaz.
+
+## 1. CI (`.github/workflows/ci.yml`)
+
+- **Tetikleyiciler:** push ve pull_request.
+- **Sürümler:** Go sürümü `backend/go.mod`'dan; Node 20.
+- **İşler:**
+
+  | İş | İçerik |
   |---|---|
-  | `SIM_SEED` | 42 |
-  | `SIM_POLICIES` | 100000 |
-  | `SIM_YEARS` | 5 |
-  | `SIM_WORKERS` | 8 |
-  | `SIM_ANCHOR_DATE` | bugün |
-  | `SIM_LIVE` | false |
+  | backend | vet + lint (`make lint` ile aynı) ve `-coverprofile` ile birim testleri. Domain paketlerinin kapsamı `GITHUB_STEP_SUMMARY`'de tablo olarak gösterilir ve artifact olarak yüklenir. Domain paketlerinden biri %70'in altına düşerse iş kırılır. |
+  | integration | Postgres 16 servis konteyneriyle entegrasyon paketi; simülatör testleri hariç. |
+  | simulation | Simülatör testleri; yalnızca main'e push'ta ve elle tetiklemede. |
+  | frontend | `npm ci`, typecheck/lint, build. |
+  | docker | api ve web imajlarının build'i; push yok. |
 
-- **`simulation_runs` tablosu (`00009`).**
-  - Alanlar: tohum, parametreler, durum, aşama, işlenen/hedef, başlangıç/bitiş, parmak izi, özet JSON.
-  - Aynı tohum ve parametrelerle tamamlanmış bir koşu varsa yeniden üretim yapılmaz; durum log'a yazılır, çıkılır.
-  - İlerleme yaklaşık her 1.000 işlemde bir güncellenir.
+- README'ye CI rozeti eklenir.
+- **Kabul:** GitHub'daki yeşil koşunun linki raporda yer alır.
 
-**Referans veri** (doğrudan SQL serbest; iş tablolarına değil)
-- **Kayıtlar.**
-  - ~20 acente.
-  - Müşteriler: çoğu tek poliçeli, bir kısmı çok poliçeli.
-  - 30 atölye.
-  - 5 eksper + 8 hasar uzmanı.
-  - İşlemlerin aktörü olacak, rol başına simülasyon kullanıcıları.
-- **Simülasyon kullanıcıları.** Parolaları kullanılamaz (rastgele hash); `is_active` (atama havuzunda yer alırlar).
-- **Kimlik alanları.** Açıkça kurgusal ve mevcut doğrulamalara uygun.
-- **Plakalar.** Demo ve verify plakalarıyla çakışmayan ayrık bir uzayda üretilir.
-- **Tarife.** Anchor − `SIM_YEARS` tarihinden itibaren her ürün için geçerli tarife yoksa `00009`'a kurgusal bir tarihsel sürüm eklenir (v1 faktörleri, taban fiyatlar × 0,85). T-1 testleri bozulmamalı.
+## 2. Yük testi (k6)
 
-**Faz 1 — poliçe ve tahsilat** (paralel; her varlığın RNG'si `SIM_SEED`'den türetilir, bu yüzden paralellik içeriği değiştirmez)
-- **Poliçeler.** Ürün dağılımı KASKO %50, TRAFİK %35, KONUT %15. Başlangıç tarihi `[anchor − 5 yıl, anchor − 15 gün]` aralığında. Taksit sayısı 1/3/6/12. Numaralar `SIM-000001…`.
-- **Tahsilat.**
-  - Her işlemde servis saati olayın tarihine ayarlanır.
-  - Vadesi gelen taksitler vadesinde ya da birkaç gün gecikmeyle ödenir. Gecikmede faizi servis tahakkuk ettirir; ödeme tutarı servisten okunan açık bakiyeye göre belirlenir.
-  - Son 60 günde vadesi gelen taksitlerin ~%5'i ödenmez. Bunların birkaç düzinesi 30 gün kuralına girer; böylece gün sonunun gerçek işi olur.
-- **İptal.** Hasar planı olmayan poliçelerin ~%3'ü, tarihsel saatle, müşteri talebiyle iptal edilir.
-- **Zeyil.** Yok.
+- **Çalıştırma:** `make load`, resmi k6 Docker imajıyla çalışan sisteme karşı koşar; yerel kurulum gerekmez.
+- **Senaryo:**
+  - giriş (token setup'ta alınır),
+  - poliçe listesi (keyset),
+  - teklif hesabı,
+  - ödeme planı okuma,
+  - hasar görev listesi,
+  - dar dönemli rapor,
+  - sağlık ucu,
+  - küçük oranda idempotent yazma (benzersiz anahtarla ödeme).
+- **Yük:** ~20 VU, 2–3 dakika. Eşikler (thresholds) betik dosyasında tanımlıdır.
+- **Çıktı:** her uç için p50/p95/p99, hata oranı ve saniyedeki istek.
+- **Ortam:** 100k veride çalıştırılır.
+- **README:** sonuç tablosu ve ölçüm ortamı (MacBook Air, Docker Desktop, 100k veri). Sayılar gerçek ölçümden gelir.
 
-**Faz 2 — hasar** (tek iş parçacığı, olay zamanı sırasıyla)
-- **Üretim.**
-  - Yıllık sıklık: KASKO %12, TRAFİK %6, KONUT %4.
-  - Hasar tarihi poliçe döneminde ve ≤ anchor.
-  - İşlemleri uygun roldeki simülasyon kullanıcısı yapar; servislerin yetki ve kapsam kuralları atlanmaz.
-- **Yaşam döngüsü** (servislerle): bildirim → triaj → ekspertiz → ayar → onay → ödeme → kapanış.
-  - ~%8 red.
-  - Geçişler arasında rastgele gün farkı var; bir kısmı SLA'yı aşar.
-  - Son 30 gündeki hasarlar farklı açık aşamalarda bırakılır.
-- **Kasıtlı şüpheli kalıplar.**
-  - Başlangıçtan sonraki 15 gün içinde hasar.
-  - Yılda ≥ 3 hasarlı plakalar.
-  - Atölye patlamaları (30 günde ≥ 5 hasar).
+## 3. Kaos betiği (`scripts/chaos.sh`, `make chaos`)
 
-  Skorlar gerçek fraud motorundan gelir. İşaretli tarihsel dosyalar incelenip kapatılır (çoğu red); son 30 gündekiler kuyrukta kalır.
+- **(a) DB durdurulur.**
+  - `/health` db=down'u uygun durum koduyla döner.
+  - İş uçları JSON hata döner.
+  - API çökmez, yeniden başlamaz.
+- **(b) DB başlatılır.** N saniye içinde `/health` ok döner ve iş uçları normale döner.
+- **(c) Kesinti sırasında idempotent ödeme.**
+  - Kesinti sırasında Idempotency-Key ile gönderilen ödeme başarısız olur.
+  - Sistem toparlanınca aynı anahtarla tekrar gönderilir → tek ödeme oluşur, mutabakat tutar.
+- **Çıktı:** PASS/FAIL satırları. Sonuç TESTING'e ve README'ye yazılır.
 
-**Faz 3 — özet ve parmak izi**
-- **Özet.**
-  - Poliçe sayıları (ürün ve durum bazında).
-  - Taksit durumları ve ödemeler.
-  - Hasar durumları ve işaretli dosya sayısı.
-  - Açık ve ihlalli görevler.
-  - Yazılan prim, tahsilat, tazminat.
-  - Mizan dengesi ve 1200 mutabakatı.
-- **Parmak izi.** İş özniteliklerinin sıralı SHA-256'sı. Surrogate id, hasar no ve sistem zaman damgaları hariç.
-- **Sistem zaman damgaları** (`created_at`, `reported_at` gibi now() varsayılanlı alanlar). Planında ikisinden birini öner:
-  - servis saatine bağlamak,
-  - üretim sonunda tek UPDATE ile tarihselleştirmek.
+## 4. EXPLAIN karşılaştırması (`scripts/explain.sh`)
 
-  `audit_log`'a dokunma.
+- **Yöntem:** 100k veride iki kritik indeks için indeksli ve indekssiz planlar alınır. İndekssiz plan şu kalıpla: `BEGIN; DROP INDEX …; EXPLAIN (ANALYZE, BUFFERS) …; ROLLBACK;`.
+- **İndeksler:**
+  1. `payments (refund_of_payment_id)` kısmi indeksi, ödeme/iade sorgusunda (dün 310 ms → 0,24 ms).
+  2. İkinci indeks şu iki adaydan hangisi daha anlamlı fark gösteriyorsa o seçilir, gerekçesiyle:
+     - fraud atölye penceresi: `claims (workshop_id, loss_date)`,
+     - F-7 dönem raporu: `journal_entries (entry_date)`.
+- **Çıktılar:** Ham çıktılar `docs/explain/` altına konur. README'de özet tablo olur: süre, okunan satır/tampon, plan türü.
 
-**Canlı mod** (`SIM_LIVE=true`)
-- Yaklaşık 5 saniyede bir, gerçek saatle poliçe düzenleme veya tahsilat yapar.
-- Hasar üretmez; kuyruk ve atama kontrollerini oynatmasın.
-- Deterministik değildir (belgelenir).
-- `simulation_runs.status = LIVE` iken `make verify` açık bir mesajla, başlamadan durur.
+## 5. Okunabilirlik turu (Opus #12, kesilebilir)
 
-**Testler** (entegrasyon, küçük N; ör. 1.000 poliçe)
-- İki taze DB'de aynı tohum → aynı parmak izi. Farklı tohum → farklı parmak izi.
-- Koşu sonrasında mizan dengede, 1200 mutabakatı tutuyor, her hasar geçmişi `claim_transitions`'a uygun ve en az bir işaretli dosya var.
-- Demo müşteri, acente, atölye ve kullanıcılarına bağlı simülasyon kaydı yok; plaka uzayları çakışmıyor.
-- Tamamlanmış bir koşu tekrar çalıştırılınca yeni kayıt üretmez.
+Yalnızca listelenenler yapılır:
+- `claim` paketinde sayısal HTTP kodları → `http.StatusX`,
+- fonksiyonlar arasına boş satır,
+- tek satırlık uzun SQL'ler → çok satırlı,
+- `Convert`'in variadic parametresi,
+- testteki kullanılmayan değişken.
 
-**Gerçek ölçekte kabul**
-- `make simulate` (100k) çalıştırılır. Süre, DB boyutu ve özet `PROGRESS.md`/`TESTING.md`'ye yazılır.
-- Ardından `make verify` çalıştırılır:
-  - tüm satırlar PASS,
-  - süre 15 dakikanın altında (süre raporda),
-  - F-7 raporu 5 yıla yayılıyor,
-  - fraud kuyruğunda simülasyon dosyaları var,
-  - gün sonu birden çok parçada tamamlanıyor.
+Davranış değişmez; ardından tam test turu.
 
-## 3. Canlılık
+## 6. Dokümanlar
 
-- **`GET /api/v1/system/activity`** (giriş yapmış tüm roller). Yanıt alanları:
-  - `db_ok`, `last_event_at`,
-  - son 30 dakikanın dakikalık olay sayıları (`audit_log`, yalnızca sayı),
-  - `simulation {status, phase, done, target, seed, fingerprint, started_at, finished_at}`.
+**README** (ölçümler hazır olunca, en sonda yazılır). İçerik:
+- **Giriş ve kurulum:**
+  - aday adı,
+  - kurulum: clone, `.env`, `docker compose up --build`, adresler,
+  - demo hesapları: 6 rol + ek uzman hesapları.
+- **Mimari ve kararlar:**
+  - kısa bir mimari diyagram,
+  - teknoloji kararları ve frontend gerekçesi.
+- **Doğrulama:** test, verify, load, chaos ve EXPLAIN komutları ile gerçek sonuçları.
+- **Simülatör:** nasıl çalıştırılır, süre, özet, işaretli oranı.
+- **Sınırlar ve eksikler:**
+  - bilinen sınırlamalar,
+  - `YAPILMADI` / `KISMEN` listesi,
+  - bonuslar: ekspertiz notu mevcut, diğerleri yapılmadı.
+- **Yapay zekâ kullanımı:** ajan + bağımsız inceleme süreci.
+- **§8'in 5 sorusu:**
+  - 1. ve 4. sorular Enes'in kendi metniyle gelecek; yer tutucu bırak.
+  - 2. soru: gerçek bir sınırlama/kırılma senaryosu.
+  - 3. soru: 4. bölümün sonuçları.
+  - 5. soru: prim motorunun doğruluğu için komut ve gerçek çıktı (T-1 altın testleri + verify'ın T-1 satırları).
 
-  Gerekirse `00009`'a `audit_log (created_at)` indeksi eklenir.
-- **Üst çubuk göstergesi** (tüm roller): yeşil/kırmızı nokta + "Son olay: 12 sn önce". 15 saniyede bir yoklama; bağlantı hatası durumu da gösterilir.
-- **Sistem sayfası:** dakikalık olay çubukları, simülasyon ilerleme çubuğu ve özet.
-- **Yeni verify satırları:**
-  - `SYS canlilik`: `db_ok` doğru; verify'ın kendi işlemlerinden sonra `last_event_at` güncel.
-  - `T-4 gun-sonu-parcali`: küçük `limit` ile en az 2 parça, sonunda `done`.
+**Şartname izlenebilirliği:** `REQUIREMENTS.md`'deki her zorunlu madde için madde → kanıt → durum tablosu (TESTING'de ya da README ekinde). Opus'un çıkaracağı tablo doğrulanarak temel alınır.
 
-## 4. 6 rol ekranlarının gözden geçirilmesi
+**Son hale getirilecekler:**
+- TESTING,
+- ROADMAP: kanıt matrisi, A8 kutuları, teslim kontrolü,
+- PROGRESS,
+- DECISIONS (gerekirse),
+- `openapi.yaml` ve `requests.http` güncelliği.
 
-- Her rolün `TESTING.md`'deki uçtan uca akışı tarayıcıda, 375 px'te ve simülasyon verisi yüklüyken denenir. Kontrol edilenler:
-  - yükleniyor/boş/hata durumları,
-  - menüden erişim,
-  - gerçek API kullanımı.
-- Büyük listeler keyset ile sınırlı sayfalarda gösterilir; tam tablo sayımı yapılmaz.
-- Bitiş tarihi geçmiş `ACTIVE` poliçeye UI'da "Süresi doldu" etiketi eklenir; durum değişmez.
-- A6'da çalıştırılmayan sarı SLA rozeti senaryosu burada denenir.
-- Bulunan sorunlar en küçük düzeltmeyle giderilir; yeniden tasarım yok.
-- Çıktı: `TESTING.md`'de rol × akış × sonuç tablosu (PASS / FAIL / YAPILMADI).
+## 7. Temiz kurulum ve son doğrulama
 
-## Dokümanlar
-
-- `openapi.yaml`
-- `DECISIONS.md` (ADR-19…22)
-- `TESTING.md`: simülatörün çalıştırılması, ölçümler, rol tablosu, canlı modun verify öncesi durdurulması
-- `requests.http`
-- `.env.example` (`SIM_*`)
-- `ROADMAP.md` A7 kutuları
-- `PROGRESS.md`
+- **Hazırlık:**
+  - Disk kontrolü: 8 GB'ın altındaysa dur ve raporla.
+  - Ana yığını durdur. 100k volume korunur; `down -v` yok.
+- **Temizlik:**
+  - Bu projenin imajlarını ve build önbelleğini temizle.
+  - Diğer projelerin imajlarına ve volume'larına dokunma; `docker system prune --volumes` yok.
+  - Kullanımdaki başka bir projenin imajı silinemiyorsa atla ve README'de belirt.
+- **Temiz kurulum:**
+  - Push edilmiş HEAD ile aynı commit'i yeni bir klasöre, farklı bir compose proje adıyla clone et.
+  - `cp .env.example .env` ardından `docker compose up --build -d --wait`; süreyi ölç. Hedef ≤ 5 dakika; ölçülen süre README'ye yazılır.
+  - O kurulumda taze seed ile `make verify` çalıştır.
+- **Kapanış:**
+  - Yalnızca clone'un compose projesi `down -v` ile kaldırılır.
+  - Ana yığın tekrar ayağa kalkar ve 100k veriyle son bir `make verify` çalıştırılır.
 
 ## Kapsam dışı
 
-- Simülasyonda zeyil.
-- `EXPIRED` durum geçişi.
-- k6, CI, kaos, EXPLAIN ve README: A8'e kalıyor. EXPLAIN ve k6 ölçümleri simülasyon verisiyle yapılacak.
-- A6'nın bağımsız incelemesi: ayrı tur.
-- `git push`.
+- Acente panosu dışındaki bonuslar (acente panosu da yalnızca vakit kalırsa).
+- Yeni özellik, mimari değişiklik, büyük refactor.
+- Repo'yu public yapmak, anket, push: Enes yapar.
