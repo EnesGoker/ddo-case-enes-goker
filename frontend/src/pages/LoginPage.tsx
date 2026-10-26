@@ -33,7 +33,7 @@ export function LoginPage() {
     <main className="login">
       <section className="login-story" aria-label="GüvenPoliçe">
         <div className="brand"><UIIcon name="shield" /><div><strong>GüvenPoliçe</strong><small>SİGORTA YÖNETİMİ</small></div></div>
-        <div><h2>Her adımda açıklık.<br />Her işlemde güven.</h2><p>Tekliften poliçeye, hasardan ödemeye; sigorta süreçlerinizi tek bir çalışma alanında yönetin.</p>
+        <div><p className="login-tagline">Her adımda açıklık.<br />Her işlemde güven.</p><p>Tekliften poliçeye, hasardan ödemeye; sigorta süreçlerinizi tek bir çalışma alanında yönetin.</p>
           <div className="login-qualities"><span><UIIcon name="policies" />Poliçe ve teminat yönetimi</span><span><UIIcon name="claims" />Açıklanabilir hasar süreçleri</span><span><UIIcon name="chart" />Mutabakat ve finansal görünürlük</span></div>
         </div>
         <small>Kurgusal demo verileri · Gerçek uygulama akışları</small>

@@ -55,6 +55,7 @@ bulunmaz; yalnız eski yerel `ui/premium-arayuz` yedeğinde kalır.
 
 ## Yapılmayanlar ve sınırlar
 
+- Frontend için otomatik test yok; görünüm ve davranış tarayıcıda doğrulandı.
 - Gerçek cihaz, ekran okuyucu ve %200 metin büyütme kontrolü yapılmadı.
 - Reduced-motion CSS kuralı var; OS tercihi değiştirilmedi. Canlı sarı SLA verisi üretilmedi.
 - Bütün yazma formları tarayıcıdan tekrar gönderilmedi; API yazma kabulü verify'dadır.
