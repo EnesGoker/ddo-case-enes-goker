@@ -9,9 +9,9 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
+	"github.com/EnesGoker/guvenpolice/backend/internal/platform/db"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 )
 
@@ -37,22 +37,23 @@ func (s Scope) Allows(agentID *int64, customerID int64) bool {
 	return false
 }
 
-func Resolve(ctx context.Context, pool *pgxpool.Pool, p auth.Principal) (Scope, error) {
+// Resolve açık transaction varsa onun bağlantısını kullanır; ek havuz bağlantısı istemez.
+func Resolve(ctx context.Context, q db.DBTX, p auth.Principal) (Scope, error) {
 	switch p.Role {
 	case auth.RoleAgent:
-		id, err := lookup(ctx, pool, `SELECT id FROM agents WHERE user_id = $1`, p.UserID)
+		id, err := lookup(ctx, q, `SELECT id FROM agents WHERE user_id = $1`, p.UserID)
 		return Scope{AgentID: id}, err
 	case auth.RoleCustomer:
-		id, err := lookup(ctx, pool, `SELECT id FROM customers WHERE user_id = $1`, p.UserID)
+		id, err := lookup(ctx, q, `SELECT id FROM customers WHERE user_id = $1`, p.UserID)
 		return Scope{CustomerID: id}, err
 	default:
 		return Scope{All: true}, nil
 	}
 }
 
-func lookup(ctx context.Context, pool *pgxpool.Pool, q string, userID int64) (*int64, error) {
+func lookup(ctx context.Context, q db.DBTX, query string, userID int64) (*int64, error) {
 	var id int64
-	err := pool.QueryRow(ctx, q, userID).Scan(&id)
+	err := q.QueryRow(ctx, query, userID).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNoProfile
 	}

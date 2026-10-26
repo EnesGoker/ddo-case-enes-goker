@@ -46,7 +46,7 @@ func (s *Service) target(ctx context.Context, q db.DBTX, id int64, lock bool) (p
 		return h, err
 	}
 	p, _ := auth.FromContext(ctx)
-	scope, err := access.Resolve(ctx, s.pool, p)
+	scope, err := access.Resolve(ctx, q, p)
 	if err != nil {
 		return h, access.AsHTTP(err)
 	}

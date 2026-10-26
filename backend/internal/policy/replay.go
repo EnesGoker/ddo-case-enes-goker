@@ -21,7 +21,7 @@ func (s *ChangeService) replayChange(ctx context.Context, tx pgx.Tx, id int64, k
 		return nil, nil, err
 	}
 	actor, _ := auth.FromContext(ctx)
-	scope, err := access.Resolve(ctx, s.pool, actor)
+	scope, err := access.Resolve(ctx, tx, actor)
 	if err != nil {
 		return nil, nil, access.AsHTTP(err)
 	}

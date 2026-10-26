@@ -173,7 +173,7 @@ func loadOpen(ctx context.Context, q db.DBTX, h Header) (openVersion, error) {
 // target poliçeyi yükler, kapsamı ve yürürlükte olmasını denetler; açık sürümü döner.
 func (s *ChangeService) target(ctx context.Context, q db.DBTX, id int64, lock bool, baseVersion *int) (Header, openVersion, error) {
 	p, _ := auth.FromContext(ctx)
-	sc, err := access.Resolve(ctx, s.pool, p)
+	sc, err := access.Resolve(ctx, q, p)
 	if err != nil {
 		return Header{}, openVersion{}, access.AsHTTP(err)
 	}

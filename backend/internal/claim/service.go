@@ -42,7 +42,7 @@ var validStatuses = map[string]bool{"REPORTED": true, "TRIAGED": true, "APPRAISA
 
 func (s *Service) visible(ctx context.Context, q db.DBTX, id int64, lock bool) (Claim, error) {
 	p, _ := auth.FromContext(ctx)
-	sc, err := access.Resolve(ctx, s.pool, p)
+	sc, err := access.Resolve(ctx, q, p)
 	if err != nil {
 		return Claim{}, access.AsHTTP(err)
 	}

@@ -1,0 +1,113 @@
+?   	github.com/EnesGoker/guvenpolice/backend/cmd/api	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/cmd/simulator	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/access	[no test files]
+=== RUN   TestTransactionScopeUsesExistingConnectionAtPoolCapacity
+=== RUN   TestTransactionScopeUsesExistingConnectionAtPoolCapacity/endorsement
+    pool_scope_integration_test.go:94: 
+        	Error Trace:	/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/pool_scope_integration_test.go:94
+        	Error:      	Should be true
+        	Test:       	TestTransactionScopeUsesExistingConnectionAtPoolCapacity/endorsement
+        	Messages:   	havuz doluyken teknik zaman aşımı olmamalı: timeout: context deadline exceeded
+    pool_scope_integration_test.go:94: 
+        	Error Trace:	/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/pool_scope_integration_test.go:94
+        	Error:      	Should be true
+        	Test:       	TestTransactionScopeUsesExistingConnectionAtPoolCapacity/endorsement
+        	Messages:   	havuz doluyken teknik zaman aşımı olmamalı: context deadline exceeded
+    pool_scope_integration_test.go:94: 
+        	Error Trace:	/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/pool_scope_integration_test.go:94
+        	Error:      	Should be true
+        	Test:       	TestTransactionScopeUsesExistingConnectionAtPoolCapacity/endorsement
+        	Messages:   	havuz doluyken teknik zaman aşımı olmamalı: timeout: context deadline exceeded
+    pool_scope_integration_test.go:94: 
+        	Error Trace:	/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/pool_scope_integration_test.go:94
+        	Error:      	Should be true
+        	Test:       	TestTransactionScopeUsesExistingConnectionAtPoolCapacity/endorsement
+        	Messages:   	havuz doluyken teknik zaman aşımı olmamalı: timeout: context deadline exceeded
+    pool_scope_integration_test.go:109: 
+        	Error Trace:	/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/pool_scope_integration_test.go:109
+        	Error:      	Not equal: 
+        	            	expected: 1
+        	            	actual  : 0
+        	Test:       	TestTransactionScopeUsesExistingConnectionAtPoolCapacity/endorsement
+    pool_scope_integration_test.go:110: 
+        	Error Trace:	/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/pool_scope_integration_test.go:110
+        	Error:      	Received unexpected error:
+        	            	context deadline exceeded
+        	Test:       	TestTransactionScopeUsesExistingConnectionAtPoolCapacity/endorsement
+        	Messages:   	ek bağlantı beklemeden tamamlanmalı
+--- FAIL: TestTransactionScopeUsesExistingConnectionAtPoolCapacity (5.05s)
+    --- FAIL: TestTransactionScopeUsesExistingConnectionAtPoolCapacity/endorsement (5.04s)
+FAIL
+FAIL	github.com/EnesGoker/guvenpolice/backend/internal/app	8.810s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/audit	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/auth	0.707s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/billing	0.250s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/caldate	0.210s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/claim	0.638s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/config	0.174s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/customer	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/fraud	0.154s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/health	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/idempotency	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/ledger	0.177s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/lossratio	0.155s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/payment	0.521s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/payment/store	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform	0.149s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/clock	0.150s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/db	0.167s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/platform/logging	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/metrics	0.148s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/page	0.148s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/policy	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/pricing	0.154s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/proration	0.160s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/quote	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/report	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/seed	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/settlement	0.141s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/simulation	0.458s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/system	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/tariff	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/task	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/workflow	0.140s [no tests to run]
+FAIL

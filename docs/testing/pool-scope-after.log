@@ -1,0 +1,102 @@
+?   	github.com/EnesGoker/guvenpolice/backend/cmd/api	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/cmd/simulator	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/access	[no test files]
+=== RUN   TestConcurrentPayments
+    payment_integration_test.go:186: ödeme 0: HTTP 201 map[amount_kurus:20000 id:3 journal_entry_id:8 kind:PAYMENT method:CARD paid_at:2026-10-26T00:00:00Z policy_id:5 reference:Prim tahsilatı refund_of_payment_id:<nil>]
+    payment_integration_test.go:186: ödeme 1: HTTP 422 map[error:map[code:OVERPAYMENT message:ödeme açık bakiyeyi aşıyor]]
+--- PASS: TestConcurrentPayments (0.34s)
+=== RUN   TestConcurrentRefunds
+    payment_integration_test.go:233: iade 0: HTTP 201 map[amount_kurus:15000 id:5 journal_entry_id:11 kind:REFUND method:TRANSFER paid_at:2026-10-26T00:00:00Z policy_id:6 reference:yarış refund_of_payment_id:4]
+    payment_integration_test.go:233: iade 1: HTTP 422 map[error:map[code:REFUND_EXCEEDS_PAYMENT message:iade ödemenin kalanını aşıyor]]
+--- PASS: TestConcurrentRefunds (0.33s)
+=== RUN   TestConcurrentEndorsements
+--- PASS: TestConcurrentEndorsements (0.38s)
+=== RUN   TestConcurrentEndorsementAndCancellation
+--- PASS: TestConcurrentEndorsementAndCancellation (0.95s)
+=== RUN   TestTransactionScopeUsesExistingConnectionAtPoolCapacity
+=== RUN   TestTransactionScopeUsesExistingConnectionAtPoolCapacity/endorsement
+=== RUN   TestTransactionScopeUsesExistingConnectionAtPoolCapacity/cancel
+=== RUN   TestTransactionScopeUsesExistingConnectionAtPoolCapacity/vehicle_preview
+=== RUN   TestTransactionScopeUsesExistingConnectionAtPoolCapacity/cancel_preview
+=== RUN   TestTransactionScopeUsesExistingConnectionAtPoolCapacity/customer_pay
+=== RUN   TestTransactionScopeUsesExistingConnectionAtPoolCapacity/customer_billing
+--- PASS: TestTransactionScopeUsesExistingConnectionAtPoolCapacity (0.33s)
+    --- PASS: TestTransactionScopeUsesExistingConnectionAtPoolCapacity/endorsement (0.06s)
+    --- PASS: TestTransactionScopeUsesExistingConnectionAtPoolCapacity/cancel (0.05s)
+    --- PASS: TestTransactionScopeUsesExistingConnectionAtPoolCapacity/vehicle_preview (0.04s)
+    --- PASS: TestTransactionScopeUsesExistingConnectionAtPoolCapacity/cancel_preview (0.06s)
+    --- PASS: TestTransactionScopeUsesExistingConnectionAtPoolCapacity/customer_pay (0.08s)
+    --- PASS: TestTransactionScopeUsesExistingConnectionAtPoolCapacity/customer_billing (0.03s)
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/app	5.874s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/audit	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/auth	0.612s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/billing	0.241s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/caldate	0.239s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/claim	0.725s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/config	0.239s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/customer	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/fraud	0.250s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/health	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/idempotency	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/ledger	0.253s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/lossratio	0.152s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/payment	0.647s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/payment/store	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform	0.169s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/clock	0.154s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/db	0.162s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/platform/logging	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/metrics	0.166s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/page	0.162s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/policy	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/pricing	0.164s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/proration	0.149s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/quote	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/report	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/seed	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/settlement	0.163s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/simulation	0.547s [no tests to run]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/system	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/tariff	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/task	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/workflow	0.160s [no tests to run]
