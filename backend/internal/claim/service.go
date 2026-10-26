@@ -306,7 +306,7 @@ func (s *Service) Appraise(ctx context.Context, id int64, req AppraisalRequest) 
 		if err != nil {
 			return err
 		}
-		if err := task.Complete(ctx, tx, id, "APPRAISAL", "DONE", s.now()); err != nil {
+		if err := task.Complete(ctx, tx, id, "APPRAISAL", "DONE", s.now(), &p.UserID); err != nil {
 			return err
 		}
 		return audit.Write(ctx, tx, audit.Entry{Action: "CLAIM_APPRAISED", EntityType: "claim", EntityID: id, New: out})

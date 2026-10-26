@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/EnesGoker/guvenpolice/backend/internal/audit"
 	"github.com/EnesGoker/guvenpolice/backend/internal/workflow"
 	"github.com/jackc/pgx/v5"
 )
@@ -12,23 +13,50 @@ import (
 const AssignmentLockNamespace int32 = 71006
 
 // Complete ilk kapanış zamanını korur; Appraise ve Transition aynı yardımcıyı kullanır.
-func Complete(ctx context.Context, tx pgx.Tx, claimID int64, kind, status string, at time.Time) error {
-	_, err := tx.Exec(ctx, `
-  UPDATE claim_tasks SET status=$3,completed_at=$4
-   WHERE claim_id=$1 AND task_type=$2 AND status IN ('OPEN','IN_PROGRESS')`, claimID, kind, status, at)
-	return err
+func Complete(ctx context.Context, tx pgx.Tx, claimID int64, kind, status string, at time.Time, actorID *int64) error {
+	rows, err := tx.Query(ctx, `
+  WITH previous AS (
+    SELECT id,assigned_to FROM claim_tasks
+     WHERE claim_id=$1 AND task_type=$2 AND status IN ('OPEN','IN_PROGRESS') FOR UPDATE
+  )
+  UPDATE claim_tasks t SET status=$3,completed_at=$4,assigned_to=coalesce($5::bigint,t.assigned_to)
+    FROM previous p WHERE t.id=p.id RETURNING t.id,p.assigned_to`, claimID, kind, status, at, actorID)
+	if err != nil {
+		return err
+	}
+	previous, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (struct {
+		ID       int64
+		Assigned *int64
+	}, error) { var value struct {
+		ID       int64
+		Assigned *int64
+	}; err := row.Scan(&value.ID, &value.Assigned); return value, err })
+	if err != nil {
+		return err
+	}
+	for _, old := range previous {
+		if actorID != nil && (old.Assigned == nil || *old.Assigned != *actorID) {
+			if err := audit.Write(ctx, tx, audit.Entry{
+				Action: "CLAIM_TASK_TAKEN", EntityType: "claim_task", EntityID: old.ID,
+				Old: map[string]any{"assigned_to": old.Assigned}, New: map[string]any{"assigned_to": *actorID},
+			}); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // Advance çağıranın hasar kilidi altında aynı transactionda çalışır. claim paketini import etmez.
-func Advance(ctx context.Context, tx pgx.Tx, claimID int64, from, to string, at time.Time, cfg workflow.Config) error {
+func Advance(ctx context.Context, tx pgx.Tx, claimID int64, from, to string, at time.Time, cfg workflow.Config, actorID *int64) error {
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
 	status := "DONE"
-	if to == "REJECTED" {
+	if to == "REJECTED" && from == "APPRAISAL" {
 		status = "CANCELLED"
 	}
-	if err := Complete(ctx, tx, claimID, from, status, at); err != nil {
+	if err := Complete(ctx, tx, claimID, from, status, at, actorID); err != nil {
 		return err
 	}
 	role := "CLAIMS_ADJUSTER"

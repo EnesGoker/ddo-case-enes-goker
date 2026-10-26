@@ -52,7 +52,7 @@ func Breached(status string, due time.Time, completed *time.Time, now time.Time)
 	if Open(status) {
 		return now.After(due)
 	}
-	return completed != nil && completed.After(due)
+	return status == "DONE" && completed != nil && completed.After(due)
 }
 
 type Load struct {

@@ -87,7 +87,7 @@ func Transition(ctx context.Context, tx pgx.Tx, claimID int64, to string, actor 
   VALUES ($1,$2,$3,$4,$5,$6)`, claimID, from, to, historyActor, note, options.At); err != nil {
 		return c, err
 	}
-	if err := task.Advance(ctx, tx, claimID, from, to, options.At, options.SLA); err != nil {
+	if err := task.Advance(ctx, tx, claimID, from, to, options.At, options.SLA, historyActor); err != nil {
 		return c, err
 	}
 	c.Status = to

@@ -61,8 +61,8 @@ func List(ctx context.Context, q db.DBTX, params page.Params, f Filter, now time
                       OR ($2='done' AND t.status IN ('DONE','CANCELLED')))
      AND ($3='' OR t.task_type=$3) AND ($4::bigint=0 OR t.claim_id=$4)
      AND ($5::bigint=0 OR t.assigned_to=$5)
-     AND (NOT $6::boolean OR CASE WHEN t.status IN ('OPEN','IN_PROGRESS')
-           THEN t.sla_due_at<$7 ELSE t.completed_at>t.sla_due_at END)
+	     AND (NOT $6::boolean OR CASE WHEN t.status IN ('OPEN','IN_PROGRESS')
+	           THEN t.sla_due_at<$7 WHEN t.status='DONE' THEN t.completed_at>t.sla_due_at ELSE false END)
    ORDER BY t.id DESC LIMIT $8`, params.AfterID, f.Status, f.Type, f.ClaimID, f.AssignedTo, f.Breached, now, params.Limit)
 	if err != nil {
 		return nil, err

@@ -17,6 +17,7 @@ func TestGoldenSLA(t *testing.T) {
 		assert.True(t, Breached("OPEN", due, nil, due.Add(time.Nanosecond)))
 		late := due.Add(time.Second)
 		assert.True(t, Breached("DONE", due, &late, now))
+		assert.False(t, Breached("CANCELLED", due, &late, now))
 		assert.False(t, Breached("DONE", due, &due, late))
 		assert.Equal(t, int64(-1), RemainingSeconds(due, due.Add(time.Nanosecond)))
 		assert.Equal(t, int64(1), RemainingSeconds(due, due.Add(-time.Second)))

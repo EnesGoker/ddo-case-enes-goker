@@ -187,7 +187,7 @@ func TestTaskLifecycleSLAAndRBAC(t *testing.T) {
 	c = transitionClaim(t, adjuster, c, "ADJUSTMENT")
 	transitionClaim(t, adjuster, c, "REJECTED")
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT status FROM claim_tasks WHERE claim_id=$1 AND task_type='ADJUSTMENT'`, entered.ID).Scan(&taskStatus))
-	assert.Equal(t, "CANCELLED", taskStatus)
+	assert.Equal(t, "DONE", taskStatus)
 	status, summary := get(t, adjuster, "/api/v1/claim-tasks/sla-summary")
 	require.Equal(t, http.StatusOK, status, summary)
 	for _, value := range summary["items"].([]any) {
