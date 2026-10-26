@@ -75,7 +75,7 @@ func historicalTariffs() []pricing.Tariff {
 			continue
 		}
 		end := t.ValidFrom
-		t.VersionNo, t.ValidFrom, t.ValidTo = 0, time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC), &end
+		t.VersionNo, t.ValidFrom, t.ValidTo = 0, time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), &end
 		for code, value := range t.BaseRates {
 			t.BaseRates[code] = proration.RoundDiv(value*85, 100)
 		}

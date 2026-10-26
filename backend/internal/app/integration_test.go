@@ -402,7 +402,7 @@ func TestMigrationsUpDownUp(t *testing.T) {
 	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "up")
 	v, err := goose.GetDBVersionContext(ctx, sqlDB)
 	require.NoError(t, err)
-	assert.Equal(t, int64(10), v)
+	assert.Equal(t, int64(11), v)
 
 	// 00010 çevrimiçi indeks tek başına Down/Up ve mevcut indeksle tekrar Up.
 	var refundIndexValid bool
@@ -416,7 +416,7 @@ func TestMigrationsUpDownUp(t *testing.T) {
 	require.NoError(t, sqlDB.QueryRow(`SELECT to_regclass('public.payments_refund_of_payment_idx')::text`).Scan(&refundIndex))
 	assert.Nil(t, refundIndex)
 	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "00010 tekrar up")
-	_, err = sqlDB.Exec(`DELETE FROM goose_db_version WHERE version_id=10`)
+	_, err = sqlDB.Exec(`DELETE FROM goose_db_version WHERE version_id IN (10,11)`)
 	require.NoError(t, err)
 	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "mevcut indeksle 00010 up")
 
