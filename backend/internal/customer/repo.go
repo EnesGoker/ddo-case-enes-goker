@@ -60,11 +60,6 @@ func (r *Repo) List(ctx context.Context, f ListFilter) ([]Customer, error) {
 	})
 }
 
-// MaskNationalID shares the existing display mask with authorized document readers.
-func MaskNationalID(s string) string {
-	return maskNationalID(s)
-}
-
 // maskNationalID TCKN'nin yalnızca son 4 hanesini gösterir (kişisel veri).
 func maskNationalID(s string) string {
 	if len(s) <= 4 {

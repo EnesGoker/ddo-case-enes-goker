@@ -26,34 +26,17 @@ type Coverage struct {
 	EventLimit                 *int64
 }
 
-type Line struct {
-	Coverage, Label string
-	Amount, BP      int64
-}
-
-type Installment struct {
-	Seq          int
-	Due, Status  string
-	Amount, Paid int64
-}
-
-type Plan struct {
-	Total   int64
-	Rows    []Installment
-	Missing bool
-}
-
+// Document holds only what the policy detail endpoint returns: no installments,
+// premium factor breakdown or national ID.
 type Document struct {
-	PolicyNo, Product, Customer, MaskedID, Status string
-	Start, End, CancelDate, CancelReason          string
-	VersionFrom, VersionTo, Plate                 string
-	VersionNo, TariffNo                           int
-	Annual, Initial, Delta, Written, Refund, Net  int64
-	AnnualLimit                                   *int64
-	Coverages                                     []Coverage
-	Lines                                         []Line
-	Billing                                       *Plan
-	GeneratedAt                                   time.Time
+	PolicyNo, Product, Customer, Status          string
+	Start, End, CancelDate, CancelReason         string
+	VersionFrom, VersionTo, Plate                string
+	VersionNo, TariffNo                          int
+	Annual, Initial, Delta, Written, Refund, Net int64
+	AnnualLimit                                  *int64
+	Coverages                                    []Coverage
+	GeneratedAt                                  time.Time
 }
 
 // FormatTL uses integer arithmetic, including for math.MinInt64.
@@ -98,9 +81,6 @@ func Render(d Document) ([]byte, error) {
 	write("Üretim zamanı: " + d.GeneratedAt.UTC().Format("2006-01-02 15:04:05 UTC"))
 	w.section("Sigortalı ve poliçe")
 	write("Sigortalı: " + d.Customer)
-	if d.MaskedID != "" {
-		write("TCKN (maskeli): " + d.MaskedID)
-	}
 	write("Poliçe: " + d.PolicyNo + " | Ürün: " + d.Product + " | Kayıt durumu: " + d.Status)
 	write("Poliçe dönemi: " + d.Start + " / " + d.End + " (bitiş hariç)")
 	if d.CancelDate != "" {
@@ -138,30 +118,6 @@ func Render(d Document) ([]byte, error) {
 		write(c.Name + " (" + c.Code + ")")
 		write("Dönem limiti: " + FormatTL(c.Limit) + " | Olay başı: " + event)
 		write("Muafiyet: " + deductible + " | Teminat yıllık primi: " + FormatTL(c.Premium))
-	}
-	w.section("Saklanmış prim faktör dökümü")
-	if len(d.Lines) == 0 {
-		write("Bu sürüm için saklanmış prim faktör dökümü yok. Yeniden hesaplama yapılmadı.")
-	}
-	for _, l := range d.Lines {
-		factor := ""
-		if l.BP != 0 {
-			factor = fmt.Sprintf(" | Çarpan: %d,%04d", l.BP/10000, l.BP%10000)
-		}
-		write(l.Coverage + " | " + l.Label + factor + " | Etki: " + FormatTL(l.Amount))
-	}
-	if d.Billing != nil {
-		w.section("Güncel taksit planı")
-		write("Bu bölüm üretim anındaki ödeme planıdır; sürüm tarihindeki geçmiş bakiye değildir.")
-		if !d.Billing.Missing {
-			write("Plan toplamı: " + FormatTL(d.Billing.Total))
-		}
-		for _, i := range d.Billing.Rows {
-			write(fmt.Sprintf("%d. taksit | Vade: %s | Tutar: %s | Ödenen: %s | Durum: %s", i.Seq, i.Due, FormatTL(i.Amount), FormatTL(i.Paid), i.Status))
-		}
-		if len(d.Billing.Rows) == 0 {
-			write("Etkin ödeme planı yok.")
-		}
 	}
 	if w.err != nil {
 		return nil, w.err
