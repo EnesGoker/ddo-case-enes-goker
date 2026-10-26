@@ -1,0 +1,34 @@
+{
+  "sha": "ec8fef8d357052a9b747173dbb23504b91772698",
+  "clone": "/tmp/guvenpolice-a8-clean-1793002003-17587",
+  "project": "guvenpolice-a8-clean",
+  "builder": "gp-a8-clean-1793002003-17587",
+  "started_at": "2026-10-26T08:07:10.999127+00:00",
+  "elapsed_seconds": 77.5046811249922,
+  "exit_code": 0,
+  "within_5_minutes": true,
+  "cache_scope": "fresh dedicated builder; shared postgres image retained; bootstrap/clone excluded",
+  "host_free_before_bytes": 9580023808,
+  "main_volume_before": {
+    "Name": "guvenpolice_pgdata",
+    "CreatedAt": "2026-10-25T12:55:20Z"
+  },
+  "main_volume_after": {
+    "Name": "guvenpolice_pgdata",
+    "CreatedAt": "2026-10-25T12:55:20Z"
+  },
+  "main_sim_policies_after_restore": 100000,
+  "fresh_verify": {
+    "pass": 62,
+    "fail": 0,
+    "real_seconds": 6.22
+  },
+  "main_verify_after_client_filter_fix": {
+    "pass": 62,
+    "fail": 0,
+    "real_seconds": 98.65
+  },
+  "cache_before_total": "0B",
+  "cache_after_total": "1.14GB",
+  "clone_volume_and_builder_removed": true
+}

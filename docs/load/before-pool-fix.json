@@ -1,0 +1,580 @@
+{
+  "vus": 20,
+  "duration_seconds": 181.701598168,
+  "rows": [
+    {
+      "endpoint": "policies",
+      "n": 6730,
+      "p50_ms": 1.6955624999999999,
+      "p95_ms": 6.798030949999997,
+      "p99_ms": 15.378313749999984,
+      "error_rate": 0,
+      "requests_per_second": 37.038749619458436
+    },
+    {
+      "endpoint": "quote",
+      "n": 4719,
+      "p50_ms": 1.262667,
+      "p95_ms": 6.956578499999999,
+      "p99_ms": 33.517096119999934,
+      "error_rate": 0,
+      "requests_per_second": 25.971152964966475
+    },
+    {
+      "endpoint": "billing",
+      "n": 4485,
+      "p50_ms": 1.991541,
+      "p95_ms": 7.785524599999999,
+      "p99_ms": 22.10444555999991,
+      "error_rate": 0,
+      "requests_per_second": 24.683327198108632
+    },
+    {
+      "endpoint": "tasks",
+      "n": 2389,
+      "p50_ms": 1.755625,
+      "p95_ms": 6.6079745999999995,
+      "p99_ms": 23.636574999999926,
+      "error_rate": 0,
+      "requests_per_second": 13.147930585570016
+    },
+    {
+      "endpoint": "health",
+      "n": 2309,
+      "p50_ms": 0.375167,
+      "p95_ms": 3.152666399999997,
+      "p99_ms": 11.46780191999999,
+      "error_rate": 0,
+      "requests_per_second": 12.707648272114344
+    },
+    {
+      "endpoint": "report",
+      "n": 1173,
+      "p50_ms": 43.362334,
+      "p95_ms": 108.8512914,
+      "p99_ms": 163.281655,
+      "error_rate": 0,
+      "requests_per_second": 6.455639421043796
+    },
+    {
+      "endpoint": "payment",
+      "n": 1103,
+      "p50_ms": 5.838042,
+      "p95_ms": 22.067217299999992,
+      "p99_ms": 68.26485633999997,
+      "error_rate": 0,
+      "requests_per_second": 6.070392396770083
+    },
+    {
+      "endpoint": "replay",
+      "n": 1103,
+      "p50_ms": 0.438791,
+      "p95_ms": 1.8469785999999961,
+      "p99_ms": 6.90041866,
+      "error_rate": 0,
+      "requests_per_second": 6.070392396770083
+    }
+  ],
+  "metrics": {
+    "gp_count_policies": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 6730,
+        "rate": 37.038749619458436
+      }
+    },
+    "gp_count_billing": {
+      "values": {
+        "count": 4485,
+        "rate": 24.683327198108632
+      },
+      "type": "counter",
+      "contains": "default"
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 28.34299159999996,
+        "p(99)": 74.78352143999999,
+        "max": 1880.529084,
+        "med": 1.625042
+      }
+    },
+    "gp_count_replay": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 1103,
+        "rate": 6.070392396770083
+      }
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "rate": 126.07484045803179,
+        "count": 22908
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 8943090,
+        "rate": 49218.554433028614
+      }
+    },
+    "gp_duration_replay": {
+      "contains": "time",
+      "values": {
+        "med": 0.438791,
+        "p(95)": 1.8469785999999961,
+        "p(99)": 6.90041866,
+        "max": 23.004458
+      },
+      "thresholds": {
+        "p(95)<1500": {
+          "ok": true
+        },
+        "p(99)<3000": {
+          "ok": true
+        }
+      },
+      "type": "trend"
+    },
+    "gp_duration_policies": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 1.6955624999999999,
+        "p(95)": 6.798030949999997,
+        "p(99)": 15.378313749999984,
+        "max": 404.350459
+      },
+      "thresholds": {
+        "p(95)<1500": {
+          "ok": true
+        },
+        "p(99)<3000": {
+          "ok": true
+        }
+      }
+    },
+    "gp_count_payment": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 1103,
+        "rate": 6.070392396770083
+      }
+    },
+    "gp_errors_billing": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 4485
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 1.517791,
+        "p(95)": 28.263782799999984,
+        "p(99)": 74.56872499999997,
+        "max": 1880.328834
+      }
+    },
+    "gp_errors_tasks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 2389
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "gp_errors_payment": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "fails": 1103,
+        "rate": 0,
+        "passes": 0
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "gp_errors_replay": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 1103
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "gp_idempotent": {
+      "values": {
+        "rate": 1,
+        "passes": 1103,
+        "fails": 0
+      },
+      "thresholds": {
+        "rate==1": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default"
+    },
+    "gp_duration_health": {
+      "values": {
+        "med": 0.375167,
+        "p(95)": 3.152666399999997,
+        "p(99)": 11.46780191999999,
+        "max": 387.740833
+      },
+      "thresholds": {
+        "p(95)<500": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "gp_count_quote": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 4719,
+        "rate": 25.971152964966475
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0.002375,
+        "p(95)": 0.006,
+        "p(99)": 0.015370079999999982,
+        "max": 4.948375
+      }
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0.008375,
+        "p(95)": 0.029125,
+        "p(99)": 0.13543507999999976,
+        "max": 92.116958
+      }
+    },
+    "gp_duration_payment": {
+      "thresholds": {
+        "p(95)<1500": {
+          "ok": true
+        },
+        "p(99)<3000": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 22.067217299999992,
+        "p(99)": 68.26485633999997,
+        "max": 365.764,
+        "med": 5.838042
+      }
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 0,
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0
+      }
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 2030.860209,
+        "med": 152.732875,
+        "p(95)": 181.49126874999993,
+        "p(99)": 227.32776999999996
+      }
+    },
+    "gp_errors_policies": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 6730
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 3.467666
+      }
+    },
+    "http_req_failed": {
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 24057
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default"
+    },
+    "http_req_duration": {
+      "values": {
+        "med": 1.625042,
+        "p(95)": 28.34299159999996,
+        "p(99)": 74.78352143999999,
+        "max": 1880.529084
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "gp_duration_report": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 43.362334,
+        "p(95)": 108.8512914,
+        "p(99)": 163.281655,
+        "max": 1880.529084
+      },
+      "thresholds": {
+        "p(95)<5000": {
+          "ok": true
+        },
+        "p(99)<10000": {
+          "ok": true
+        }
+      }
+    },
+    "gp_errors_health": {
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 2309
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default"
+    },
+    "vus_max": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 20,
+        "min": 20,
+        "max": 20
+      }
+    },
+    "gp_count_report": {
+      "values": {
+        "count": 1173,
+        "rate": 6.455639421043796
+      },
+      "type": "counter",
+      "contains": "default"
+    },
+    "gp_errors_report": {
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 1173
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate"
+    },
+    "gp_duration_quote": {
+      "contains": "time",
+      "values": {
+        "max": 430.785001,
+        "med": 1.262667,
+        "p(95)": 6.956578499999999,
+        "p(99)": 33.517096119999934
+      },
+      "thresholds": {
+        "p(95)<1500": {
+          "ok": true
+        },
+        "p(99)<3000": {
+          "ok": true
+        }
+      },
+      "type": "trend"
+    },
+    "gp_duration_billing": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 1.991541,
+        "p(95)": 7.785524599999999,
+        "p(99)": 22.10444555999991,
+        "max": 415.247042
+      },
+      "thresholds": {
+        "p(95)<1500": {
+          "ok": true
+        },
+        "p(99)<3000": {
+          "ok": true
+        }
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 24057,
+        "rate": 132.39839518503888
+      }
+    },
+    "data_received": {
+      "values": {
+        "count": 111888181,
+        "rate": 615779.8397378376
+      },
+      "type": "counter",
+      "contains": "data"
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 0.9557319599999986,
+        "max": 35.514083,
+        "med": 0.039958,
+        "p(95)": 0.25447459999999994
+      }
+    },
+    "gp_count_health": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 2309,
+        "rate": 12.707648272114344
+      }
+    },
+    "gp_count_tasks": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "rate": 13.147930585570016,
+        "count": 2389
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "fails": 0,
+        "rate": 1,
+        "passes": 25114
+      },
+      "thresholds": {
+        "rate>0.99": {
+          "ok": true
+        }
+      }
+    },
+    "gp_errors_quote": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "passes": 0,
+        "fails": 4719,
+        "rate": 0
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "vus": {
+      "contains": "default",
+      "values": {
+        "min": 0,
+        "max": 20,
+        "value": 20
+      },
+      "type": "gauge"
+    },
+    "gp_duration_tasks": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 1.755625,
+        "p(95)": 6.6079745999999995,
+        "p(99)": 23.636574999999926,
+        "max": 406.050417
+      },
+      "thresholds": {
+        "p(95)<1500": {
+          "ok": true
+        },
+        "p(99)<3000": {
+          "ok": true
+        }
+      }
+    }
+  },
+  "notes": "Setup requests are not included in per-endpoint custom metrics. No tokens/bodies stored."
+}

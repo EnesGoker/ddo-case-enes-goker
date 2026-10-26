@@ -1,0 +1,10 @@
+=== RUN   TestGoldenKasko
+--- PASS: TestGoldenKasko (0.00s)
+=== RUN   TestGoldenKonut
+--- PASS: TestGoldenKonut (0.00s)
+=== RUN   TestDeterminism
+--- PASS: TestDeterminism (0.00s)
+=== RUN   TestBreakdownSumEqualsTotal
+--- PASS: TestBreakdownSumEqualsTotal (0.09s)
+PASS
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/pricing	0.496s

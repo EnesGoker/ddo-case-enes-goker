@@ -1,0 +1,166 @@
+{
+  "before": {
+    "sim_policies": 100000,
+    "version_premium_sum": 72130792135,
+    "v0_ids": [
+      5,
+      6,
+      7
+    ],
+    "v0_refs": 63742,
+    "v0_dates": [
+      "0001-01-01",
+      "0001-01-01",
+      "0001-01-01"
+    ],
+    "run": {
+      "status": "COMPLETED",
+      "phase": "DONE",
+      "processed": 100000,
+      "target": 100000,
+      "elapsed": "00:29:05.060453",
+      "fingerprint": "6fe6f6cdb7b7c9f8f8c585b38f2f99f0be836a1bcf8282ed3df49eb4760adabd",
+      "summary": {
+        "tasks": {
+          "open": 330,
+          "breached": 314
+        },
+        "claims": [
+          {
+            "count": 11,
+            "status": "ADJUSTMENT",
+            "flagged": 0
+          },
+          {
+            "count": 29,
+            "status": "APPRAISAL",
+            "flagged": 0
+          },
+          {
+            "count": 12,
+            "status": "APPROVED",
+            "flagged": 0
+          },
+          {
+            "count": 7438,
+            "status": "CLOSED",
+            "flagged": 247
+          },
+          {
+            "count": 303,
+            "status": "FRAUD_REVIEW",
+            "flagged": 303
+          },
+          {
+            "count": 7,
+            "status": "PAID",
+            "flagged": 0
+          },
+          {
+            "count": 5,
+            "status": "REJECTED",
+            "flagged": 0
+          },
+          {
+            "count": 15,
+            "status": "REPORTED",
+            "flagged": 0
+          },
+          {
+            "count": 15,
+            "status": "TRIAGED",
+            "flagged": 0
+          }
+        ],
+        "ledger": {
+          "cash_kurus": 50781263789,
+          "claim_expense_kurus": 17257842190,
+          "written_premium_kurus": 71428406318
+        },
+        "balanced": true,
+        "payments": [
+          {
+            "kind": "PAYMENT",
+            "count": 930433,
+            "amount_kurus": 68397208168
+          },
+          {
+            "kind": "REFUND",
+            "count": 4696,
+            "amount_kurus": 398577520
+          }
+        ],
+        "policies": [
+          {
+            "count": 48742,
+            "status": "ACTIVE",
+            "product": "KASKO"
+          },
+          {
+            "count": 1258,
+            "status": "CANCELLED",
+            "product": "KASKO"
+          },
+          {
+            "count": 14600,
+            "status": "ACTIVE",
+            "product": "KONUT"
+          },
+          {
+            "count": 400,
+            "status": "CANCELLED",
+            "product": "KONUT"
+          },
+          {
+            "count": 34069,
+            "status": "ACTIVE",
+            "product": "TRAFIK"
+          },
+          {
+            "count": 931,
+            "status": "CANCELLED",
+            "product": "TRAFIK"
+          }
+        ],
+        "installments": [
+          {
+            "count": 3677,
+            "status": "CANCELLED",
+            "paid_kurus": 0,
+            "amount_kurus": 275720696
+          },
+          {
+            "count": 507477,
+            "status": "PAID",
+            "paid_kurus": 68226607086,
+            "amount_kurus": 68226607086
+          },
+          {
+            "count": 35821,
+            "status": "PENDING",
+            "paid_kurus": 0,
+            "amount_kurus": 3600376752
+          }
+        ],
+        "receivable_matches": true
+      }
+    }
+  },
+  "after": {
+    "sim_policies": 100000,
+    "version_premium_sum": 72130792135,
+    "v0_ids": [
+      5,
+      6,
+      7
+    ],
+    "v0_refs": 63742,
+    "v0_dates": [
+      "2020-01-01",
+      "2020-01-01",
+      "2020-01-01"
+    ],
+    "existing_event_limits": 0,
+    "migration": 12
+  }
+}

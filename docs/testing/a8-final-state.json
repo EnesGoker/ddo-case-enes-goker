@@ -1,0 +1,16 @@
+{
+  "measured_at": "2026-10-26T08:26:46.587561+00:00",
+  "sim_policies": 100000,
+  "simulation_status": "COMPLETED",
+  "fingerprint": "32fde797213b8904e5febc4c33cb8bd38f8cd883fdbe1489f02e521226a23b9b",
+  "valid_indexes": 3,
+  "appraisal_owner_mismatch": 0,
+  "ui_takeover_audit": {
+    "old": {
+      "assigned_to": 4
+    },
+    "new": {
+      "assigned_to": 7
+    }
+  }
+}

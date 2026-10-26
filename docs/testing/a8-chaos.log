@@ -1,0 +1,23 @@
+./scripts/chaos.sh
+PASS  giriş muhasebe
+PASS  giriş acente
+PASS  giriş underwriter
+PASS  simülatör kapalı
+PASS  demo müşteriyi oku
+PASS  ayrı kaos poliçesi teklifi
+PASS  kaos poliçesi düzenle
+PASS  (a) sağlık 503 db=down
+PASS  (a) iş ucu JSON 5xx
+PASS  (c) kesintide ödeme başarısız/JSON
+PASS  (a) API aynı konteynerde, yeniden başlamadı
+PASS  (b) DB iyileşti: 0.475 saniye (<=60)
+PASS  (b) iş ucu tekrar 200
+PASS  (c) aynı anahtarla ödeme 201
+PASS  (c) tekrar aynı ödeme
+PASS  (c) DB: tek ödeme/tek yevmiye
+PASS  (c) defter dengesi ve 1200 mutabakatı
+PASS  (b) API kesinti/iyileşmede yeniden başlamadı
+PASS  kaos tamamlandı
+real 12.01
+user 0.53
+sys 0.43

@@ -1,0 +1,21 @@
+BEGIN
+SET
+SET
+Sort  (cost=83.92..83.99 rows=27 width=26) (actual time=1.010..1.022 rows=247 loops=1)
+  Sort Key: loss_date, id
+  Sort Method: quicksort  Memory: 38kB
+  Buffers: shared hit=9 read=17
+  ->  Bitmap Heap Scan on claims  (cost=4.63..83.28 rows=27 width=26) (actual time=0.640..0.865 rows=247 loops=1)
+        Recheck Cond: ((workshop_id = 4) AND (loss_date >= '2026-09-25'::date) AND (loss_date <= '2026-10-25'::date))
+        Filter: (id <> 7783)
+        Rows Removed by Filter: 1
+        Heap Blocks: exact=15
+        Buffers: shared hit=3 read=17
+        ->  Bitmap Index Scan on claims_workshop_loss_idx  (cost=0.00..4.62 rows=27 width=0) (actual time=0.620..0.620 rows=248 loops=1)
+              Index Cond: ((workshop_id = 4) AND (loss_date >= '2026-09-25'::date) AND (loss_date <= '2026-10-25'::date))
+              Buffers: shared hit=3 read=2
+Planning:
+  Buffers: shared hit=245 read=14 dirtied=1
+Planning Time: 1.850 ms
+Execution Time: 1.114 ms
+ROLLBACK

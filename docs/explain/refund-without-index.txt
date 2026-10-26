@@ -1,0 +1,28 @@
+BEGIN
+SET
+SET
+DROP INDEX
+Incremental Sort  (cost=26919.27..376864.75 rows=14 width=127) (actual time=321.806..321.807 rows=2 loops=1)
+  Sort Key: p.paid_at DESC, p.id DESC
+  Presorted Key: p.paid_at
+  Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 25kB  Peak Memory: 25kB
+  Buffers: shared hit=83 read=30324
+  ->  Index Scan Backward using payments_policy_idx on payments p  (cost=0.42..376864.12 rows=14 width=127) (actual time=181.507..321.682 rows=2 loops=1)
+        Index Cond: (policy_id = 5)
+        Buffers: shared hit=74 read=30324
+        SubPlan 1
+          ->  Aggregate  (cost=26916.58..26916.59 rows=1 width=32) (actual time=152.175..152.176 rows=1 loops=2)
+                Buffers: shared hit=66 read=30324
+                ->  Seq Scan on payments r  (cost=0.00..26916.58 rows=1 width=8) (actual time=152.124..152.124 rows=0 loops=2)
+                      Filter: (refund_of_payment_id = p.id)
+                      Rows Removed by Filter: 937726
+                      Buffers: shared hit=66 read=30324
+Planning:
+  Buffers: shared hit=147
+Planning Time: 0.553 ms
+JIT:
+  Functions: 11
+  Options: Inlining false, Optimization false, Expressions true, Deforming true
+  Timing: Generation 1.258 ms, Inlining 0.000 ms, Optimization 3.505 ms, Emission 13.783 ms, Total 18.546 ms
+Execution Time: 352.658 ms
+ROLLBACK

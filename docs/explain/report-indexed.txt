@@ -1,0 +1,106 @@
+BEGIN
+SET
+SET
+Finalize GroupAggregate  (cost=15125.39..15126.04 rows=5 width=84) (actual time=201.783..208.632 rows=3 loops=1)
+  Group Key: "*SELECT* 2".product
+  Buffers: shared hit=10762 read=4046
+  ->  Gather Merge  (cost=15125.39..15125.90 rows=4 width=78) (actual time=201.750..208.604 rows=9 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=10762 read=4046
+        ->  Partial GroupAggregate  (cost=14125.36..14125.42 rows=2 width=78) (actual time=195.475..195.515 rows=3 loops=3)
+              Group Key: "*SELECT* 2".product
+              Buffers: shared hit=10762 read=4046
+              ->  Sort  (cost=14125.36..14125.37 rows=2 width=26) (actual time=195.381..195.439 rows=440 loops=3)
+                    Sort Key: "*SELECT* 2".product
+                    Sort Method: quicksort  Memory: 43kB
+                    Buffers: shared hit=10762 read=4046
+                    Worker 0:  Sort Method: quicksort  Memory: 60kB
+                    Worker 1:  Sort Method: quicksort  Memory: 42kB
+                    ->  Result  (cost=854.70..14125.35 rows=2 width=26) (actual time=84.645..194.831 rows=440 loops=3)
+                          Buffers: shared hit=10744 read=4046
+                          ->  Parallel Append  (cost=854.70..14125.33 rows=2 width=34) (actual time=84.644..194.702 rows=440 loops=3)
+                                Buffers: shared hit=10744 read=4046
+                                ->  Subquery Scan on "*SELECT* 2"  (cost=854.70..1216.78 rows=1 width=34) (actual time=8.769..33.778 rows=212 loops=1)
+                                      Buffers: shared hit=2457 read=227
+                                      ->  Nested Loop  (cost=854.70..1216.77 rows=1 width=38) (actual time=8.769..33.662 rows=212 loops=1)
+                                            Buffers: shared hit=2457 read=227
+                                            ->  Nested Loop  (cost=854.41..1215.61 rows=1 width=24) (actual time=8.700..13.183 rows=212 loops=1)
+                                                  Buffers: shared hit=1967 read=80
+                                                  ->  Nested Loop  (cost=854.26..1215.25 rows=2 width=32) (actual time=8.658..12.400 rows=424 loops=1)
+                                                        Buffers: shared hit=1119 read=79
+                                                        ->  Hash Join  (cost=853.83..1206.77 rows=1 width=16) (actual time=8.556..11.445 rows=212 loops=1)
+                                                              Hash Cond: (c.id = e.ref_id)
+                                                              Buffers: shared hit=282 read=67
+                                                              ->  Seq Scan on claims c  (cost=0.00..313.95 rows=7795 width=16) (actual time=0.016..2.216 rows=7795 loops=1)
+                                                                    Buffers: shared hit=236
+                                                              ->  Hash  (cost=852.69..852.69 rows=91 width=16) (actual time=8.193..8.198 rows=212 loops=1)
+                                                                    Buckets: 1024  Batches: 1  Memory Usage: 18kB
+                                                                    Buffers: shared hit=30 read=67
+                                                                    ->  Bitmap Heap Scan on journal_entries e  (cost=506.42..852.69 rows=91 width=16) (actual time=8.078..8.166 rows=212 loops=1)
+                                                                          Recheck Cond: ((ref_type = 'CLAIM_APPROVAL'::text) AND (entry_date >= '2026-09-26'::date) AND (entry_date < '2026-10-26'::date))
+                                                                          Buffers: shared hit=30 read=67
+                                                                          ->  BitmapAnd  (cost=506.42..506.42 rows=91 width=0) (actual time=8.035..8.040 rows=0 loops=1)
+                                                                                Buffers: shared hit=29 read=61
+                                                                                ->  Bitmap Index Scan on journal_entries_ref_idx  (cost=0.00..226.44 rows=7202 width=0) (actual time=6.788..6.788 rows=6730 loops=1)
+                                                                                      Index Cond: (ref_type = 'CLAIM_APPROVAL'::text)
+                                                                                      Buffers: shared hit=1 read=61
+                                                                                ->  Bitmap Index Scan on journal_entries_date_idx  (cost=0.00..279.68 rows=18725 width=0) (actual time=1.201..1.202 rows=22275 loops=1)
+                                                                                      Index Cond: ((entry_date >= '2026-09-26'::date) AND (entry_date < '2026-10-26'::date))
+                                                                                      Buffers: shared hit=28
+                                                        ->  Index Scan using journal_lines_entry_idx on journal_lines l  (cost=0.43..8.47 rows=2 width=32) (actual time=0.003..0.004 rows=2 loops=212)
+                                                              Index Cond: (entry_id = e.id)
+                                                              Buffers: shared hit=837 read=12
+                                                  ->  Index Scan using accounts_pkey on accounts a  (cost=0.15..0.17 rows=1 width=8) (actual time=0.001..0.001 rows=0 loops=424)
+                                                        Index Cond: (id = l.account_id)
+                                                        Filter: (code = '5000'::text)
+                                                        Rows Removed by Filter: 0
+                                                        Buffers: shared hit=848 read=1
+                                            ->  Index Scan using policies_pkey on policies p  (cost=0.29..1.16 rows=1 width=22) (actual time=0.096..0.096 rows=1 loops=212)
+                                                  Index Cond: (id = c.policy_id)
+                                                  Buffers: shared hit=490 read=147
+                                ->  Subquery Scan on "*SELECT* 1"  (cost=3216.44..12908.54 rows=2 width=34) (actual time=111.481..183.352 rows=370 loops=3)
+                                      Buffers: shared hit=8287 read=3819
+                                      ->  Nested Loop  (cost=3216.44..12908.52 rows=2 width=38) (actual time=111.481..183.260 rows=370 loops=3)
+                                            Buffers: shared hit=8287 read=3819
+                                            ->  Nested Loop Left Join  (cost=3216.15..12900.51 rows=2 width=42) (actual time=111.440..170.426 rows=370 loops=3)
+                                                  Join Filter: (e_1.ref_type = 'ENDORSEMENT'::text)
+                                                  Rows Removed by Join Filter: 14
+                                                  Buffers: shared hit=5083 read=3695
+                                                  ->  Hash Join  (cost=3215.87..12895.75 rows=2 width=34) (actual time=111.365..163.381 rows=370 loops=3)
+                                                        Hash Cond: (l_1.account_id = a_1.id)
+                                                        Buffers: shared hit=2860 read=3610
+                                                        ->  Nested Loop  (cost=3207.69..12883.76 rows=1441 width=42) (actual time=111.206..162.952 rows=739 loops=3)
+                                                              Buffers: shared hit=2838 read=3608
+                                                              ->  Parallel Bitmap Heap Scan on journal_entries e_1  (cost=3207.26..7055.08 rows=721 width=26) (actual time=110.702..127.112 rows=370 loops=3)
+                                                                    Recheck Cond: ((entry_date >= '2026-09-26'::date) AND (entry_date < '2026-10-26'::date) AND (ref_type = ANY ('{POLICY_ISSUE,ENDORSEMENT}'::text[])))
+                                                                    Heap Blocks: exact=318
+                                                                    Buffers: shared hit=119 read=1887
+                                                                    ->  BitmapAnd  (cost=3207.26..3207.26 rows=1225 width=0) (actual time=125.450..125.451 rows=0 loops=1)
+                                                                          Buffers: shared hit=5 read=938
+                                                                          ->  Bitmap Index Scan on journal_entries_date_idx  (cost=0.00..279.68 rows=18725 width=0) (actual time=8.865..8.865 rows=22275 loops=1)
+                                                                                Index Cond: ((entry_date >= '2026-09-26'::date) AND (entry_date < '2026-10-26'::date))
+                                                                                Buffers: shared hit=2 read=25
+                                                                          ->  Bitmap Index Scan on journal_entries_ref_idx  (cost=0.00..2926.72 rows=96781 width=0) (actual time=115.815..115.815 rows=103331 loops=1)
+                                                                                Index Cond: (ref_type = ANY ('{POLICY_ISSUE,ENDORSEMENT}'::text[]))
+                                                                                Buffers: shared hit=3 read=913
+                                                              ->  Index Scan using journal_lines_entry_idx on journal_lines l_1  (cost=0.43..8.06 rows=2 width=32) (actual time=0.094..0.095 rows=2 loops=1109)
+                                                                    Index Cond: (entry_id = e_1.id)
+                                                                    Buffers: shared hit=2719 read=1721
+                                                        ->  Hash  (cost=8.17..8.17 rows=1 width=8) (actual time=0.100..0.101 rows=1 loops=3)
+                                                              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                              Buffers: shared hit=6 read=2
+                                                              ->  Index Scan using accounts_code_key on accounts a_1  (cost=0.15..8.17 rows=1 width=8) (actual time=0.085..0.085 rows=1 loops=3)
+                                                                    Index Cond: (code = '4000'::text)
+                                                                    Buffers: shared hit=6 read=2
+                                                  ->  Index Scan using endorsements_pkey on endorsements z  (cost=0.28..2.37 rows=1 width=16) (actual time=0.018..0.018 rows=0 loops=1109)
+                                                        Index Cond: (id = e_1.ref_id)
+                                                        Buffers: shared hit=2223 read=85
+                                            ->  Index Scan using policies_pkey on policies p_1  (cost=0.29..4.00 rows=1 width=22) (actual time=0.033..0.033 rows=1 loops=1109)
+                                                  Index Cond: (id = CASE WHEN (e_1.ref_type = 'POLICY_ISSUE'::text) THEN e_1.ref_id ELSE z.policy_id END)
+                                                  Buffers: shared hit=3204 read=124
+Planning:
+  Buffers: shared hit=835 read=38
+Planning Time: 13.340 ms
+Execution Time: 209.149 ms
+ROLLBACK

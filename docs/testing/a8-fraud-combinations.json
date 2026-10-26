@@ -1,0 +1,31 @@
+[
+  {
+    "rules": [
+      "EARLY_CLAIM",
+      "WORKSHOP_CONCENTRATION"
+    ],
+    "flagged_claims": 349
+  },
+  {
+    "rules": [
+      "EARLY_CLAIM",
+      "REPEAT_PLATE",
+      "WORKSHOP_CONCENTRATION"
+    ],
+    "flagged_claims": 84
+  },
+  {
+    "rules": [
+      "REPEAT_PLATE",
+      "WORKSHOP_CONCENTRATION"
+    ],
+    "flagged_claims": 46
+  },
+  {
+    "rules": [
+      "EARLY_CLAIM",
+      "REPEAT_PLATE"
+    ],
+    "flagged_claims": 16
+  }
+]

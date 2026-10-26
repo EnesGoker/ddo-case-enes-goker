@@ -1,0 +1,17 @@
+ Container guvenpolice-a8-clean-web-1 Stopping
+ Container guvenpolice-a8-clean-web-1 Stopped
+ Container guvenpolice-a8-clean-web-1 Removing
+ Container guvenpolice-a8-clean-web-1 Removed
+ Container guvenpolice-a8-clean-api-1 Stopping
+ Container guvenpolice-a8-clean-api-1 Stopped
+ Container guvenpolice-a8-clean-api-1 Removing
+ Container guvenpolice-a8-clean-api-1 Removed
+ Container guvenpolice-a8-clean-db-1 Stopping
+ Container guvenpolice-a8-clean-db-1 Stopped
+ Container guvenpolice-a8-clean-db-1 Removing
+ Container guvenpolice-a8-clean-db-1 Removed
+ Network guvenpolice-a8-clean_default Removing
+ Volume guvenpolice-a8-clean_pgdata Removing
+ Volume guvenpolice-a8-clean_pgdata Removed
+ Network guvenpolice-a8-clean_default Removed
+gp-a8-clean-1793002003-17587 removed

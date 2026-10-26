@@ -1,0 +1,22 @@
+BEGIN
+SET
+SET
+Incremental Sort  (cost=11.00..148.90 rows=14 width=127) (actual time=0.206..0.207 rows=2 loops=1)
+  Sort Key: p.paid_at DESC, p.id DESC
+  Presorted Key: p.paid_at
+  Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 25kB  Peak Memory: 25kB
+  Buffers: shared hit=19 read=2
+  ->  Index Scan Backward using payments_policy_idx on payments p  (cost=0.42..148.27 rows=14 width=127) (actual time=0.148..0.153 rows=2 loops=1)
+        Index Cond: (policy_id = 5)
+        Buffers: shared hit=10 read=2
+        SubPlan 1
+          ->  Aggregate  (cost=8.30..8.31 rows=1 width=32) (actual time=0.051..0.051 rows=1 loops=2)
+                Buffers: shared hit=2 read=2
+                ->  Index Scan using payments_refund_of_payment_idx on payments r  (cost=0.28..8.30 rows=1 width=8) (actual time=0.050..0.050 rows=0 loops=2)
+                      Index Cond: (refund_of_payment_id = p.id)
+                      Buffers: shared hit=2 read=2
+Planning:
+  Buffers: shared hit=166 read=3
+Planning Time: 0.760 ms
+Execution Time: 0.285 ms
+ROLLBACK

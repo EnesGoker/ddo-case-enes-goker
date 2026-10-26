@@ -1,0 +1,20 @@
+[
+  {
+    "Service": "api",
+    "Health": "healthy",
+    "State": "running",
+    "Image": "guvenpolice-api"
+  },
+  {
+    "Service": "db",
+    "Health": "healthy",
+    "State": "running",
+    "Image": "postgres:16-alpine"
+  },
+  {
+    "Service": "web",
+    "Health": "healthy",
+    "State": "running",
+    "Image": "guvenpolice-web"
+  }
+]

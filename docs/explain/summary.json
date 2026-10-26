@@ -1,0 +1,68 @@
+{
+  "measured_at": "2026-10-26T07:42:53.984862+00:00",
+  "policy_id": 5,
+  "from": "2026-09-26",
+  "to_exclusive": "2026-10-26",
+  "rows": [
+    {
+      "query": "refund",
+      "index": "payments_refund_of_payment_idx",
+      "variants": {
+        "indexed": {
+          "execution_ms_median": 0.171,
+          "shared_hit_blocks": 21,
+          "shared_read_blocks": 0,
+          "actual_rows": 2,
+          "node": "Incremental Sort"
+        },
+        "without-index": {
+          "execution_ms_median": 178.767,
+          "shared_hit_blocks": 211,
+          "shared_read_blocks": 30196,
+          "actual_rows": 2,
+          "node": "Incremental Sort"
+        }
+      }
+    },
+    {
+      "query": "report",
+      "index": "journal_entries_date_idx",
+      "variants": {
+        "indexed": {
+          "execution_ms_median": 34.02,
+          "shared_hit_blocks": 14808,
+          "shared_read_blocks": 0,
+          "actual_rows": 3,
+          "node": "Aggregate"
+        },
+        "without-index": {
+          "execution_ms_median": 382.542,
+          "shared_hit_blocks": 14642,
+          "shared_read_blocks": 20145,
+          "actual_rows": 3,
+          "node": "Aggregate"
+        }
+      }
+    },
+    {
+      "query": "workshop",
+      "index": "claims_workshop_loss_idx",
+      "variants": {
+        "indexed": {
+          "execution_ms_median": 0.465,
+          "shared_hit_blocks": 26,
+          "shared_read_blocks": 0,
+          "actual_rows": 247,
+          "node": "Sort"
+        },
+        "without-index": {
+          "execution_ms_median": 0.813,
+          "shared_hit_blocks": 166,
+          "shared_read_blocks": 0,
+          "actual_rows": 247,
+          "node": "Sort"
+        }
+      }
+    }
+  ]
+}
