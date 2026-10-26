@@ -16,6 +16,28 @@ Demo müşteriler: Ayşe Demir (müşteri hesabı, 1988, bölge 34), Mehmet Yıl
 | Hasar uzmanı | hasar@guvenpolice.test |
 | Muhasebe | muhasebe@guvenpolice.test |
 
+## Kimlik bazında deneme ve kanıt
+
+Kanıt komutu mevcut demo sisteme karşı çalışır; iş kaydı oluşturur. Son kayıtlı sonuç **64 PASS / 0 FAIL** ([UI-1 kaydı](docs/testing/ui1/verify.log#L73-L76)); bu belge düzeltmesinde yeniden çalıştırılmadı. Son sütundaki numaralar [scripts/verify.sh](scripts/verify.sh) satırlarıdır.
+
+| Kimlik | Nasıl denenir | Beklenen sonuç | Kanıt komutu | verify satırı |
+|---|---|---|---|---|
+| F-1 | Acente: Yeni teklif → kaydet → poliçeye çevir; anahtarı tekrarla; underwriter onayı | Döküm korunur, aynı poliçe döner; farklı anahtarla ikinci çevirme 409; UW_REVIEW → APPROVED | `make verify` | `F-1 teklif-kaydet-oku`:196; `F-1 police-cevir`:206; `F-1 cift-cevirme`:210; `F-1 uw-onay`:219 |
+| F-2 | Poliçe detayında zeyil, sürüm geçmişi ve iptal | Sürüm 2 ve zeyil korunur; iptal günü teminat 404, yeni zeyil 422 | `make verify` | `F-2 zeyil-kayit`:264; `F-2 surum-gecmisi`:276; `F-2 iptal-sonrasi`:299 |
+| F-3 | Üç taksitli poliçeye kısmi ödeme, tekrar, fazla ödeme ve iade; gün sonu | Tek ödeme ve ilk taksite tahsis; fazla ödeme 422; iade anaparayı yeniden açar; gecikmiş seed NON_PAYMENT ile iptal | `make verify` | `F-3 taksit-tahsilat-idem`:431; `F-3 asiri-odeme`:434; `F-3 iade`:440; `F-3 gun-sonu-iptal`:490 |
+| F-4 | Hasar bildir → ön inceleme → ekspertiz → değerlendirme | Dosya ve durum geçmişi kayıtlı | `make verify` | `F-4 hasar-dosya`:359 |
+| F-5 | Eksper hasara değerlendirme ekler | Detayda 2000000 kuruş ekspertiz kaydı | `make verify` | `F-5 ekspertiz`:362 |
+| F-6 | Hasar uzmanı onaylar, aynı anahtarı tekrarlar; muhasebe öder | Tek tazminat kaydı, 1000000 kuruş ödeme ve yevmiye | `make verify` | `F-6 idempotent-onay`:372; `F-6 odeme`:381 |
+| F-7 | Üretim raporu, mizan ve ay/ürün/acente kırılımını karşılaştır | Yazılan prim/tazminat defterle, boyut satırları toplamla eşit; oran bağımsız hesapla aynı | `make verify` | `F-7 prim-delta`:527; `F-7 defter-mutabakati`:540; `F-7 oran`:544/546; `F-7 boyut-toplami`:557 |
+| T-1 | Aynı teklif girdisini iki kez önizle; tarife sınır tarihlerini dene | Aynı prim/döküm/hash; kalem toplamı prime eşit; v1/v2 doğru seçilir | `make verify` | `T-1 determinizm`:176; `T-1 dokum-toplami`:182; `T-1 tarife-tarihi`:188 |
+| T-2 | Zeyil, etki tarihinin iki yanı ve kısa dönem iptal | Gün esaslı delta bağımsız hesapla aynı; v1/v2 sınırı ve iade doğru | `make verify` | `T-2 zeyil-gun-esasli`:254; `T-2 tarihte-teminat`:270; `T-2 kisa-donem-iade`:290 |
+| T-3 | CAM hasarını hesapla/onayla; iki paralel onay dene | Yedi adım; 1950000 → 1000000 kuruş olay limiti; toplam yıllık 180000000 kuruş sınırını aşmaz | `make verify` | `T-3 hesap-adimlari`:366; `T-3 olay-limiti`:377; `T-3 paralel-limit`:400 |
+| T-4 | Ödeme tekrarı, paralel ödeme ve gün sonu | Tek etki/aynı yanıt; faiz bağımsız hesapla doğru; defter dengeli, 1200 = açık anapara + faiz | `make verify` | `T-4 idem-bayt`:422; `T-4 paralel-odeme`:456; `T-4 gun-sonu-parcali`:473; `T-4 faiz-kayit-hesabi`:510; `T-4 defter-mutabakat`:514 |
+| T-5 | FP-2 seed; üç hasar; görev ataması, inceleme ve SLA | Seed skor 75/iki sinyal; 40/40/75 eşiği; en az yük ataması; ekspertiz şartı ve SLA gauge | `make verify` | `T-5 seed-supheli`:629; `T-5 esik`:665; `T-5 atama`:667; `T-5 inceleme`:674; `T-5 paralel-atama`:702; `T-5 sla`:710; `T-5 yetki`:713 |
+| HEALTH | GET `/health` | 200, `db=ok` | `make verify` | `HEALTH`:70 |
+| AUTH (yanlış parola) | Acente girişine yanlış parola gönder | 401 `INVALID_CREDENTIALS` | `make verify` | `AUTH-WRONG-PASSWORD`:100 |
+| RBAC (yetkisiz rol / yetki ihlali) | Müşteriyle `/customers`; acenteyle pano kapsamını `agent_id=unassigned&include_total=true` ile genişletmeyi dene | Müşteri 403 `FORBIDDEN`; acentede yalnız kendi satırı, genel toplam/Acentesiz yok | `make verify` | `RBAC-CUSTOMER-403`:130; `B1 acente-panosu`:597 |
+
 ## Komutlar
 
 ```bash
@@ -40,14 +62,17 @@ make reset-demo         # demo verisini seed durumuna döndürür
 | `db` durdurulunca `/health` | 503 `{"db":"down"}`; db başlayınca 200 |
 | `make reset-demo` | eklenen kayıt silindi, 4 müşteri / 6 kullanıcı geri geldi, `accounts`/`claim_transitions` korundu |
 
-## Manuel UI senaryoları (A1)
+## Manuel UI senaryoları
 
 1. `http://localhost:3000` → yanlış parola → "E-posta veya parola hatalı." görünür.
-2. Acente ile giriş → menüde Profilim, Müşteriler, Teklifler (A2)… → Müşteriler: 3 kayıt, TCKN maskeli.
+2. Acente ile giriş → Profilim; Müşteriler listesindeki TCKN maskeli; Teklifler ve Poliçeler açılır.
 3. Sayfayı yenile → oturum refresh cookie ile geri gelir.
-4. 375 px genişlik → menü yatay kayar, tablo kart görünümüne geçer, yatay sayfa kaydırması yok.
-5. Çıkış → yenileyince giriş ekranı (refresh iptal).
-6. Müşteri ile giriş → menüde "Müşteriler" yok; API'den de 403 (verify `RBAC-CUSTOMER-403`).
+4. 375 px genişlik → menü düğmesiyle açılır, Escape ile kapanır ve odak düğmeye döner; poliçe tablosu kart görünümüne geçer, sayfa yatay kaymaz.
+5. Acente → Yeni teklif → Primi hesapla; prim dökümü görünür. Poliçeler → bir satırı seç; detay açılır.
+6. Acente performansı → dönem ve sıralamayı değiştir; acente yalnız kendi satırını görür, genel toplam yoktur.
+7. Müşteriyle Hasar Dosyaları → detay: iç inceleme notları/sinyalleri gösterilmez; inceleme durumu İncelemede (API: UNDER_REVIEW) görünür.
+8. Çıkış → yenileyince giriş ekranı (refresh iptal).
+9. Müşteri ile giriş → menüde "Müşteriler" yok; API'den de 403 (verify `RBAC-CUSTOMER-403`).
 
 ## F-1 — Teklif ve prim hesaplama
 
@@ -123,7 +148,7 @@ Altın örneklerin elle hesabı `backend/internal/proration/proration_test.go` i
 | T-2 | PASS (`make verify` + birim/entegrasyon testleri) |
 | F-4, F-5, F-6, T-3 | PASS (A4; aşağıdaki kanıtlar) |
 | F-3, T-4 | PASS (A5; aşağıdaki kanıtlar) |
-| F-7, T-5 | A6 uygulandı; aşağıdaki A6 kanıtları |
+| F-7, T-5 | PASS (`make verify`; son kayıt 64 PASS / 0 FAIL, [UI-1 kanıtı](docs/testing/ui1/verify.log#L73-L76)) |
 
 ## F-4 / F-5 / F-6 — Hasar, ekspertiz ve tazminat (A4)
 

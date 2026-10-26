@@ -1,6 +1,6 @@
 # GüvenPoliçe
 
-**Aday: Enes · GitHub: [EnesGoker](https://github.com/EnesGoker)**
+**Aday: Enes Göker · GitHub: [EnesGoker](https://github.com/EnesGoker)**
 
 [![CI](https://github.com/EnesGoker/ddo-case-enes-goker/actions/workflows/ci.yml/badge.svg)](https://github.com/EnesGoker/ddo-case-enes-goker/actions/workflows/ci.yml)
 
@@ -20,6 +20,8 @@ make verify
 
 Web: [localhost:3000](http://localhost:3000) · API: [localhost:8080](http://localhost:8080) · [OpenAPI](openapi.yaml) · [HTTP örnekleri](requests.http).
 Migration ve seed API açılırken otomatik çalışır. `.env.example` yalnız değiştirilebilir demo değerleridir; `.env` Git'e girmez. İnternete açık dağıtım için demo parolasını/JWT anahtarını değiştirip HTTPS/secure cookie yapılandırması gerekir.
+
+Simülatör tek seferlik bir iş olduğu için healthcheck'i kapalıdır; DB/API/web healthcheck kullanır, API → DB ve web → API bağımlılıkları `service_healthy` koşuluyla kurulur ([Compose: simülatör](docker-compose.yml#L75-L80), [API](docker-compose.yml#L48-L58), [web](docker-compose.yml#L83-L94), [DB](docker-compose.yml#L13-L17)).
 
 | Rol | Demo hesabı | Deneme yolu |
 |---|---|---|
@@ -51,6 +53,12 @@ Tek süreçli modüler monolit; HTTP handler → servis → saf hesap + reposito
 Para `int64` kuruş; oranlar tamsayı bp/ppm. Poliçe/tarife sürümleri geçmişi korur; tarih aralıkları `[başlangıç, bitiş)` ve artık yıl testleriyle doğrulanır. Gün sonu imleçli parçalarla, her poliçe ayrı transaction içinde ilerler. Servis saati yalnız seed/simülatör bağlamında tarihsel olabilir; HTTP yolları gerçek zamanı kullanır.
 
 Tahsilat önce poliçeyi, hasar onayı hasarı ve limit bakiyesini kilitler; limit tüketimi koşullu UPDATE ile yapılır. Defterde her iş kaydı dengeli satırlarla aynı transaction'dadır. Audit append-only'dir. Mutasyon yapan kritik mali uçlarda Idempotency-Key ve iş anahtarı veya kaynak durum/kısıt koruması vardır; ekspertiz de 00013 ile iş anahtarına bağlanmıştır. Kurtarmanın uç bazlı kapsamı ADR-14'te yazılıdır. `/metrics` yalnız kimliği doğrulanmış ACCOUNTING/UNDERWRITER rollerine açıktır; sağlık denetimi `/health` kullanır.
+
+Muhasebe hesabıyla giriş yapıp access token ile `/metrics` okuma (`DEMO_PASSWORD` ortamda tanımlı olmalıdır; [giriş ve başlık örneği](requests.http#L166-L175)):
+
+```bash
+curl -fsS http://localhost:8080/metrics -H "Authorization: Bearer $(curl -fsS -X POST http://localhost:8080/api/v1/auth/login -H 'Content-Type: application/json' --data "{\"email\":\"muhasebe@guvenpolice.test\",\"password\":\"$DEMO_PASSWORD\"}" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p' | head -n 1)"
+```
 
 Tazminat sırası **muafiyet → olay başı limit → teminat dönem limiti → yıllık toplam limit**. CAM için örnek olay limiti 10.000 TL, dönem limiti 25.000 TL, muafiyet 500 TL'dir. Olay limiti her dosyaya yeniden uygulanır; dönem/yıllık tüketim ayrı tutulur. Eski sözleşmelerde NULL olay limiti yok anlamındadır; güncel katalog geçmiş sözleşmeyi değiştirmez.
 
@@ -114,15 +122,19 @@ Birim/lint için Go, frontend build/lint için Node 20 gerekir; yük testi host 
 
 [CI gerçek kapsam çıktısı](docs/testing/ci-domain-coverage.md). CI, her paketin %70 eşiğini ayrı uygular; `GITHUB_STEP_SUMMARY` tablosunu ve coverage artifact'ını üretir. Normal entegrasyon/simülasyon ayrı PostgreSQL16 işidir. Simülasyon yalnız main push veya elle tetiklemede koşar; Docker işi iki imajı build eder, push etmez.
 
-**Son ölçümler:** 100k kabulü, CI, son verify/yük, kaos, EXPLAIN ve temiz kurulum geçti. 173 ayrı Test* fonksiyonu mevcut; normal ve simülasyon testleri ayrı işlerde koşar.
+**Son ölçümler:** 100k kabulü, CI, verify/yük, kaos, EXPLAIN ve temiz kurulum geçti. 181 ayrı Test* fonksiyonu mevcut (`TestMain` hariç); normal ve simülasyon testleri ayrı işlerde koşar.
 
-| Kontrol | Sonuç |
+Aşağıdaki tablo A8'in tarihsel ölçümleridir: 100k üretimi `4155bae`, CI ve temiz kurulum `ec8fef8` koduyla yapılmıştır ([koşu kaydı](docs/testing/a8-runbook.md#L8), [temiz kurulum](docs/testing/clean-install.json)).
+
+| A8 tarihsel kontrolü | Sonuç |
 |---|---|
 | GitHub CI | [5 iş PASS, ec8fef8](https://github.com/EnesGoker/ddo-case-enes-goker/actions/runs/40287235419) |
 | Yeni 100k | PASS; 30 dk 26,410 sn, mali mutabakat true |
 | Yeni 100k verify | PASS; 62/0, 114,26 sn |
 | Temiz kurulum / taze verify | 77,505 sn / 62 PASS, 0 FAIL, 6,22 sn |
 | Ana 100k son verify | 62 PASS, 0 FAIL, 98,65 sn; 100k korundu |
+
+Son kayıtlı verify (UI-1): **64 PASS / 0 FAIL, 107,206 sn**; test edilen kaynak commit `4290dd8`, temiz daldaki eşdeğeri `f060fca` ([kabul özeti](docs/testing/ui1/README.md#L15-L24), [ham sonuç](docs/testing/ui1/verify.log#L73-L76)).
 
 ### Yük testi
 
@@ -160,6 +172,47 @@ Eşikler ölçümden önce sabittir: hata <%1, check >%99; normal p95<1500 ms/p9
 | Atölye adayı / claims_workshop_loss_idx | 0,813 ms | 0,465 ms | hit/read:166/0 →26/0; 247 satır |
 
 Ham `.txt` ilk gözlemi, `.json` dosyaları üç ek çalıştırmayı içerir; tablo JSON medyanıdır. Önbellek ilk/sıcak gözlemler arasında değişebilir; hit/read PostgreSQL tampon sayısıdır, doğrudan fiziksel disk okuması değildir. İki varyant aynı sorgu ve parametreyi kullanır; üç indeks de rollback sonrası valid/ready.
+
+<details>
+<summary>İade sorgusu — indeksli ham plan</summary>
+
+```text
+        SubPlan 1
+          ->  Aggregate  (cost=8.30..8.31 rows=1 width=32) (actual time=0.051..0.051 rows=1 loops=2)
+                Buffers: shared hit=2 read=2
+                ->  Index Scan using payments_refund_of_payment_idx on payments r  (cost=0.28..8.30 rows=1 width=8) (actual time=0.050..0.050 rows=0 loops=2)
+                      Index Cond: (refund_of_payment_id = p.id)
+                      Buffers: shared hit=2 read=2
+Planning:
+  Buffers: shared hit=166 read=3
+Planning Time: 0.760 ms
+Execution Time: 0.285 ms
+```
+
+Kaynak: [docs/explain/refund-indexed.txt](docs/explain/refund-indexed.txt#L12-L21), 12–21. satırlar; ilk ham gözlem, medyan değildir.
+
+</details>
+
+<details>
+<summary>F-7 dönem raporu — indeksli ham plan</summary>
+
+```text
+                                                                    ->  Bitmap Heap Scan on journal_entries e  (cost=506.42..852.69 rows=91 width=16) (actual time=8.078..8.166 rows=212 loops=1)
+                                                                          Recheck Cond: ((ref_type = 'CLAIM_APPROVAL'::text) AND (entry_date >= '2026-09-26'::date) AND (entry_date < '2026-10-26'::date))
+                                                                          Buffers: shared hit=30 read=67
+                                                                          ->  BitmapAnd  (cost=506.42..506.42 rows=91 width=0) (actual time=8.035..8.040 rows=0 loops=1)
+                                                                                Buffers: shared hit=29 read=61
+                                                                                ->  Bitmap Index Scan on journal_entries_ref_idx  (cost=0.00..226.44 rows=7202 width=0) (actual time=6.788..6.788 rows=6730 loops=1)
+                                                                                      Index Cond: (ref_type = 'CLAIM_APPROVAL'::text)
+                                                                                      Buffers: shared hit=1 read=61
+                                                                                ->  Bitmap Index Scan on journal_entries_date_idx  (cost=0.00..279.68 rows=18725 width=0) (actual time=1.201..1.202 rows=22275 loops=1)
+                                                                                      Index Cond: ((entry_date >= '2026-09-26'::date) AND (entry_date < '2026-10-26'::date))
+                                                                                      Buffers: shared hit=28
+```
+
+Kaynak: [docs/explain/report-indexed.txt](docs/explain/report-indexed.txt#L40-L50), 40–50. satırlar; ilk ham gözlem, medyan değildir.
+
+</details>
 
 ### Temiz kurulum
 
@@ -227,6 +280,10 @@ CI'nin ilk koşusu küçük havuzda gerçek bağlantı kilitlenmesini yakaladı.
 
 2. **Gerçek sınırlama/kırılma:** yoğun atölye normal hacmi mutlak eşiği aşabilir; paralel 10k entegrasyon üretimi sırasında mizan 10 sn istemci sınırını aştı (HTTP 000), F-7 defter/boyut kontrolleri de başarısız oldu. Aynı verify 279,62 sn sürdü ve 58 PASS/3 FAIL verdi. [TESTING kaydı](TESTING.md) gerçek koşulları açıklar.
 3. **İki indeks/sorgu ve ölçüm:** yukarıdaki EXPLAIN tablosu ve ham planlar; iki varyant ve medyanlar kayıtlıdır.
+
+   - `payments_refund_of_payment_idx`: ödeme listesinde ödeme başına iade toplamı alt sorgusu; dizinsiz → dizinli medyan **178,767 → 0,171 ms**.
+   - `journal_entries_date_idx`: F-7 dönem üretim raporunda işlem tarihi aralığı; dizinsiz → dizinli medyan **382,542 → 34,020 ms**.
+
 4. **Yapay zekâ çıktısı önce/sonra ve gerekçe:**
 
    Geliştirmede yapay zekâ ajanlarını uygulayıcı olarak kullandım; çıktılarını testler, CI ve ayrı bir modelin salt okunur incelemesiyle denetledim.
