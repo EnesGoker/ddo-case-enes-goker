@@ -22,7 +22,7 @@ func TestDefaultsAndParameters(t *testing.T) {
 	assert.Equal(t, a, b)
 	assert.Contains(t, string(raw), `"workers":16`)
 	assert.Contains(t, string(raw), `"live":true`)
-	assert.Contains(t, string(raw), `"version":3`)
+	assert.Contains(t, string(raw), `"version":4`)
 	assert.Equal(t, 48*time.Hour, c.OpenWindow)
 	c.Seed++
 	_, b, err = c.parameters()

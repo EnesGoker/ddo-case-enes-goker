@@ -200,7 +200,7 @@ func (r *runner) issueAndPay(ctx context.Context, p *policyPlan) error {
 	var covers []policy.CoverageTerm
 	for _, c := range result.Coverages {
 		spec, _ := pricing.CoverageSpecFor(p.Product, c.Code)
-		covers = append(covers, policy.CoverageTerm{Code: c.Code, LimitKurus: spec.LimitKurus, DeductibleType: spec.DeductibleType, DeductibleValue: spec.DeductibleValue, PremiumKurus: c.PremiumKurus})
+		covers = append(covers, policy.CoverageTerm{Code: c.Code, LimitKurus: spec.LimitKurus, EventLimitKurus: spec.EventLimitKurus, DeductibleType: spec.DeductibleType, DeductibleValue: spec.DeductibleValue, PremiumKurus: c.PremiumKurus})
 	}
 	var plate *string
 	if p.Product.IsVehicle() {

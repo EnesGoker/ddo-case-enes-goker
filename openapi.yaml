@@ -1206,6 +1206,7 @@ components:
         name: { type: string }
         required: { type: boolean }
         limit_kurus: { type: integer, format: int64 }
+        event_limit_kurus: { type: integer, format: int64, minimum: 1, nullable: true, description: Olay başına limit; null ise yok. }
         deductible_type: { type: string, enum: [NONE, FIXED, PERCENT_BP] }
         deductible_value: { type: integer, format: int64 }
         base_premium_kurus: { type: integer, format: int64 }

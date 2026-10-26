@@ -48,6 +48,6 @@ func issuePriced(ctx context.Context, tx pgx.Tx, customerID, agentID, actorID in
 		PolicyNoOverride: no, ActorID: actorID, Product: pricing.Kasko, CustomerID: customerID, AgentID: &agentID,
 		TariffVersionID: selected.ID, StartDate: start, EndDate: caldate.AddYear(start), Plate: &normalized,
 		RiskData: encoded, AnnualPremium: result.TotalKurus, AnnualLimitKurus: pricing.Catalog[pricing.Kasko].AnnualLimitKurus, InstallmentCount: count,
-		Coverages: []policy.CoverageTerm{{Code: coverage.Code, LimitKurus: coverage.LimitKurus, DeductibleType: coverage.DeductibleType, DeductibleValue: coverage.DeductibleValue, PremiumKurus: result.TotalKurus}},
+		Coverages: []policy.CoverageTerm{{Code: coverage.Code, LimitKurus: coverage.LimitKurus, EventLimitKurus: coverage.EventLimitKurus, DeductibleType: coverage.DeductibleType, DeductibleValue: coverage.DeductibleValue, PremiumKurus: result.TotalKurus}},
 	})
 }

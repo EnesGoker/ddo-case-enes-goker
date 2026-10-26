@@ -417,3 +417,9 @@ Test yükü bittikten sonra aynı v2 imajıyla `/usr/bin/time -p make verify`: *
 Simülasyon testleri `integration && simulation`; `make test-simulation` ayrı hedefidir. `make test-integration` ağır üretimi içermez. Varsayılan açık iş penceresi SIM_OPEN_WINDOW=48h. Taze DB'de seed42/anchor2026-10-25:1k2açık inceleme/2görev/0ihlal,10k7açık inceleme/7görev/1ihlal(%14,29); işaretli oranları%3,53/%4,96. İki örnekte DONE APPRAISAL sahibi ile ekspertiz aktörü uyuşmazlığı0 ve mali mutabakat doğru. Tam simülasyon kabul komutu PROGRESS'te; app643,392sn,exit0. Yeni100k'nın sonucu henüz bu ölçümlerden çıkarılamaz.
 
 V0 başlangıcı2020-01-01;2019-12-31 tarife-yok.00011 Up/Down/Up referans/prim koruması ve2019bağlı kayıt varken rollback testi PASS. Müşteri/acente tüm hasar yanıtlarında UNDER_REVIEW ve gizli iç notlar; red gerekçesi görünür. Görevi kapatan insan atamayı devralır/eski atanan audit'e yazılır. Karar aşaması reddi DONE, iş yapılmadan iptal CANCELLED; SLA tanımı liste/özet arasında aynı. Hedefli8DB kabulü app17,172sn PASS.
+
+### A8 T-3 olay başı limit
+
+00012: policy_version_coverages.event_limit_kurus, NULL=yok/varsa pozitif. Eski kayıtlar yeniden fiyatlanmaz. Kurgusal katalog CAM10.000TL olay/25.000TL dönem;500TL sabit muafiyet. Saf TestGoldenEventLimitsInOrder dört sınırın sırasını; TestEventLimitInt64AndValidation büyük tutar/geçersiz girişi doğrular. Yeni hesapta7adım, NULL olay adımı skipped; geçmiş settlement dökümleri korunur.
+
+TestEventLimitSnapshotAndPerClaimApproval gerçek API'de iki ayrı olayın her birinde1.000.000kuruş onayı, toplam2.000.000kuruş tüketimi, zeyilde snapshot ve eski NULL davranışını doğruladı. TestEventLimitMigrationUpDownUpAndDataGuard PASS. `make test-integration` PASS/exit0 (app70,830sn), lint/build PASS. Yeni verify T-3 olay-limiti satırı son100k sonrasında çalışacak.

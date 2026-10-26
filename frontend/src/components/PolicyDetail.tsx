@@ -150,6 +150,7 @@ function CoverageTable({ version }: { version: PolicyDetail['versions'][number] 
           <tr>
             <th>Teminat</th>
             <th className="num">Limit</th>
+            <th className="num">Olay başı</th>
             <th>Muafiyet</th>
             <th className="num">Prim</th>
           </tr>
@@ -159,6 +160,7 @@ function CoverageTable({ version }: { version: PolicyDetail['versions'][number] 
             <tr key={c.code}>
               <td data-label="Teminat">{c.name ?? c.code}</td>
               <td data-label="Limit" className="num">{formatTL(c.limit_kurus)}</td>
+              <td data-label="Olay başı" className="num">{c.event_limit_kurus != null ? formatTL(c.event_limit_kurus) : 'yok'}</td>
               <td data-label="Muafiyet">
                 {c.deductible_type === 'NONE' ? 'yok' : c.deductible_type === 'FIXED' ? formatTL(c.deductible_value) : `%${c.deductible_value / 100}`}
               </td>

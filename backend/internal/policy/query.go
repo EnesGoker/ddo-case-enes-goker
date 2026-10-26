@@ -150,7 +150,7 @@ func loadCoverages(ctx context.Context, q db.DBTX, product string, versions []Ve
 		versions[i].Coverages = []CoverageTerm{}
 	}
 	rows, err := q.Query(ctx, `
-		SELECT policy_version_id, coverage_code, limit_kurus, deductible_type, deductible_value, annual_premium_kurus
+		SELECT policy_version_id, coverage_code, limit_kurus, deductible_type, deductible_value, annual_premium_kurus,event_limit_kurus
 		  FROM policy_version_coverages WHERE policy_version_id = ANY($1)`, ids)
 	if err != nil {
 		return err
@@ -158,8 +158,12 @@ func loadCoverages(ctx context.Context, q db.DBTX, product string, versions []Ve
 	var vid int64
 	var c CoverageTerm
 	var dtype string
-	if _, err := pgx.ForEachRow(rows, []any{&vid, &c.Code, &c.LimitKurus, &dtype, &c.DeductibleValue, &c.PremiumKurus}, func() error {
+	if _, err := pgx.ForEachRow(rows, []any{&vid, &c.Code, &c.LimitKurus, &dtype, &c.DeductibleValue, &c.PremiumKurus, &c.EventLimitKurus}, func() error {
 		term := c
+		if c.EventLimitKurus != nil {
+			limit := *c.EventLimitKurus
+			term.EventLimitKurus = &limit
+		}
 		term.DeductibleType = pricing.DeductibleType(dtype)
 		if spec, ok := pricing.CoverageSpecFor(pricing.Product(product), c.Code); ok {
 			term.Name = spec.Name

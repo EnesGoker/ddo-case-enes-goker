@@ -207,7 +207,8 @@ func (s *Service) Calculate(ctx context.Context, req Request) (Calculation, erro
 		spec, _ := pricing.CoverageSpecFor(product, cp.Code)
 		c.Selection.Coverages = append(c.Selection.Coverages, policy.CoverageTerm{
 			Code: cp.Code, Name: spec.Name, LimitKurus: spec.LimitKurus,
-			DeductibleType: spec.DeductibleType, DeductibleValue: spec.DeductibleValue, PremiumKurus: cp.PremiumKurus,
+			EventLimitKurus: spec.EventLimitKurus,
+			DeductibleType:  spec.DeductibleType, DeductibleValue: spec.DeductibleValue, PremiumKurus: cp.PremiumKurus,
 		})
 	}
 	return c, nil

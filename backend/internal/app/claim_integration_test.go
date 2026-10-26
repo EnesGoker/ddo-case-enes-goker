@@ -83,7 +83,7 @@ func TestClaimLifecycleAndIdempotency(t *testing.T) {
 	s, preview := newClient(t).do(http.MethodPost, path+"/settlement/preview", adjuster, nil)
 	require.Equal(t, 200, s, preview)
 	assert.Equal(t, int64(800000), num(preview["payable_kurus"]))
-	assert.Len(t, preview["calc_steps"], 6)
+	assert.Len(t, preview["calc_steps"], 7)
 	s, approved, _ := postKey(t, adjuster, path+"/settlement/approve", nil, fmt.Sprintf("approve-%v", c["id"]))
 	require.Equal(t, 201, s, approved)
 	s, replayed, h := postKey(t, adjuster, path+"/settlement/approve", nil, fmt.Sprintf("approve-%v", c["id"]))

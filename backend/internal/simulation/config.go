@@ -97,7 +97,7 @@ func (c Config) parameters() ([]byte, string, error) {
 	business, err := json.Marshal(struct {
 		Version int `json:"version"`
 		Config
-	}{3, c})
+	}{4, c})
 	if err != nil {
 		return nil, "", err
 	}
@@ -107,6 +107,6 @@ func (c Config) parameters() ([]byte, string, error) {
 		Config
 		Workers int  `json:"workers"`
 		Live    bool `json:"live"`
-	}{3, c, c.Workers, c.Live})
+	}{4, c, c.Workers, c.Live})
 	return stored, hex.EncodeToString(sum[:]), err
 }

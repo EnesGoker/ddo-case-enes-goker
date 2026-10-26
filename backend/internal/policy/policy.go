@@ -25,6 +25,7 @@ type CoverageTerm struct {
 	Code            string                 `json:"code"`
 	Name            string                 `json:"name,omitempty"`
 	LimitKurus      int64                  `json:"limit_kurus"`
+	EventLimitKurus *int64                 `json:"event_limit_kurus"`
 	DeductibleType  pricing.DeductibleType `json:"deductible_type"`
 	DeductibleValue int64                  `json:"deductible_value"`
 	PremiumKurus    int64                  `json:"premium_kurus"`
@@ -127,9 +128,9 @@ func Issue(ctx context.Context, tx pgx.Tx, in IssueInput) (Issued, error) {
 	for _, c := range in.Coverages {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO policy_version_coverages (policy_version_id, coverage_code, limit_kurus,
-			                                      deductible_type, deductible_value, annual_premium_kurus)
-			VALUES ($1, $2, $3, $4, $5, $6)`,
-			out.VersionID, c.Code, c.LimitKurus, string(c.DeductibleType), c.DeductibleValue, c.PremiumKurus); err != nil {
+			                                      deductible_type, deductible_value, annual_premium_kurus,event_limit_kurus)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+			out.VersionID, c.Code, c.LimitKurus, string(c.DeductibleType), c.DeductibleValue, c.PremiumKurus, c.EventLimitKurus); err != nil {
 			return out, fmt.Errorf("teminat %s: %w", c.Code, err)
 		}
 		code := c.Code

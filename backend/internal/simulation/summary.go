@@ -91,7 +91,7 @@ func (r *runner) fingerprint(ctx context.Context) (string, error) {
             JOIN users u ON u.id=a.user_id JOIN policy_versions v ON v.policy_id=p.id
             JOIN tariff_versions t ON t.id=v.tariff_version_id WHERE p.policy_no LIKE 'SIM-%' ORDER BY 1`},
 		{"coverages", `
-          SELECT jsonb_build_array(p.policy_no,v.version_no,c.coverage_code,c.limit_kurus,c.deductible_type,c.deductible_value,c.annual_premium_kurus)::text
+          SELECT jsonb_build_array(p.policy_no,v.version_no,c.coverage_code,c.limit_kurus,c.deductible_type,c.deductible_value,c.annual_premium_kurus,c.event_limit_kurus)::text
             FROM policy_version_coverages c JOIN policy_versions v ON v.id=c.policy_version_id
             JOIN policies p ON p.id=v.policy_id WHERE p.policy_no LIKE 'SIM-%' ORDER BY 1`},
 		{"limits", `

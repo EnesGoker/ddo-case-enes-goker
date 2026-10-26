@@ -27,6 +27,7 @@ export interface CoverageSpec {
   name: string
   required: boolean
   limit_kurus: number
+  event_limit_kurus: number | null
   deductible_type: 'NONE' | 'FIXED' | 'PERCENT_BP'
   deductible_value: number
   base_premium_kurus?: number

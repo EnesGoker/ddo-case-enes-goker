@@ -13,6 +13,7 @@ type Input struct {
 	DeductibleValue        int64
 	CoverageRemainingKurus int64
 	AnnualRemainingKurus   *int64
+	EventLimitKurus        *int64
 }
 
 type Step struct {
@@ -36,6 +37,9 @@ func Calculate(in Input) (Result, error) {
 	if in.GrossDamageKurus < 0 || in.DeductibleValue < 0 || in.CoverageRemainingKurus < 0 || (in.AnnualRemainingKurus != nil && *in.AnnualRemainingKurus < 0) {
 		return r, fmt.Errorf("tutarlar negatif olamaz")
 	}
+	if in.EventLimitKurus != nil && *in.EventLimitKurus <= 0 {
+		return r, fmt.Errorf("olay limiti pozitif olmalı veya belirtilmemeli")
+	}
 	switch in.DeductibleType {
 	case pricing.DeductibleNone:
 		if in.DeductibleValue != 0 {
@@ -53,7 +57,14 @@ func Calculate(in Input) (Result, error) {
 		return r, fmt.Errorf("geçersiz muafiyet tipi")
 	}
 	net := in.GrossDamageKurus - r.DeductibleKurus
-	capped := min(net, in.CoverageRemainingKurus)
+	eventNet := net
+	event := Step{Code: "EVENT_LIMIT", InputKurus: net, OutputKurus: net, Description: "Olay başı limit yok; adım atlandı", Skipped: true}
+	if in.EventLimitKurus != nil {
+		eventNet = min(net, *in.EventLimitKurus)
+		event = Step{Code: "EVENT_LIMIT", InputKurus: net, OutputKurus: eventNet, ClippedKurus: net - eventNet,
+			Description: fmt.Sprintf("Olay başı limit %d; %d kuruş kırpıldı", *in.EventLimitKurus, net-eventNet)}
+	}
+	capped := min(eventNet, in.CoverageRemainingKurus)
 	r.PayableKurus = capped
 	annual := Step{Code: "ANNUAL_LIMIT", InputKurus: capped, OutputKurus: capped, Description: "Yıllık toplam limit yok; adım atlandı", Skipped: true}
 	if in.AnnualRemainingKurus != nil {
@@ -64,7 +75,8 @@ func Calculate(in Input) (Result, error) {
 		{Code: "GROSS_DAMAGE", InputKurus: in.GrossDamageKurus, OutputKurus: in.GrossDamageKurus, Description: "Son ekspertizin brüt hasarı"},
 		{Code: "DEDUCTIBLE", InputKurus: in.GrossDamageKurus, OutputKurus: r.DeductibleKurus, Description: fmt.Sprintf("%s muafiyet (%d): %d kuruş; yarımı yukarı", in.DeductibleType, in.DeductibleValue, r.DeductibleKurus)},
 		{Code: "AFTER_DEDUCTIBLE", InputKurus: in.GrossDamageKurus, OutputKurus: net, ClippedKurus: r.DeductibleKurus, Description: "Brüt hasardan muafiyet çıkarıldı"},
-		{Code: "COVERAGE_LIMIT", InputKurus: net, OutputKurus: capped, ClippedKurus: net - capped, Description: fmt.Sprintf("Teminat kalan %d; %d kuruş kırpıldı", in.CoverageRemainingKurus, net-capped)},
+		event,
+		{Code: "COVERAGE_LIMIT", InputKurus: eventNet, OutputKurus: capped, ClippedKurus: eventNet - capped, Description: fmt.Sprintf("Teminat kalan %d; %d kuruş kırpıldı", in.CoverageRemainingKurus, eventNet-capped)},
 		annual,
 		{Code: "PAYABLE", InputKurus: r.PayableKurus, OutputKurus: r.PayableKurus, Description: "Ödenecek tazminat"},
 	}

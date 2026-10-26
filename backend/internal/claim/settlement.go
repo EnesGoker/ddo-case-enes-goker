@@ -27,7 +27,11 @@ type balance struct {
 // Claim kilidinden sonra bakiyeler her zaman id artan sırada kilitlenir.
 func calculate(ctx context.Context, q db.DBTX, c Claim, lock bool) (settlement.Result, []balance, error) {
 	var in settlement.Input
-	err := q.QueryRow(ctx, `SELECT a.damage_amount_kurus,pc.deductible_type,pc.deductible_value FROM appraisals a JOIN policy_version_coverages pc ON pc.policy_version_id=$2 AND pc.coverage_code=$3 WHERE a.claim_id=$1 ORDER BY a.id DESC LIMIT 1`, c.ID, c.PolicyVersionID, c.CoverageCode).Scan(&in.GrossDamageKurus, &in.DeductibleType, &in.DeductibleValue)
+	err := q.QueryRow(ctx, `
+  SELECT a.damage_amount_kurus,pc.deductible_type,pc.deductible_value,pc.event_limit_kurus
+    FROM appraisals a JOIN policy_version_coverages pc ON pc.policy_version_id=$2 AND pc.coverage_code=$3
+   WHERE a.claim_id=$1 ORDER BY a.id DESC LIMIT 1`, c.ID, c.PolicyVersionID, c.CoverageCode).
+		Scan(&in.GrossDamageKurus, &in.DeductibleType, &in.DeductibleValue, &in.EventLimitKurus)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return settlement.Result{}, nil, httpx.NewError(422, "APPRAISAL_REQUIRED", "tazminat için ekspertiz gerekli")
 	}

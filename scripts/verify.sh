@@ -338,8 +338,8 @@ if claim_policy KASKO; then
     pass "F-5 ekspertiz" "gerçek ekspertiz kaydı: 2000000 kuruş"
   else fail "F-5 ekspertiz" "ekspertiz detayda bulunamadı"; fi
   req POST "$API_URL/api/v1/claims/$CID/settlement/preview" -H "Authorization: Bearer $ADJ"
-  if [ "$STATUS" = 200 ] && [ "$(num_field payable_kurus)" = 1950000 ] && body_has '"code":"DEDUCTIBLE"' && body_has '"code":"ANNUAL_LIMIT"'; then
-    pass "T-3 hesap-adimlari" "2000000 − 50000 sabit muafiyet = 1950000 kuruş, altı hesap adımı"
+  if [ "$STATUS" = 200 ] && [ "$(num_field payable_kurus)" = 1000000 ] && body_has '"code":"DEDUCTIBLE"' && body_has '"code":"ANNUAL_LIMIT"'; then
+    pass "T-3 hesap-adimlari" "2000000 − 50000 muafiyet → 1000000 olay limiti; yedi hesap adımı"
   else fail "T-3 hesap-adimlari" "durum=$STATUS ödeme=$(num_field payable_kurus)"; fi
   req POST "$API_URL/api/v1/claims/$CID/settlement/approve" -H "Authorization: Bearer $ADJ" -H "Idempotency-Key: $A4KEY-approve-$CID"
   SID="$(first_num id)"; approval_status="$STATUS"
@@ -347,9 +347,14 @@ if claim_policy KASKO; then
   if [ "$approval_status" = 201 ] && [ "$STATUS" = 201 ] && [ "$SID" = "$(first_num id)" ] && grep -qi '^idempotent-replayed: true' "$TMP/a4-idem"; then
     pass "F-6 idempotent-onay" "tek tazminat #$SID; aynı anahtarda aynı kayıt"
   else fail "F-6 idempotent-onay" "durum=$approval_status/$STATUS"; fi
+  event_step="$(tr -d '[:space:]' < "$TMP/body" | grep -o '{[^{}]*"code":"EVENT_LIMIT"[^{}]*}' | head -n 1)"
+  if [ "$approval_status" = 201 ] && [ "$STATUS" = 201 ] && [ "$(num_field payable_kurus)" = 1000000 ] && \
+     printf '%s' "$event_step" | grep -q '"clipped_kurus":950000'; then
+    pass "T-3 olay-limiti" "CAM onayı: 1950000 net → 1000000 olay limiti; 950000 kuruş kırpıldı"
+  else fail "T-3 olay-limiti" "durum=$STATUS ödeme=$(num_field payable_kurus)"; fi
   req POST "$API_URL/api/v1/claims/$CID/pay" -H "Authorization: Bearer $ACCOUNTING" -H "Idempotency-Key: $A4KEY-pay-$CID"
-  if [ "$STATUS" = 200 ] && [ "$(field status)" = PAID ] && [ "$(num_field payable_kurus)" = 1950000 ] && [ -n "$(num_field payment_journal_entry_id)" ]; then
-    pass "F-6 odeme" "1950000 kuruş ödendi; yevmiye #$(num_field payment_journal_entry_id)"
+  if [ "$STATUS" = 200 ] && [ "$(field status)" = PAID ] && [ "$(num_field payable_kurus)" = 1000000 ] && [ -n "$(num_field payment_journal_entry_id)" ]; then
+    pass "F-6 odeme" "1000000 kuruş ödendi; yevmiye #$(num_field payment_journal_entry_id)"
   else fail "F-6 odeme" "durum=$STATUS"; fi
 else fail "F-4 hazirlik" "bugün başlayan poliçe oluşturulamadı"; fi
 

@@ -32,6 +32,7 @@ type CoverageSpec struct {
 	LimitKurus      int64          `json:"limit_kurus"`
 	DeductibleType  DeductibleType `json:"deductible_type"`
 	DeductibleValue int64          `json:"deductible_value"`
+	EventLimitKurus *int64         `json:"event_limit_kurus"`
 }
 
 type ProductSpec struct {
@@ -39,27 +40,29 @@ type ProductSpec struct {
 	AnnualLimitKurus int64          `json:"annual_limit_kurus"` // yıllık toplam limit
 }
 
+var camEventLimitKurus int64 = 1_000_000 // Kurgusal: CAM olay başına 10.000 TL.
+
 var Catalog = map[Product]ProductSpec{
 	Kasko: {
 		AnnualLimitKurus: 180_000_000,
 		Coverages: []CoverageSpec{
-			{"KASKO_ANA", "Kasko ana teminat", true, 150_000_000, DeductiblePercentBP, 200},
-			{"CAM", "Cam kırılması", false, 2_500_000, DeductibleFixed, 50_000},
-			{"IMM", "İhtiyari mali mesuliyet", false, 50_000_000, DeductibleNone, 0},
+			{"KASKO_ANA", "Kasko ana teminat", true, 150_000_000, DeductiblePercentBP, 200, nil},
+			{"CAM", "Cam kırılması", false, 2_500_000, DeductibleFixed, 50_000, &camEventLimitKurus},
+			{"IMM", "İhtiyari mali mesuliyet", false, 50_000_000, DeductibleNone, 0, nil},
 		},
 	},
 	Trafik: {
 		AnnualLimitKurus: 300_000_000,
 		Coverages: []CoverageSpec{
-			{"TRAFIK_MADDI", "Maddi hasar (araç başına)", true, 30_000_000, DeductibleNone, 0},
-			{"TRAFIK_BEDENI", "Sakatlanma ve ölüm (kişi başına)", true, 270_000_000, DeductibleNone, 0},
+			{"TRAFIK_MADDI", "Maddi hasar (araç başına)", true, 30_000_000, DeductibleNone, 0, nil},
+			{"TRAFIK_BEDENI", "Sakatlanma ve ölüm (kişi başına)", true, 270_000_000, DeductibleNone, 0, nil},
 		},
 	},
 	Konut: {
 		AnnualLimitKurus: 210_000_000,
 		Coverages: []CoverageSpec{
-			{"YANGIN", "Yangın ve bina", true, 200_000_000, DeductibleFixed, 100_000},
-			{"HIRSIZLIK", "Hırsızlık", false, 10_000_000, DeductiblePercentBP, 1000},
+			{"YANGIN", "Yangın ve bina", true, 200_000_000, DeductibleFixed, 100_000, nil},
+			{"HIRSIZLIK", "Hırsızlık", false, 10_000_000, DeductiblePercentBP, 1000, nil},
 		},
 	},
 }

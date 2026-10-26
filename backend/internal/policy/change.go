@@ -461,9 +461,9 @@ func (s *ChangeService) VehicleChange(ctx context.Context, id int64, req Vehicle
 		for _, c := range pl.cov {
 			if _, err := tx.Exec(ctx, `
 				INSERT INTO policy_version_coverages (policy_version_id, coverage_code, limit_kurus,
-				                                      deductible_type, deductible_value, annual_premium_kurus)
-				VALUES ($1, $2, $3, $4, $5, $6)`,
-				newID, c.Code, c.LimitKurus, string(c.DeductibleType), c.DeductibleValue, c.PremiumKurus); err != nil {
+				                                      deductible_type, deductible_value, annual_premium_kurus,event_limit_kurus)
+				VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+				newID, c.Code, c.LimitKurus, string(c.DeductibleType), c.DeductibleValue, c.PremiumKurus, c.EventLimitKurus); err != nil {
 				return err
 			}
 		}

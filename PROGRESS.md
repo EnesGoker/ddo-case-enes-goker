@@ -795,3 +795,11 @@ Ayrıca seed42/8–16worker parmak izi aynı a8b39fb68e977f0235c227fea489726666e
 ### T-3 ek onayı ve süre kutusu
 
 Kullanıcı nullable olay limitini, katalogda en az bir kurgusal değer ve gerçek T-3 olay-limiti verify satırıyla onayladı. Süre kutusu90dk. Başlangıç26Ekim09:13TRT civarı; kesin UTC başlangıcı aşağıdaki çalışma kaydında tutulacak. Yeni sıra: kapı kaydedildi → T-3 →0.B5–11/CI/betikler → tek100k → ölçümler.100k sırasında yalnız dosya düzenlenecek. Geçmiş kayıtlar NULL; eski settlement/defter değiştirilmez.
+
+### T-3 tamamlanma (süre kutusu içinde)
+
+UTCbaşlangıç06:13:16; tam DB sonucunun alındığı06:24:19 (yaklaşık11dk).00012 nullable/pozitif event_limit_kurus ekler; eski sürümlerNULL, non-NULL sözleşme varsa Down reddedilir. Katalog CAM olay başına1.000.000kuruş (10.000TL), dönem limiti2.500.000kuruş. Teklif seçimi/Issue/zeyil/sürüm okuması aynı snapshot değerini taşır. Hesap muafiyet→olay→teminat→yıllık; NULL olayı skipped; yeni calc_steps7adım. Eski settlement/audit/defter UPDATE edilmez. Son üretici kimliği4; tek100k henüz başlatılmadı.
+
+Saf altın örnekler/MaxInt64/NULL/eşitlik/negatif-sıfır sınırları PASS (`make test`, /tmp/gp-a8-t3-unit.log). Gerçek API TestEventLimitSnapshotAndPerClaimApproval: iki ayrı CAM onayı her biri1.000.000kuruş; toplam tüketim2.000.000; zeyilde iki sürümde aynı olay limiti; NULL eski sözleşme katalogdan limit devralmaz. TestEventLimitMigrationUpDownUpAndDataGuard PASS. İlk hedefli koşuda genel migration testinin metadata tekrar hazırlığı12kolonunu düşürmeden sürüm kaydını siliyordu; duplicate-column FAIL oldu (/tmp/gp-a8-t3-integration.log). Fixture önce12/11'i Down edip yalnız10'un kayıtlarını silecek şekilde düzeltildi; üretim migrasyonu gevşetilmedi.
+
+`make test-integration`: PASS/exit0, app70,830sn (/tmp/gp-a8-t3-full-integration.log). Simülatör testleri bu pakette çalışmadı. `make lint build`: PASS (/tmp/gp-a8-t3-lint-build.log); YAML ve bash syntax PASS. `T-3 olay-limiti` verify satırı gerçek CAM onayındaki950000kuruş kırpılmayı kontrol eder; tam verify kullanıcı sırasıyla yeni100k sonrasına bekler, henüz bu satıra PASS yazılmadı. ADR-10 güncellendi; UI olay limitini teminat tablosunda ve hesap adımında gösterir.

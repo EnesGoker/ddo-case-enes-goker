@@ -28,8 +28,8 @@ func TestV0StartMigrationPreservesReferencesAndRejectsEarlierBusiness(t *testing
 	sqlDB, err := sql.Open("pgx", u)
 	require.NoError(t, err)
 	defer sqlDB.Close()
-	require.NoError(t, goose.DownToContext(ctx, sqlDB, migrationsDir, 10))
 	require.NoError(t, seed.Demo(ctx, p, demoPassword))
+	require.NoError(t, goose.DownToContext(ctx, sqlDB, migrationsDir, 10))
 	var tariffID int64
 	require.NoError(t, p.QueryRow(ctx, `SELECT id FROM tariff_versions WHERE product='KASKO' AND version_no=0`).Scan(&tariffID))
 	// Yalnız bu geçici DB'de, migration FK korumasını sınayan en küçük kayıt.
