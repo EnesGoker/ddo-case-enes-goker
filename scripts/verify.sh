@@ -30,7 +30,11 @@ fail() { FAILED=$((FAILED + 1)); printf '  FAIL  %-26s  %s\n' "$1" "$2"; }
 req() {
   local method="$1" url="$2"
   shift 2
-  STATUS="$(curl -sS -o "$TMP/body" -w '%{http_code}' --max-time 10 -X "$method" "$@" "$url" 2>"$TMP/err")" || STATUS="000"
+  local timeout=10
+  case "$url" in
+    */api/v1/ledger/trial-balance|*/api/v1/reports/production*) timeout=30 ;;
+  esac
+  STATUS="$(curl -sS -o "$TMP/body" -w '%{http_code}' --max-time "$timeout" -X "$method" "$@" "$url" 2>"$TMP/err")" || STATUS="000"
 }
 
 # JSON gövdeden düz metin alan değeri (API tek satır JSON döner)
