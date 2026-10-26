@@ -52,7 +52,7 @@ export function setup() {
   }
   const to = new Date(); to.setUTCDate(to.getUTCDate() + 1);
   const from = new Date(to); from.setUTCDate(from.getUTCDate() - 30);
-  return { agent, account, adjuster, customer: customer.id, run, policies,
+  return { agent, account, adjuster, uw, customer: customer.id, run, policies,
     from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
 }
 let cursor = '';
@@ -68,7 +68,7 @@ export default function (data) {
   const choice = Math.random() * 100;
   const policy = data.policies[__VU - 1];
   if (choice < 30) {
-    const r = measured('policies', 'GET', `/api/v1/policies?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, data.agent);
+    const r = measured('policies', 'GET', `/api/v1/policies?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, data.uw);
     cursor = json(r).next_cursor || '';
   } else if (choice < 50) measured('quote', 'POST', '/api/v1/quotes/preview', data.agent, JSON.stringify(body(data.customer, '34LDP1234')));
   else if (choice < 70) measured('billing', 'GET', `/api/v1/policies/${policy}/billing`, data.account);

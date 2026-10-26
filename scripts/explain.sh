@@ -25,7 +25,7 @@ if not re.fullmatch(r'\d{4}-\d{2}-\d{2}',anchor): anchor=sql("SELECT max(loss_da
 to=datetime.date.fromisoformat(anchor)+datetime.timedelta(days=1);start=to-datetime.timedelta(days=30)
 reportquery=reportquery.replace('$1',f"'{start}'::date").replace('$2',f"'{to}'::date").replace('$3',"'product'::text")
 workshop,cid,loss=sql("SELECT c.workshop_id,c.id,c.loss_date FROM claims c JOIN policies p ON p.id=c.policy_id WHERE p.policy_no LIKE 'SIM-%' AND c.workshop_id IS NOT NULL ORDER BY c.loss_date DESC,c.id DESC LIMIT 1;").strip().split('|')
-fromdate=datetime.date.fromisoformat(loss)-datetime.timedelta(days=29)
+fromdate=datetime.date.fromisoformat(loss)-datetime.timedelta(days=30)
 workquery=f"SELECT claim_no FROM claims WHERE workshop_id={int(workshop)} AND id<>{int(cid)} AND loss_date BETWEEN '{fromdate}'::date AND '{loss}'::date ORDER BY loss_date,id"
 queries=[('refund','payments_refund_of_payment_idx',query),('report','journal_entries_date_idx',reportquery),('workshop','claims_workshop_loss_idx',workquery)]
 rows=[]

@@ -645,7 +645,8 @@ if [ "$parallel_ok" = yes ]; then
   sort -n "$TMP/actual-assignees" > "$TMP/actual-assignees-sorted"
   [ "$parallel_ok" = yes ] && cmp -s "$TMP/expected-assignees" "$TMP/actual-assignees-sorted" && pass "T-5 paralel-atama" "farklı poliçelerde iki paralel curl; beklenen uzman kümesi aynı" || fail "T-5 paralel-atama" "atama kümesi uyuşmadı"
 else fail "T-5 paralel-atama" "hazırlık yok"; fi
-req GET "$API_URL/api/v1/claim-tasks?claim_id=${seed_claim1:-0}&breached=true" -H "Authorization: Bearer $ADJ"
+# Demo görevi arayüzde geç tamamlanmış olabilir; DONE ihlali de tarihsel SLA kanıtıdır.
+req GET "$API_URL/api/v1/claim-tasks?claim_id=${seed_claim1:-0}&status=all&breached=true" -H "Authorization: Bearer $ADJ"
 sla_ok=no
 [ "$STATUS" = 200 ] && body_has '"breached":true' && body_has '"task_type":"APPRAISAL"' && sla_ok=yes
 req GET "$API_URL/metrics"
