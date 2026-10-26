@@ -57,11 +57,12 @@ type Document struct {
 }
 
 // FormatTL uses integer arithmetic, including for math.MinInt64.
+// The sign is ASCII "-": U+2212 is not drawn by the embedded font.
 func FormatTL(kurus int64) string {
 	sign := ""
 	n := uint64(kurus)
 	if kurus < 0 {
-		sign = "−"
+		sign = "-"
 		n = uint64(-(kurus + 1)) + 1
 	}
 	s := strconv.FormatUint(n/100, 10)
@@ -77,9 +78,13 @@ func basisPoints(bp int64) string {
 
 // Render creates one document per call; mutable GoPDF state is never shared between requests.
 func Render(d Document) ([]byte, error) {
+	fontData, err := pdfFont()
+	if err != nil {
+		return nil, err
+	}
 	p := &gopdf.GoPdf{}
 	p.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
-	if err := p.AddTTFFontByReader("NotoSans", bytes.NewReader(font)); err != nil {
+	if err := p.AddTTFFontByReader("NotoSans", bytes.NewReader(fontData)); err != nil {
 		return nil, err
 	}
 	p.SetInfo(gopdf.PdfInfo{Title: "Poliçe özeti " + d.PolicyNo, Author: "GüvenPoliçe", Creator: "GüvenPoliçe", Subject: FontLicense, CreationDate: d.GeneratedAt})
