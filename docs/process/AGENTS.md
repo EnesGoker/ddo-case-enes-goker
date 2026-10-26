@@ -1,5 +1,7 @@
 # GüvenPoliçe — Ajan Çalışma Sözleşmesi (docs/process/AGENTS.md)
 
+Projedeki ajan çalışmasının yetki, güvenlik, doğrulama ve raporlama sözleşmesidir.
+
 ## 0. Yetki ve öncelik
 
 Bu dosya projede çalışan **tek kod ajanı** için çalışma kurallarıdır. Çelişki varsa şu önceliği izle:

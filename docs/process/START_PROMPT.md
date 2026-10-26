@@ -1,5 +1,7 @@
 # Tek ajanı başlatma prompt'u
 
+Geliştirmenin başlangıcında kullanılan tarihsel görev metnidir; açık görev tanımı değildir.
+
 Önce proje klasörünün hazır olduğundan emin ol:
 
 - `docs/process/` altında: `docs/process/REQUIREMENTS.md`, `docs/process/ROADMAP.md`, `docs/process/AGENTS.md`, `docs/process/CURRENT_TASK.md`

@@ -66,59 +66,59 @@ Tam yollar, fb25280 sonrası bu görevin dosyaları:
 
 | Tam yol | Amaç |
 |---|---|
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](<../../DECISIONS.md>) | ADR-27 metrik/dönem/yetki/sorgu kararı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md](<../process/PROGRESS.md>) | Görev sonucu ve yerel commit/kısıt kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/README.md](<../../README.md>) | Bonus, uç listesi, izlenebilirlik ve gerçek ölçümler. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md](<../../TESTING.md>) | Performans, tutarlılık, son testler, UI ve koruma sonuçları. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/agent_performance_integration_test.go](<../../backend/internal/app/agent_performance_integration_test.go>) | Gerçek DB/HTTP rol matrisi, kapsam, doğrudan/boş, nakit iade ve tarih sınırı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/report_integration_test.go](<../../backend/internal/app/report_integration_test.go>) | Zeyil/iptal/onay fixture’ında pano–ADR-18 eşitliği. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/router.go](<../../backend/internal/app/router.go>) | Yeni GET ucunu izinli üç role bağla. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/report/agents.go](<../../backend/internal/report/agents.go>) | Bağımsız toplama sorgusu, tarih varsayılanı, rol/profil kapsamı ve güvenli toplam. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/report/agents_test.go](<../../backend/internal/report/agents_test.go>) | Altın metrik, projeksiyon, taşma, dönem ve yetki unit testleri. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b1-after-all-time-1.txt](<../explain/b1-after-all-time-1.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b1-after-all-time-2.txt](<../explain/b1-after-all-time-2.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b1-after-all-time-3.txt](<../explain/b1-after-all-time-3.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b1-after-default-1.txt](<../explain/b1-after-default-1.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b1-after-default-2.txt](<../explain/b1-after-default-2.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b1-after-default-3.txt](<../explain/b1-after-default-3.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b1-after.json](<../explain/b1-after.json>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b1-after.sql](<../explain/b1-after.sql>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-acceptance-after.json](<b1-acceptance-after.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-acceptance-before.json](<b1-acceptance-before.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-comparison.json](<b1-comparison.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-consistency-all-time-raw.json](<b1-consistency-all-time-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-consistency-default-raw.json](<b1-consistency-default-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-consistency-narrow-raw.json](<b1-consistency-narrow-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-consistency.json](<b1-consistency.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-doc-check.log](<b1-doc-check.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-final-integration.log](<b1-final-integration.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-final-services.log](<b1-final-services.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-final-test-lint-build.log](<b1-final-test-lint-build.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-final-verify.log](<b1-final-verify.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-http-all-time-raw.json](<b1-http-all-time-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-http-consistency.json](<b1-http-consistency.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-http-default-raw.json](<b1-http-default-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-http-narrow-raw.json](<b1-http-narrow-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-integration.log](<b1-integration.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-preservation-after.json](<b1-preservation-after.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-preservation-before.json](<b1-preservation-before.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-report.md](<b1-report.md>) | Bu kapanış raporu ve tam dosya manifesti. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-services.log](<b1-services.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-test-lint-build.log](<b1-test-lint-build.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-ui-desktop.png](<b1-ui-desktop.png>) | Gerçek tarayıcıdan görsel kabul kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-ui-first-failure.json](<b1-ui-first-failure.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-ui-mobile.png](<b1-ui-mobile.png>) | Gerçek tarayıcıdan görsel kabul kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-ui.json](<b1-ui.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-validation.json](<b1-validation.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-verify.log](<b1-verify.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/api/types.ts](<../../frontend/src/api/types.ts>) | Rol bazlı total alanı opsiyonel pano tipi. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/AgentPerformancePage.tsx](<../../frontend/src/pages/AgentPerformancePage.tsx>) | Dönem, sıralama ve durumları içeren mevcut stilde pano. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/pages/Dashboard.tsx](<../../frontend/src/pages/Dashboard.tsx>) | Yetkili pano görünümünü bağla. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/roles.ts](<../../frontend/src/roles.ts>) | İzinli rollere menü öğesi. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/frontend/src/styles.css](<../../frontend/src/styles.css>) | Yatay taşmayı tablo kabında tutan responsive kapsam. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/openapi.yaml](<../../openapi.yaml>) | Yeni uç, dönem ve görünürlük sözleşmesi. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http](<../../requests.http>) | Yetkili/yasak/kimliksiz ve kapsam parametresi örnekleri. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/verify.sh](<../../scripts/verify.sh>) | Tek B1 rol/tutarlılık PASS/FAIL satırı. |
+| [DECISIONS.md](<../../DECISIONS.md>) | ADR-27 metrik/dönem/yetki/sorgu kararı. |
+| [docs/process/PROGRESS.md](<../process/PROGRESS.md>) | Görev sonucu ve yerel commit/kısıt kaydı. |
+| [README.md](<../../README.md>) | Bonus, uç listesi, izlenebilirlik ve gerçek ölçümler. |
+| [TESTING.md](<../../TESTING.md>) | Performans, tutarlılık, son testler, UI ve koruma sonuçları. |
+| [backend/internal/app/agent_performance_integration_test.go](<../../backend/internal/app/agent_performance_integration_test.go>) | Gerçek DB/HTTP rol matrisi, kapsam, doğrudan/boş, nakit iade ve tarih sınırı. |
+| [backend/internal/app/report_integration_test.go](<../../backend/internal/app/report_integration_test.go>) | Zeyil/iptal/onay fixture’ında pano–ADR-18 eşitliği. |
+| [backend/internal/app/router.go](<../../backend/internal/app/router.go>) | Yeni GET ucunu izinli üç role bağla. |
+| [backend/internal/report/agents.go](<../../backend/internal/report/agents.go>) | Bağımsız toplama sorgusu, tarih varsayılanı, rol/profil kapsamı ve güvenli toplam. |
+| [backend/internal/report/agents_test.go](<../../backend/internal/report/agents_test.go>) | Altın metrik, projeksiyon, taşma, dönem ve yetki unit testleri. |
+| [docs/explain/b1-after-all-time-1.txt](<../explain/b1-after-all-time-1.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
+| [docs/explain/b1-after-all-time-2.txt](<../explain/b1-after-all-time-2.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
+| [docs/explain/b1-after-all-time-3.txt](<../explain/b1-after-all-time-3.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
+| [docs/explain/b1-after-default-1.txt](<../explain/b1-after-default-1.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
+| [docs/explain/b1-after-default-2.txt](<../explain/b1-after-default-2.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
+| [docs/explain/b1-after-default-3.txt](<../explain/b1-after-default-3.txt>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
+| [docs/explain/b1-after.json](<../explain/b1-after.json>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
+| [docs/explain/b1-after.sql](<../explain/b1-after.sql>) | Kaynak başına toplama sorgusunun ham planı, sorgusu veya medyan kaydı. |
+| [docs/testing/b1-acceptance-after.json](<b1-acceptance-after.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-acceptance-before.json](<b1-acceptance-before.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-comparison.json](<b1-comparison.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-consistency-all-time-raw.json](<b1-consistency-all-time-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-consistency-default-raw.json](<b1-consistency-default-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-consistency-narrow-raw.json](<b1-consistency-narrow-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-consistency.json](<b1-consistency.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-doc-check.log](<b1-doc-check.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
+| [docs/testing/b1-final-integration.log](<b1-final-integration.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
+| [docs/testing/b1-final-services.log](<b1-final-services.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
+| [docs/testing/b1-final-test-lint-build.log](<b1-final-test-lint-build.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
+| [docs/testing/b1-final-verify.log](<b1-final-verify.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
+| [docs/testing/b1-http-all-time-raw.json](<b1-http-all-time-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-http-consistency.json](<b1-http-consistency.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-http-default-raw.json](<b1-http-default-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-http-narrow-raw.json](<b1-http-narrow-raw.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-integration.log](<b1-integration.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
+| [docs/testing/b1-preservation-after.json](<b1-preservation-after.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-preservation-before.json](<b1-preservation-before.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-report.md](<b1-report.md>) | Bu kapanış raporu ve tam dosya manifesti. |
+| [docs/testing/b1-services.log](<b1-services.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
+| [docs/testing/b1-test-lint-build.log](<b1-test-lint-build.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
+| [docs/testing/b1-ui-desktop.png](<b1-ui-desktop.png>) | Gerçek tarayıcıdan görsel kabul kanıtı. |
+| [docs/testing/b1-ui-first-failure.json](<b1-ui-first-failure.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-ui-mobile.png](<b1-ui-mobile.png>) | Gerçek tarayıcıdan görsel kabul kanıtı. |
+| [docs/testing/b1-ui.json](<b1-ui.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-validation.json](<b1-validation.json>) | Gerçek önce/sonra, süre, tutarlılık, UI veya koruma kanıtı. |
+| [docs/testing/b1-verify.log](<b1-verify.log>) | Gerçek komutun değiştirilmemiş çıktısı veya belge kontrol kaydı. |
+| [frontend/src/api/types.ts](<../../frontend/src/api/types.ts>) | Rol bazlı total alanı opsiyonel pano tipi. |
+| [frontend/src/pages/AgentPerformancePage.tsx](<../../frontend/src/pages/AgentPerformancePage.tsx>) | Dönem, sıralama ve durumları içeren mevcut stilde pano. |
+| [frontend/src/pages/Dashboard.tsx](<../../frontend/src/pages/Dashboard.tsx>) | Yetkili pano görünümünü bağla. |
+| [frontend/src/roles.ts](<../../frontend/src/roles.ts>) | İzinli rollere menü öğesi. |
+| [frontend/src/styles.css](<../../frontend/src/styles.css>) | Yatay taşmayı tablo kabında tutan responsive kapsam. |
+| [openapi.yaml](<../../openapi.yaml>) | Yeni uç, dönem ve görünürlük sözleşmesi. |
+| [requests.http](<../../requests.http>) | Yetkili/yasak/kimliksiz ve kapsam parametresi örnekleri. |
+| [scripts/verify.sh](<../../scripts/verify.sh>) | Tek B1 rol/tutarlılık PASS/FAIL satırı. |
 
 ## 7. Sonraki adım
 

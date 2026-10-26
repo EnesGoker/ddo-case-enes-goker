@@ -63,46 +63,46 @@ Kod/destek belgeleri commit'i:15 dosya,226 ekleme/31 silme. Kanıt/durum doküma
 
 | Tam yol | Amaç |
 |---|---|
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](<../../DECISIONS.md>) | Birim/entegrasyon ayrımı, standart adlandırma ve güncel ölçümler. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md](<../process/PROGRESS.md>) | Tarihsel durum düzeltmesi ve B1.1 kapanışı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/README.md](<../../README.md>) | K2 tarih açıklaması, doğru test kapsamı ve güncel kanıtlar. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/ROADMAP.md](<../process/ROADMAP.md>) | Açık kullanıcı izniyle bonusun B1/ADR-27 durumu. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md](<../../TESTING.md>) | Durum düzeltmesi, betik kullanımı, gerçek SHA/sonuç/performans. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/agent_performance_integration_test.go](<../../backend/internal/app/agent_performance_integration_test.go>) | Acentesiz/unassigned sözleşmesi ve kapsam testleri. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/report_integration_test.go](<../../backend/internal/app/report_integration_test.go>) | Dört dönemde acente satırı/toplam eşitliği ve ek sıfır satır testi. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/report/agents.go](<../../backend/internal/report/agents.go>) | Mevcut raporla aynı acentesiz adı/anahtarı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/report/agents_test.go](<../../backend/internal/report/agents_test.go>) | Birim testin gerçek kapsamı ve yeni standart anahtar. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b11-agent-all-time-1.txt](<../explain/b11-agent-all-time-1.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b11-agent-all-time-2.txt](<../explain/b11-agent-all-time-2.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b11-agent-all-time-3.txt](<../explain/b11-agent-all-time-3.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b11-agent-default-1.txt](<../explain/b11-agent-default-1.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b11-agent-default-2.txt](<../explain/b11-agent-default-2.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b11-agent-default-3.txt](<../explain/b11-agent-default-3.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b11-agent.json](<../explain/b11-agent.json>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/explain/b11-agent.sql](<../explain/b11-agent.sql>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a82-final-audit.md](<a82-final-audit.md>) | Tarihsel bonus ifadesini güncel B1 sonucuna bağla. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-http-all-time-raw.json](<b1-http-all-time-raw.json>) | Eklenen betikle bu kod commit’inde yenilenen HTTP satır/toplam kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-http-consistency.json](<b1-http-consistency.json>) | Eklenen betikle bu kod commit’inde yenilenen HTTP satır/toplam kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-http-default-raw.json](<b1-http-default-raw.json>) | Eklenen betikle bu kod commit’inde yenilenen HTTP satır/toplam kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-http-narrow-raw.json](<b1-http-narrow-raw.json>) | Eklenen betikle bu kod commit’inde yenilenen HTTP satır/toplam kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-report.md](<b1-report.md>) | Güncel adlandırma ve tarihsel HTTP kanıtının Git sürümü. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-acceptance-after.json](<b11-acceptance-after.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-acceptance-before.json](<b11-acceptance-before.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-c374d9b-http-proof.log](<b11-c374d9b-http-proof.log>) | Komut, gerçek tested_commit ve değiştirilmemiş çıktı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-c374d9b-integration.log](<b11-c374d9b-integration.log>) | Komut, gerçek tested_commit ve değiştirilmemiş çıktı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-c374d9b-services.log](<b11-c374d9b-services.log>) | Komut, gerçek tested_commit ve değiştirilmemiş çıktı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-c374d9b-test-lint-build.log](<b11-c374d9b-test-lint-build.log>) | Komut, gerçek tested_commit ve değiştirilmemiş çıktı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-c374d9b-verify.log](<b11-c374d9b-verify.log>) | Komut, gerçek tested_commit ve değiştirilmemiş çıktı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-comparison.json](<b11-comparison.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-preservation-after.json](<b11-preservation-after.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-preservation-before.json](<b11-preservation-before.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-report.md](<b11-report.md>) | Bu kapanış raporu ve tam manifest. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-status-grep.txt](<b11-status-grep.txt>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b11-validation.json](<b11-validation.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/openapi.yaml](<../../openapi.yaml>) | Acentesiz/unassigned sözleşmesi. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http](<../../requests.http>) | Güncel adlandırma ve kapsam örnekleri. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/check-agent-performance.py](<../../scripts/check-agent-performance.py>) | Tekrar üretilebilir, sırsız ve gerçek SHA kayıtlı HTTP kanıt betiği. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/verify.sh](<../../scripts/verify.sh>) | Standart acentesiz anahtarıyla parametre izolasyonu kontrolü. |
+| [DECISIONS.md](<../../DECISIONS.md>) | Birim/entegrasyon ayrımı, standart adlandırma ve güncel ölçümler. |
+| [docs/process/PROGRESS.md](<../process/PROGRESS.md>) | Tarihsel durum düzeltmesi ve B1.1 kapanışı. |
+| [README.md](<../../README.md>) | K2 tarih açıklaması, doğru test kapsamı ve güncel kanıtlar. |
+| [docs/process/ROADMAP.md](<../process/ROADMAP.md>) | Açık kullanıcı izniyle bonusun B1/ADR-27 durumu. |
+| [TESTING.md](<../../TESTING.md>) | Durum düzeltmesi, betik kullanımı, gerçek SHA/sonuç/performans. |
+| [backend/internal/app/agent_performance_integration_test.go](<../../backend/internal/app/agent_performance_integration_test.go>) | Acentesiz/unassigned sözleşmesi ve kapsam testleri. |
+| [backend/internal/app/report_integration_test.go](<../../backend/internal/app/report_integration_test.go>) | Dört dönemde acente satırı/toplam eşitliği ve ek sıfır satır testi. |
+| [backend/internal/report/agents.go](<../../backend/internal/report/agents.go>) | Mevcut raporla aynı acentesiz adı/anahtarı. |
+| [backend/internal/report/agents_test.go](<../../backend/internal/report/agents_test.go>) | Birim testin gerçek kapsamı ve yeni standart anahtar. |
+| [docs/explain/b11-agent-all-time-1.txt](<../explain/b11-agent-all-time-1.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
+| [docs/explain/b11-agent-all-time-2.txt](<../explain/b11-agent-all-time-2.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
+| [docs/explain/b11-agent-all-time-3.txt](<../explain/b11-agent-all-time-3.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
+| [docs/explain/b11-agent-default-1.txt](<../explain/b11-agent-default-1.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
+| [docs/explain/b11-agent-default-2.txt](<../explain/b11-agent-default-2.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
+| [docs/explain/b11-agent-default-3.txt](<../explain/b11-agent-default-3.txt>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
+| [docs/explain/b11-agent.json](<../explain/b11-agent.json>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
+| [docs/explain/b11-agent.sql](<../explain/b11-agent.sql>) | Gerçek kod SHA’sıyla AGENT SQL/EXPLAIN veya üç örnek medyan kaydı. |
+| [docs/testing/a82-final-audit.md](<a82-final-audit.md>) | Tarihsel bonus ifadesini güncel B1 sonucuna bağla. |
+| [docs/testing/b1-http-all-time-raw.json](<b1-http-all-time-raw.json>) | Eklenen betikle bu kod commit’inde yenilenen HTTP satır/toplam kanıtı. |
+| [docs/testing/b1-http-consistency.json](<b1-http-consistency.json>) | Eklenen betikle bu kod commit’inde yenilenen HTTP satır/toplam kanıtı. |
+| [docs/testing/b1-http-default-raw.json](<b1-http-default-raw.json>) | Eklenen betikle bu kod commit’inde yenilenen HTTP satır/toplam kanıtı. |
+| [docs/testing/b1-http-narrow-raw.json](<b1-http-narrow-raw.json>) | Eklenen betikle bu kod commit’inde yenilenen HTTP satır/toplam kanıtı. |
+| [docs/testing/b1-report.md](<b1-report.md>) | Güncel adlandırma ve tarihsel HTTP kanıtının Git sürümü. |
+| [docs/testing/b11-acceptance-after.json](<b11-acceptance-after.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
+| [docs/testing/b11-acceptance-before.json](<b11-acceptance-before.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
+| [docs/testing/b11-c374d9b-http-proof.log](<b11-c374d9b-http-proof.log>) | Komut, gerçek tested_commit ve değiştirilmemiş çıktı. |
+| [docs/testing/b11-c374d9b-integration.log](<b11-c374d9b-integration.log>) | Komut, gerçek tested_commit ve değiştirilmemiş çıktı. |
+| [docs/testing/b11-c374d9b-services.log](<b11-c374d9b-services.log>) | Komut, gerçek tested_commit ve değiştirilmemiş çıktı. |
+| [docs/testing/b11-c374d9b-test-lint-build.log](<b11-c374d9b-test-lint-build.log>) | Komut, gerçek tested_commit ve değiştirilmemiş çıktı. |
+| [docs/testing/b11-c374d9b-verify.log](<b11-c374d9b-verify.log>) | Komut, gerçek tested_commit ve değiştirilmemiş çıktı. |
+| [docs/testing/b11-comparison.json](<b11-comparison.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
+| [docs/testing/b11-preservation-after.json](<b11-preservation-after.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
+| [docs/testing/b11-preservation-before.json](<b11-preservation-before.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
+| [docs/testing/b11-report.md](<b11-report.md>) | Bu kapanış raporu ve tam manifest. |
+| [docs/testing/b11-status-grep.txt](<b11-status-grep.txt>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
+| [docs/testing/b11-validation.json](<b11-validation.json>) | Grep, süre, SHA veya salt okunur önce/sonra koruma kanıtı. |
+| [openapi.yaml](<../../openapi.yaml>) | Acentesiz/unassigned sözleşmesi. |
+| [requests.http](<../../requests.http>) | Güncel adlandırma ve kapsam örnekleri. |
+| [scripts/check-agent-performance.py](<../../scripts/check-agent-performance.py>) | Tekrar üretilebilir, sırsız ve gerçek SHA kayıtlı HTTP kanıt betiği. |
+| [scripts/verify.sh](<../../scripts/verify.sh>) | Standart acentesiz anahtarıyla parametre izolasyonu kontrolü. |
 
 ## 7. Sonraki adım
 

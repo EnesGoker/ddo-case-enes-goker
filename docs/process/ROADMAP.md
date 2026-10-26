@@ -1,148 +1,43 @@
-# GüvenPoliçe — Teslime Odaklı Roadmap
+# GüvenPoliçe — Son aşama durumu
 
-**Başlangıç:** 25 Ekim 2026 öğleden sonra. **Son teslim:** 26 Ekim 2026 23.59 (Türkiye saati).
+Başlangıç 25 Ekim 2026; teslim tarihi 26 Ekim 2026 23.59 (Türkiye saati). Bu belge uygulanan kapsamı gösterir; ayrıntılı tarih, commit ve kanıtlar [PROGRESS.md](PROGRESS.md) içindedir.
 
-> Yaklaşık **33 saatlik takvim penceresi**, 33 saat kesintisiz verimli kodlama demek değil. Aşağıdaki süreler **agresif zaman kutuları**dır, tamamlanma garantisi değildir. Şartnamenin tamamı normalde çok daha fazla emek ister. Çalışan, kanıtlanmış kısmi teslim; sahte tamamlanmış sistemden daha değerlidir.
+## Aşamalar
 
-## Çalışma yöntemi
-
-- Ajan **tek aşamada** çalışır; bir aşamanın alt görevleri küçük paketlere bölünür.
-- Başlamadan `docs/process/CURRENT_TASK.md` onaylı hale gelir; bitince test + rapor + manuel kontrol yapılır.
-- `docs/process/ROADMAP.md` checkbox'ları yalnızca gözlenen kanıtla tamamlandı yapılır.
-- Yeni özellik yerine önce en kritik hata ve başarısız doğrulama giderilir.
-- **İlk çalışan dikey akış:** giriş → acente teklifi → faktörlü prim hesabı → poliçe → rol uygun ekranda listeleme.
-
-## İş sırası ve zorunlu geçiş kapıları
-
-### A0 — Kodsuz mimari planı ve kararların kilitlenmesi (hedef 30–60 dakika)
-- [x] Tek repo için klasör ağacı, Go/React/Postgres/Compose seçimleri önerildi ve onaylandı.
-- [x] Basit modüler monolit mimarisi ve kritik tablo/ilişki taslağı sunuldu.
-- [x] İlk auth + teklif + poliçe API sözleşmesinin taslağı sunuldu.
-- [x] `DECISIONS.md` için en az 5 kararın konusu belirlendi.
-- [x] İlk kodlama görevinin dosya listesi ve testleri kullanıcı tarafından onaylandı.
-
-**Çıkış kapısı:** Kod değiştirilmeden ilk uygulama paketi kesinleşti. **İlk adımda bütün sistemi yazma.**
-
-### A1 — Docker, migration, demo seed, auth ve rol kontrolü (hedef 3 saat)
-- [x] `docker compose up --build` frontend:3000, API:8080, DB servislerini ayağa kaldırıyor.
-- [x] `/health` DB erişimini kontrol ediyor; servis healthcheck'leri var.
-- [x] Migration ve 6 rol demo seed otomatik çalışıyor.
-- [x] `Makefile` içinde `make verify` için gerçek API kontrollerine genişletilecek ilk doğrulama altyapısı kuruldu; PASS yalnızca gerçek kontrolle üretiliyor.
-- [x] `DECISIONS.md` ve `openapi.yaml` dosyaları oluşturulmaya başlandı.
-- [x] Parola hash, oturum/JWT, rol yetkisi sunucuda doğrulanıyor.
-- [x] Giriş ve rol bazlı iskelet ekranlar gerçek API'ye bağlanıyor.
-- [x] Başarılı/başarısız giriş ve 401/403 için otomatik test var.
-
-**Çıkış kapısı:** Temiz ortamda gerçek kullanıcıyla giriş ve RBAC kanıtlanabiliyor.
-
-### A2 — T-1 + F-1: Tarifeli prim motoru, teklif (hedef 4 saat)
-- [x] Zaman geçerlilikli tarife/faktör tabloları migration ile hazır.
-- [x] Prim hesaplama deterministik ve kalem dökümü veriyor.
-- [x] Teklif kaydediliyor, yeniden sorgulanıyor; poliçeye dönüştürme başlangıç akışı var.
-- [x] 29 Şubat / oran/yuvarlama/faktör testleri mevcut.
-- [x] Bir uçtan uca API doğrulama senaryosu mevcut.
-
-**Çıkış kapısı:** Aynı teklifin aynı tarife sürümüyle iki hesabı eşit, kalem toplamı nihai prime eşit.
-
-### A3 — T-2 + F-2: Poliçe sürümleri, zeyil ve iptal (hedef 3 saat)
-- [x] Başlangıç/bitiş tarihleri ve sürüm geçmişi korunuyor.
-- [x] Pro-rata iade, kısa dönem tarife örneği ve artık yıl sınır testi var.
-- [x] Belirli tarihte geçerli teminat ve poliçe sürümü sorgulanıyor.
-- [x] İptal sonrası durum ve kayıt geçmişi tutarlı; audit olayı oluşuyor.
-
-**Çıkış kapısı:** Örnek tarih aralığı için beklenen teminat/sürüm ve kuruş tutarları otomatik testle kanıtlanıyor.
-
-### A4 — T-3 + F-4/F-5/F-6: Hasar ve tazminat (hedef 4 saat)
-- [x] Hasar bildirimi, ekspertiz kaydı, tazminat hesabı ve ödeme kayıt akışı var.
-- [x] Hasar tarihindeki poliçe versiyonu kullanılıyor.
-- [x] Muafiyet, teminat başına ve yıllık toplam limit doğru uygulanıyor.
-- [x] Eşzamanlı onay limiti aşmıyor (`FOR UPDATE` veya eşdeğeri).
-- [x] Gerçek iki paralel transaction/istekle yarış durumu testi var.
-
-**Çıkış kapısı:** İki eşzamanlı hasarda harcanan limit yıllık tavanı geçmiyor; açıklamalı ödeme kalemleri görünüyor.
-
-### A5 — T-4 + F-3: Taksit, tahsilat, muhasebe (hedef 4 saat)
-- [x] Taksit planı ve kısmi ödemenin en eski taksite tahsisi çalışıyor.
-- [x] Gecikme faizi, iade, 30-gün iptal kuralı test ediliyor.
-- [x] `Idempotency-Key` tekrar isteği ikinci tahsilat yaratmıyor.
-- [x] Muhasebe borç/alacak kayıtları her işlemin sonunda dengede.
-- [x] Ödeme/API ve iade için uçtan uca kanıt var.
-
-**Çıkış kapısı:** Tekrarlı ödeme mali kayıt üretmiyor; defter bakiye testi başarılı.
-
-### A6 — T-5 + F-7: Fraud iş akışı ve raporlar (hedef 3 saat)
-- [x] 3 şüphe kuralı ve açıklanabilir fraud skoru tanımlı.
-- [x] Şüpheli dosya inceleme kuyruğuna düşüyor; geçişler doğrulanıyor.
-- [x] İş yükü en az uzmana atama ve SLA takibi deneniyor.
-- [x] Prim üretimi / hasar-prim oranı SQL/API üzerinden hesaplanıyor.
-
-**Çıkış kapısı:** Kasıtlı şüpheli seed senaryosu doğru skoru/kuyruğu tetikliyor; rapor toplamı veriyle uyuşuyor.
-
-### A7 — Gerçek veriyle 6 rolün tamamlanması ve simülatör (hedef 3 saat)
-
-A7 uygulaması ve altı rol375px kabulü tamamlandı. Önceki v1/v2 ölçümleri PROGRESS'te tarihsel kanıttır. A8'de48saat pencere/görev sahipliği/karar kapanışı ve olay limiti düzeltmeleriyle sonv4/100k bir kez üretildi:30dk26,410sn;7780hasar/495işaretli(%6,36),46açık inceleme/görev ve9ihlal(%19,57). Mali mutabakat true, sahiplik uyuşmazlığı0. Son100kverify62/0,98,65sn.
-- [x] Her rol için kendi işiyle ilişkili kullanılabilir ekranlar var.
-- [x] Tüm ekranlar gerçek API'den veri çekiyor; loading/empty/error/mobile durumları gözden geçirildi.
-- [x] Simülatör ayrı compose servisinde, aynı seed ile aynı sonuç; 100.000 poliçe + 5 yıl geçmiş sonv4 ile A8'de tekrar ölçüldü;30dk26sn.
-- [x] UI üzerinde veri akışı/canlılık gösteriliyor.
-- [x] Demo ve büyük simülasyon verisi ayrıldı; assigned_to ortak havuzu onaylı istisna.
-
-**Çıkış kapısı:** Uygun yetkiyle giren her demo rolü kendi uçtan uca işini deneyebiliyor. Simülatör hedefi tamamlanamadıysa açıkça işaretle.
-
-### A8 — Doğrulamayı tamamlama, CI, dokümantasyon, yayın
-
-**Ajanın onaylı teknik kapsamı TAMAMLANDI.** Sonuçlar README/TESTING/PROGRESS ve docs altındaki gerçek çıktılarda. Kullanıcının kişisel metni ve teslim adımları aşağıda açık bırakıldı.
-
-- [x] Gerçek API ile verify: F-1…F-7/T-1…T-5/health/auth/RBAC; son62PASS/0FAIL,98,65sn.
-- [x] reset-demo tekrar denenebilir; simulator önce durur; requests/OpenAPI güncel.
-- [x]173Testfonksiyonu; sekiz saf domain%92,1–100; CI kapsam kapısı≥%70.
-- [x] Actions5iş PASS:40287235419/ec8fef8; gerçek küçük-havuz hatası tüm servislerde düzeltildi.
-- [x] OpenAPI/Prometheus ve altı rol375px arayüz kabulü mevcut.
-- [x]20VU3dk k6:24088istek,%0hata; uç başına p50/p95/p99/RPS README'de.
-- [x] Kaos a/b/c PASS; DB0,475sn iyileşti, APIrestart0, tek ödeme/yevmiye/mutabakat.
-- [x] İki indeks ham EXPLAIN+3JSONmedyanı: refund178,767→0,171ms; rapor382,542→34,020ms. Atölye adayı da saklandı.
-- [x] DECISIONS25ADR, TESTING her madde/rol/komut ve başarısız ilk koşuları içerir.
-- [x] Aynı pushlanmışSHA ile tazeclone/boş özelbuilder/ayrıvolume:77,505sn; tazeverify62/0. PaylaşılanPGtabanimajcacheistisnası README'de; ana100k korunup sonverify geçti.
-- [x] README 1/4 kişisel cevapları Enes'in kendi metniyle A8.2'de tamamlandı; A8.3 iki ifadeyi netleştirdi.
-- [x] Public repo ve anlamlı çoklu commit geçmişi salt okunur doğrulandı; ajan push/publicayarı yapmadı.
-- [ ] Son belge commit'leri kullanıcı tarafından push edilecek; repoURL'si26Ekim23.59TRT'den önce ankete yüklenecek.
-
-**Bonus durumu:** acente performans panosu B1’de eklendi (ADR-27); ekspertiz notu mevcut.
-
-Poliçe PDF’i ve fotoğraf yükleme yok. Genel okunabilirlik turu YAPILMADI. Yeni roadmap aşamasına başlanmadı.
-
-**Kapanış:** teknik kapı PASS; kişisel README cevapları A8.2/A8.3'te tamamlandı. Anket teslimi ve son push/CI teyidi kullanıcıya ait.
-
-## Zaman daralınca karar kuralları
-
-1. **Önce A1–A2** ile çalışır bir dikey akış kur. Süre kısalırsa ana çekirdek görevleri küçült, ama matematiksel olarak doğru testli örnek sun.
-2. **A3–A6** içinde her çekirdeğin en az bir doğrulanabilir senaryosu önemli; yarım özelliği tamamlandı diye gösterme.
-3. **A7 tasarım cilası** ve bonuslar kesilebilir; gerçek veriyle çalışan, sade ekranlar öncelikli.
-4. A8 için **son 4–6 saatlik güvenlik payını koru**. CI, temiz kurulum, README, `make verify`, GitHub ve anket asla sona rastgele bırakılmamalı.
-5. Kalan zaman yetmezse `docs/process/REQUIREMENTS.md` içindeki zorunlulukları silme; `TESTING.md`/README'de `PASS / FAIL / YAPILMADI` ile raporla.
-
-## Kanıt takip matrisi (yalnızca gerçekten test edilirse işaretle)
-
-| Kimlik | Durum | Kanıt (test veya komut) |
+| Aşama | Durum | Sonuç ve kanıt |
 |---|---|---|
-| F-1 | PASS | `make verify` (F-1 teklif-kaydet-oku, police-cevir, cift-cevirme, uw-onay); `TestConvertCreatesPolicyAndIsIdempotent` |
-| F-2 | PASS | `make verify` (F-2 zeyil-kayit, surum-gecmisi, iptal-sonrasi); `TestVehicleChangeEndorsementAndCoverageOnDate`, `TestShortPeriodCancellationAfterEndorsement` |
-| F-3 | PASS | `make verify` (taksit/tahsilat/idem/aşırı ödeme/iade/gün sonu); 52 entegrasyon testi, `TESTING.md` A5 |
-| F-4 | PASS | `make verify` F-4 hasar-dosya; `TestClaimVersionSelectionAndCancellation`, `TestClaimTransitionsValidationAndRBAC` |
-| F-5 | PASS | `make verify` F-5 ekspertiz; `TestClaimLifecycleAndIdempotency` |
-| F-6 | PASS | `make verify` F-6 idempotent-onay/odeme; `TestClaimLifecycleAndIdempotency` |
-| F-7 | PASS | `TestProductionReportGoldenLedgerPeriodsAndGroups`, dönem/RBAC testi; `make verify` prim-delta, defter-mutabakati, boyut-toplami, oran |
-| T-1 | PASS | `TestGoldenKasko`, `TestGoldenKonut`, `TestBreakdownSumEqualsTotal`, `TestSelectTariffByStartDate`; `make verify` T-1 satırları |
-| T-2 | PASS | `TestGoldenVehicleChange`, `TestGoldenShortPeriodCancellation`, `TestCancellationOnLeapDay`; `make verify` T-2 satırları; eşzamanlılık `TestConcurrentEndorsements` |
-| T-3 | PASS | `TestGoldenSettlements`, `TestGoldenEventLimitsInOrder`, gerçek CAMsnapshot/onayı; `TestConcurrentClaimApprovals -count=10 -race`; A8 verify olay-limiti/hesap-adımları/paralel-limit |
-| T-4 | PASS | Kayıt bazında awk faiz hesabı, gerçek paralel ödeme, 1200 mutabakatı; 10 tekrar `-race` ve kilit mutasyonu; billing %92,1 |
-| T-5 | PASS | Fraud/workflow %100; kalıcı sinyaller, görev/SLA/RBAC, 20 transaction 7/7/6 ×10 `-race`, advisory mutasyonu FAIL ve geri yükleme; `make verify` yedi T-5 satırı |
+| A0 | TAMAMLANDI | Modüler monolit, teknoloji ve ilk görev planı onaylandı; [kararlar](../../DECISIONS.md). |
+| A1 | TAMAMLANDI | Compose, migration, demo seed, auth ve RBAC; [A1 testleri](../../TESTING.md#a1-sonuçları-25-ekim-2026). |
+| A2 | TAMAMLANDI | T-1/F-1: açıklanabilir prim ve teklif/poliçe akışı; [A2 testleri](../../TESTING.md#a2-sonuçları-25-ekim-2026). |
+| A3 | TAMAMLANDI | T-2/F-2: sürüm, zeyil ve iptal; [A3 testleri](../../TESTING.md#a3-sonuçları-25-ekim-2026). |
+| A4 | TAMAMLANDI | T-3/F-4–F-6: hasar, ekspertiz, limit ve ödeme; olay limiti A8'de tamamlandı; [A4 testleri](../../TESTING.md#a4-sonuçları-25-ekim-2026). |
+| A5 | TAMAMLANDI | T-4/F-3: taksit, tahsilat, iade ve defter; [A5 testleri](../../TESTING.md#a5-sonuçları-25-ekim-2026). |
+| A6 | TAMAMLANDI | T-5/F-7: fraud, görev, SLA ve yazılan prim raporu; [A6 testleri](../../TESTING.md#a6--düzeltmeler-t-5-ve-f-7). |
+| A7 | TAMAMLANDI | Altı rol ve servis katmanlı simülatör; ilk kısmi kabulün ardından son 100k kabulü A8'de tamamlandı; [simülatör](../../TESTING.md#a7-simülatör-kullanımı-ve-kurtarma). |
+| A8 | TAMAMLANDI | Son v4/100k, CI, yük, kaos, EXPLAIN ve temiz kurulum; [kabul](../testing/a8-100k-acceptance.json), [CI](../testing/a8-ci.json). İlk kırmızı CI kaydı korunur. |
+| A8.1 | TAMAMLANDI | Ekspertiz idempotansı, metrics yetkisi ve 100k koruması; [doğrulama](../testing/a81-validation.json). |
+| A8.2 | TAMAMLANDI | README kişisel cevapları, belge ve sır kontrolleri; [kayıt](../testing/a82-final-audit.md). |
+| A8.3 | TAMAMLANDI | README birinci cevaptaki iki ifade netleştirildi; commit `4d27405`. |
+| B1 / B1.1 | TAMAMLANDI | Acente performansı ve satır bazında rapor tutarlılığı; [B1.1 raporu](../testing/b11-report.md), ADR-27. İlk performans kapısı FAIL olarak korunur. |
+| UI-1 | TAMAMLANDI | Ortak arayüz, mobil menü ve erişilebilirlik düzeltmeleri; [kabul özeti](../testing/ui1/README.md). |
 
-## Teslim kontrolü
+## Bonuslar ve yapılmayanlar
 
-- [x] Aday adı, kurulum ve Enes'in kişisel 1/4 cevapları README'de tamamlandı (A8.2/A8.3).
-- [ ] Ajan çıktıları manuel olarak incelendi, kritik kararlar açıklanabiliyor.
-- [x] `.env`/derleme çıktıları ignore; Git remote ve branch doğrulandı.
-- [x] Çoklu anlamlı commit; ajan push/force-push yapmadı.
-- [x] README ve TESTING gerçek sonuç, cache sınırı, başarısız koşu ve yapılmayanları gösteriyor.
-- [ ] **Anket bağlantısı gönderildi ve teslim teyit edildi.**
+- **TAMAMLANDI:** Acente performans panosu (B1/B1.1, ADR-27) ve ekspertiz notu.
+- **YAPILMADI:** Poliçe PDF'i ve hasar fotoğrafı yükleme; süre ve öncelik çekirdek işlevlerin doğruluğuna ve teslim kanıtlarına ayrıldı.
+- **YAPILMADI:** Genel okunabilirlik turu; üretim hatalarının giderilmesi ve doğrulama önceliklendirildi.
+- Gerçek cihaz, ekran okuyucu ve %200 metin büyütme kontrolü yapılmadı; arayüz kanıtının kapsamı kabul özetinde belirtilir.
+
+## Teslim durumu
+
+Teknik sonuçlar [README](../../README.md), [TESTING](../../TESTING.md) ve yukarıdaki kanıtlarla sınırlıdır. README'deki beş kişisel cevap A8.2/A8.3'te tamamlandı. Repo teslimde public yapılır; anket bağlantısı aday tarafından gönderilir.
+
+## Teslim sonrası olası işler
+
+Aşağıdakiler onaylı görev değildir; [bilinen sınırlamalar](../../README.md#sınırlar-ve-yapılmayanlar) esas alınır.
+
+1. Atölye sinyalini kendi normal hacmine göre değerlendirme yaklaşımını incelemek.
+2. Geriye dönük iptalde önceden yazılmış faizin geri alınmasını tasarlamak.
+3. Ağır rapor sorgularının veri büyümesi altındaki davranışını ölçmek.
+4. Gerçek cihaz, ekran okuyucu ve %200 metin büyütme kabulünü tamamlamak.
+5. Poliçe PDF'i ve hasar fotoğrafı yüklemeyi ayrı kapsam ve onayla ele almak.

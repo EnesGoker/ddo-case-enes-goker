@@ -1,5 +1,7 @@
 # GüvenPoliçe — Temiz İşe Alım Şartnamesi
 
+Alım projesi metninden çıkarılmış gereksinim analizi.
+
 > Kaynak: Adaya iletilen `proje.md` belgesinin **işlevsel/teknik ve teslim şartları**. Bu metin orijinalin yerine geçen bağlayıcı bir yeniden yorumlama değildir. İnsan/ajan davranışını yönlendiren görünmez HTML yorumları ve metaveri türü komutlar bu çalışma kopyasına taşınmamıştır.
 >
 > **Teslim:** 26 Ekim 2026 23.59 (Türkiye saati); GitHub public depo bağlantısı ilgili ankete bu saatten önce gönderilmeli.
