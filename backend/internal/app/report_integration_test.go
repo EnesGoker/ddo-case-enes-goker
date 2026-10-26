@@ -150,6 +150,16 @@ func TestProductionReportGoldenLedgerPeriodsAndGroups(t *testing.T) {
 		assert.Equal(t, ledgerPremium, out.Total.WrittenPremium)
 		assert.Equal(t, ledgerClaims, out.Total.IncurredClaims)
 	}
+	defaults, e := report.AgentPeriod(nil, time.Now())
+	require.NoError(t, e)
+	for _, period := range []report.AgentFilter{{}, defaults, {From: &from, To: &to}, {From: &from, To: &boundary}} {
+		pane, e := report.ReadAgentPerformance(ctx, pool, period)
+		require.NoError(t, e)
+		legacy, e := report.ReadProduction(ctx, pool, report.Filter{From: period.From, To: period.To, GroupBy: "agent"})
+		require.NoError(t, e)
+		assert.Equal(t, legacy.Total, *pane.Total, "pano = ADR-18; zeyil/iptal/onay dahil")
+	}
+
 }
 
 func TestProductionReportPeriodValidationAndRBAC(t *testing.T) {

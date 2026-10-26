@@ -32,6 +32,7 @@ export const menu: MenuItem[] = [
   { key: 'tasks', label: 'Görevlerim', roles: ['APPRAISER'], ready: true },
   { key: 'fraud', label: 'Fraud kuyruğu', roles: ['CLAIMS_ADJUSTER'], ready: true },
   { key: 'reports', label: 'Raporlar', roles: ['ACCOUNTING', 'UNDERWRITER'], ready: true },
+  { key: 'agent-performance', label: 'Acente performansı', roles: ['AGENT', 'UNDERWRITER', 'ACCOUNTING'], ready: true },
   { key: 'system', label: 'Sistem', roles: ['CUSTOMER', 'AGENT', 'UNDERWRITER', 'APPRAISER', 'CLAIMS_ADJUSTER', 'ACCOUNTING'], ready: true },
 ]
 

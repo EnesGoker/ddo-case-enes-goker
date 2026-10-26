@@ -556,6 +556,47 @@ for group in month product agent; do
 done
 [ "$groups_ok" = yes ] && pass "F-7 boyut-toplami" "ay/ürün/acente satırları toplamla aynı" || fail "F-7 boyut-toplami" "boyut toplamı uyuşmadı"
 
+# --- B1: acente panosu rol kapsamı ve ADR-18 toplam tutarlılığı ---
+agent_panel_ok=yes
+agent_panel_period="from=$TODAY&to=$TOMORROW"
+req GET "$API_URL/api/v1/reports/agents?$agent_panel_period" -H "Authorization: Bearer $ACCOUNTING"
+[ "$STATUS" = 200 ] || agent_panel_ok=no
+cp "$TMP/body" "$TMP/agent-panel-accounting.json"
+req GET "$API_URL/api/v1/reports/production?$agent_panel_period&group_by=agent" -H "Authorization: Bearer $ACCOUNTING"
+[ "$STATUS" = 200 ] || agent_panel_ok=no
+cp "$TMP/body" "$TMP/agent-panel-production.json"
+req GET "$API_URL/api/v1/reports/agents?$agent_panel_period" -H "Authorization: Bearer $UW"
+[ "$STATUS" = 200 ] || agent_panel_ok=no
+cp "$TMP/body" "$TMP/agent-panel-underwriter.json"
+req GET "$API_URL/api/v1/reports/agents?$agent_panel_period&agent_id=direct&include_total=true" -H "Authorization: Bearer $AGENT"
+[ "$STATUS" = 200 ] || agent_panel_ok=no
+cp "$TMP/body" "$TMP/agent-panel-own.json"
+if ! python3 - "$TMP" <<'PY_B1'
+import json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+def read(name):
+    return json.loads((root / ('agent-panel-' + name + '.json')).read_text())
+a, p, u, own = map(read, ('accounting', 'production', 'underwriter', 'own'))
+assert a['total'] == p['total'] == u['total']
+assert 'total' not in own and len(own['items']) == 1
+row = own['items'][0]
+assert row['key'] != 'direct'
+assert row == next(item for item in a['items'] if item['key'] == row['key'])
+for field in ('policy_count', 'written_premium_kurus', 'incurred_claims_kurus'):
+    assert sum(item[field] for item in a['items']) == a['total'][field]
+PY_B1
+then agent_panel_ok=no; fi
+req GET "$API_URL/api/v1/reports/agents"
+[ "$STATUS" = 401 ] || agent_panel_ok=no
+for agent_panel_role in CUSTOMER APPRAISER CLAIMS_ADJUSTER; do
+  eval "agent_panel_token=\${TOKEN_$agent_panel_role:-}"
+  req GET "$API_URL/api/v1/reports/agents" -H "Authorization: Bearer $agent_panel_token"
+  [ "$STATUS" = 403 ] && [ "$(field code)" = FORBIDDEN ] || agent_panel_ok=no
+done
+if [ "$agent_panel_ok" = yes ]; then
+  pass "B1 acente-panosu" "rol kapsamı; parametreyle genişletme yok; pano toplamı = ADR-18"
+else fail "B1 acente-panosu" "rol kapsamı veya toplam tutarlılığı başarısız"; fi
+
 # --- T-5: gerçek fraud, atama, çıkmaz regresyonu ve SLA ---
 seed_fp1=""; seed_fp2=""; cursor=""
 while :; do

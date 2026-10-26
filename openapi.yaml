@@ -1105,6 +1105,41 @@ paths:
           description: INVALID_PERIOD — biçim hatası veya from ≥ to
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
 
+  /api/v1/reports/agents:
+    get:
+      summary: Acente performansı (AGENT, UNDERWRITER, ACCOUNTING)
+      description: |
+        ADR-18 ile aynı journal_entries.entry_date [from,to) dönemi ve yazılan prim tanımı.
+        İki tarih parametresi de verilmezse TRT bugün dahil son 12 takvim ayı;
+        from=&to= tüm zamanlar, tek boş/eksik sınır açıktır. Başlangıç dahil, bitiş hariç.
+        Tüm acenteler (hareketsizler sıfır), varsa acentesiz poliçeler Doğrudan satırı.
+        UNDERWRITER/ACCOUNTING bütün satırları ve toplamlardan hesaplanan total alanını görür.
+        AGENT yalnız kimliğinden çözülen kendi satırını görür; total alanı yoktur.
+        agent_id, group_by veya include_total gibi parametreler kapsamı genişletemez.
+        Para int64 kuruş; oran yazılan prime göredir, prim <=0 ise null.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: from, in: query, allowEmptyValue: true, schema: { type: string, format: date } }
+        - { name: to, in: query, allowEmptyValue: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Kapsamlanmış acente satırları; total yalnız mali rollerde
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [from, to, items]
+                properties:
+                  from: { type: string, format: date, nullable: true }
+                  to: { type: string, format: date, nullable: true }
+                  items: { type: array, items: { $ref: '#/components/schemas/ProductionRow' } }
+                  total: { $ref: '#/components/schemas/ProductionRow' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: INVALID_PERIOD — biçim hatası veya from >= to
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
 components:
   parameters:
     IdempotencyKey: { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 255 } }

@@ -344,6 +344,7 @@ export interface ProductionRow {
   loss_ratio_bp: number | null
 }
 export interface ProductionReport { group_by: string; items: ProductionRow[]; total: ProductionRow }
+export interface AgentPerformance { from: string | null; to: string | null; items: ProductionRow[]; total?: ProductionRow }
 
 export interface Activity {
   db_ok: boolean

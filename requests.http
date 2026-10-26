@@ -326,3 +326,33 @@ Authorization: Bearer {{accounting.response.body.access_token}}
 Content-Type: application/json
 
 {"limit":25,"after_policy_id":0}
+
+### B1 — varsayılan son 12 ay; yalnız acentenin kendi satırı, total yok
+GET {{api}}/api/v1/reports/agents
+Authorization: Bearer {{login.response.body.access_token}}
+
+### B1 — tüm zamanlar, bütün acenteler + Doğrudan + toplam
+GET {{api}}/api/v1/reports/agents?from=&to=
+Authorization: Bearer {{accounting.response.body.access_token}}
+
+### B1 — başlangıç dahil, bitiş hariç
+GET {{api}}/api/v1/reports/agents?from=2026-09-01&to=2026-10-01
+Authorization: Bearer {{uw.response.body.access_token}}
+
+### B1 — kimliksiz 401
+GET {{api}}/api/v1/reports/agents
+
+### B1 — müşteri girişi
+# @name b1customer
+POST {{api}}/api/v1/auth/login
+Content-Type: application/json
+
+{"email":"musteri@guvenpolice.test","password":"{{password}}"}
+
+### B1 — müşteri 403
+GET {{api}}/api/v1/reports/agents
+Authorization: Bearer {{b1customer.response.body.access_token}}
+
+### B1 — parametreyle kapsam genişlemez; yine yalnız kendi acentesi, total yok
+GET {{api}}/api/v1/reports/agents?from=&to=&agent_id=direct&include_total=true
+Authorization: Bearer {{login.response.body.access_token}}

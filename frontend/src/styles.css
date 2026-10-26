@@ -184,3 +184,15 @@ details.endorsement summary { cursor: pointer; font-weight: 600; }
 .minute-bars span { flex: 1; min-width: 2px; background: #2768a6; }
 .fingerprint { overflow-wrap: anywhere; font-size: .8rem; }
 progress { width: 100%; }
+
+/* B1: ortak tablo stili; dar ekranda yatay kaydırma yalnız tablo kabında. */
+.agent-performance { min-width: 0; }
+.agent-table { max-width: 100%; }
+.agent-table table { min-width: 780px; }
+.agent-table th button { font-size: inherit; text-align: left; white-space: normal; }
+@media (max-width: 720px) {
+  .agent-table thead { display: table-header-group; }
+  .agent-table tr, .agent-table tfoot tr { display: table-row; padding: 0; }
+  .agent-table td, .agent-table tfoot td { display: table-cell; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .agent-table td::before, .agent-table tfoot td::before { content: none; }
+}

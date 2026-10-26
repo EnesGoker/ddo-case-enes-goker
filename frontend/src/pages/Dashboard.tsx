@@ -14,6 +14,7 @@ import { QuoteFormPage } from './QuoteFormPage'
 import { QuotesPage } from './QuotesPage'
 import { TasksPage } from './TasksPage'
 import { ReportsPage } from './ReportsPage'
+import { AgentPerformancePage } from './AgentPerformancePage'
 
 export function Dashboard({ user }: { user: User }) {
   const { logout } = useAuth()
@@ -70,6 +71,7 @@ export function Dashboard({ user }: { user: User }) {
         {current.key === 'tasks' && <RequireRole roles={['CLAIMS_ADJUSTER', 'APPRAISER']}><TasksPage role={user.role} /></RequireRole>}
         {current.key === 'fraud' && <RequireRole roles={['CLAIMS_ADJUSTER']}><TasksPage key="fraud" role={user.role} fraudQueue /></RequireRole>}
         {current.key === 'reports' && <RequireRole roles={['ACCOUNTING', 'UNDERWRITER']}><ReportsPage /></RequireRole>}
+        {current.key === 'agent-performance' && <RequireRole roles={['AGENT', 'ACCOUNTING', 'UNDERWRITER']}><AgentPerformancePage /></RequireRole>}
         {!current.ready && (
           <div className="notice">Bu ekran {current.phase} aşamasında eklenecek; henüz uygulanmadı.</div>
         )}

@@ -149,6 +149,8 @@ func NewRouter(d Deps) http.Handler {
 			r.With(auth.RequireRoles(auth.RoleClaimsAdjuster)).Get("/claim-tasks/workload", tasks.Workload)
 			r.With(auth.RequireRoles(auth.RoleClaimsAdjuster)).Get("/claim-tasks/sla-summary", tasks.Summary)
 			r.With(auth.RequireRoles(auth.RoleAccounting, auth.RoleUnderwriter)).Get("/reports/production", report.ProductionHandler(d.Pool))
+			r.With(auth.RequireRoles(auth.RoleAgent, auth.RoleAccounting, auth.RoleUnderwriter)).
+				Get("/reports/agents", report.AgentPerformanceHandler(d.Pool, d.Now))
 			accounting := auth.RequireRoles(auth.RoleAccounting)
 			r.With(accounting, idem.Middleware).Post("/payments/{id}/refund", payments.Refund)
 			r.With(accounting).Post("/billing/run", payments.Run)
