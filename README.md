@@ -1,0 +1,194 @@
+# GüvenPoliçe
+
+**Aday: Enes · GitHub: [EnesGoker](https://github.com/EnesGoker)**
+
+[![CI](https://github.com/EnesGoker/ddo-case-enes-goker/actions/workflows/ci.yml/badge.svg)](https://github.com/EnesGoker/ddo-case-enes-goker/actions/workflows/ci.yml)
+
+Kasko, trafik ve konut teklifinden poliçe, zeyil, tahsilat ve hasar ödemesine kadar çalışan Go/PostgreSQL uygulaması. Altı rol aynı React uygulamasını kullanır; yetki ve kayıt kapsamı sunucuda da denetlenir. Bütün kişi/veri, tarife, faiz, SLA, sahtecilik eşikleri ve olay limitleri **kurgusal demo varsayımlarıdır**; gerçek ürün tarifesi veya mevzuat iddiası yoktur.
+
+## Kurulum
+
+Docker Desktop ve Docker Compose gerekir. Veritabanı host portuna açılmaz.
+
+```bash
+git clone https://github.com/EnesGoker/ddo-case-enes-goker.git
+cd ddo-case-enes-goker
+cp .env.example .env
+docker compose up --build -d --wait
+make verify
+```
+
+Web: [localhost:3000](http://localhost:3000) · API: [localhost:8080](http://localhost:8080) · [OpenAPI](openapi.yaml) · [HTTP örnekleri](requests.http).
+Migration ve seed API açılırken otomatik çalışır. `.env.example` yalnız değiştirilebilir demo değerleridir; `.env` Git'e girmez. İnternete açık dağıtım için demo parolasını/JWT anahtarını değiştirip HTTPS/secure cookie yapılandırması gerekir.
+
+| Rol | Demo hesabı | Deneme yolu |
+|---|---|---|
+| Müşteri | musteri@guvenpolice.test | Kendi poliçesi, hasar bildirimi/geçmişi, ödeme |
+| Acente | acente@guvenpolice.test | Müşteriler → yeni teklif → prim dökümü → poliçe |
+| Underwriter | underwriter@guvenpolice.test | Onay bekleyen teklifler → karar; rapor/Sistem özeti |
+| Ekspertiz | eksper@guvenpolice.test | Ekspertiz bekleyen dosya → değerlendirme |
+| Hasar uzmanı | hasar@guvenpolice.test | İş kuyruğu → geçiş/inceleme → tazminat onayı |
+| Muhasebe | muhasebe@guvenpolice.test | Tahsilat/iade, gün sonu, tazminat ödemesi, mizan |
+| Ek eksper | eksper2@guvenpolice.test | Görevi devralma/iş yükü karşılaştırması |
+| Ek hasar uzmanı | hasar2@guvenpolice.test | Dağıtılmış görev ve SLA |
+
+Hepsinin parolası `.env` içindeki `DEMO_PASSWORD`; örnek dosyada `Demo-Parola-2026`. Kurgusal Ayşe Demir müşteri hesabına bağlıdır. İkinci uzman hesapları altı rolün dışında yeni bir rol oluşturmaz.
+
+## Mimari ve kararlar
+
+```mermaid
+flowchart LR
+  R[Altı rol / React + TypeScript] --> N[nginx :3000]
+  N --> H[Go HTTP :8080 / chi / RBAC / idempotans]
+  H --> S[Uygulama servisleri]
+  S --> D[Saf domain: pricing, proration, settlement, billing, fraud, workflow, lossratio]
+  S --> P[(PostgreSQL 16 / pgx / goose)]
+  M[Ayrı compose simülatörü] --> S
+```
+
+Tek süreçli modüler monolit; HTTP handler → servis → saf hesap + repository. Go 1.27.3 (`go.mod` kaynak), chi, pgx v5, goose ve testify; ORM/kuyruk/mikroservis yok. React/TypeScript/Vite tek uygulamada ortak form ve rol akışını paylaşır; nginx statik çıktı ve aynı origin API yönlendirmesi sağlar. Tek repo küçük teslimin kurulumunu ve transaction sınırlarını görünür tutar. Kararların ayrıntısı [DECISIONS.md](DECISIONS.md).
+
+Para `int64` kuruş; oranlar tamsayı bp/ppm. Poliçe/tarife sürümleri geçmişi korur; tarih aralıkları `[başlangıç, bitiş)` ve artık yıl testleriyle doğrulanır. Gün sonu imleçli parçalarla, her poliçe ayrı transaction içinde ilerler. Servis saati yalnız seed/simülatör bağlamında tarihsel olabilir; HTTP yolları gerçek zamanı kullanır.
+
+Tahsilat önce poliçeyi, hasar onayı hasarı ve limit bakiyesini kilitler; limit tüketimi koşullu UPDATE ile yapılır. Defterde her iş kaydı dengeli satırlarla aynı transaction'dadır. Audit append-only'dir. Mutasyon yapan kritik mali uçlarda Idempotency-Key ve iş anahtarı vardır; ekspertizde middleware koruması kullanılır. Çökme aralığındaki sınırlar ADR-14'te açıkça yazılıdır.
+
+Tazminat sırası **muafiyet → olay başı limit → teminat dönem limiti → yıllık toplam limit**. CAM için örnek olay limiti10.000 TL, dönem limiti25.000 TL, muafiyet500 TL'dir. Olay limiti her dosyaya yeniden uygulanır; dönem/yıllık tüketim ayrı tutulur. Eski sözleşmelerde NULL olay limiti yok anlamındadır; güncel katalog geçmiş sözleşmeyi değiştirmez.
+
+Müşteri/acente hasarında iç durum UNDER_REVIEW olarak görünür; iç inceleme/sistem notları gizlenir, red gerekçesi müşteriye gösterilir. İç rollerin görünümü korunur. Sistem mali özeti muhasebe/UW'ye; diğer rollere yalnız sayısal canlılık verilir.
+
+## Doğrulama
+
+```bash
+make test                  # Go birim testleri
+make coverage              # sekiz saf domain paketinin her birinde >=%70
+make test-integration      # geçici PostgreSQL16, normal integration testleri
+make test-simulation       # integration,simulation; ayrı ölçek/determinizm kabulü
+make lint                  # go vet üç etiket modu + ESLint
+make build                 # Go + TypeScript/Vite
+make verify                # çalışan sisteme gerçek HTTP + DB etkileri
+make load                  # resmî, digest sabitli grafana/k6 Docker imajı
+make chaos                 # kontrollü DB kesintisi/iyileşmesi
+make explain               # iki kritik indeks + ikinci aday karşılaştırması
+```
+
+Birim/lint için Go, frontend build/lint için Node 20 gerekir; yük testi host k6 kurulumu gerektirmez. Betikler Bash/curl kullanır; kaos/EXPLAIN ve macOS verify nanosaniye saati Python3 standart kütüphanesini kullanır. Entegrasyon testleri kendi geçici DB'sini açar; `DATABASE_URL` verilirse verilen sunucuda ayrı test veritabanları oluşturur. Üretim veritabanını bu değişkene vermeyin.
+
+26 Ekim A8: havuz düzeltmesinden sonra normal entegrasyon **PASS, 79,391 sn**, birim/vet/frontend lint/build PASS. Olay limiti öncesi yerel pencere kabul paketi (üretici3) **PASS, 643,392 sn**; son üretici4 simülasyon işi de CI'da PASS. Güncel domain kapsamı:
+
+| Paket | Statement kapsamı |
+|---|---:|
+| billing | %92,1 |
+| caldate | %100 |
+| pricing | %95,5 |
+| proration | %97,8 |
+| settlement | %100 |
+| fraud | %100 |
+| workflow | %100 |
+| lossratio | %100 |
+
+[CI gerçek kapsam çıktısı](docs/testing/ci-domain-coverage.md). CI, her paketin %70 eşiğini ayrı uygular; `GITHUB_STEP_SUMMARY` tablosunu ve coverage artifact'ını üretir. Normal entegrasyon/simülasyon ayrı PostgreSQL16 işidir. Simülasyon yalnız main push veya elle tetiklemede koşar; Docker işi iki imajı build eder, push etmez.
+
+**Son ölçümler:** 100k kabulü, CI, son verify/yük, kaos, EXPLAIN ve temiz kurulum geçti. 173 ayrı Test* fonksiyonu mevcut; normal ve simülasyon testleri ayrı işlerde koşar.
+
+| Kontrol | Sonuç |
+|---|---|
+| GitHub CI | [5 iş PASS, ec8fef8](https://github.com/EnesGoker/ddo-case-enes-goker/actions/runs/40287235419) |
+| Yeni 100k | PASS; 30 dk 26,410 sn, mali mutabakat true |
+| Yeni 100k verify | PASS; 62/0, 114,26 sn |
+| Temiz kurulum / taze verify | 77,505 sn / 62 PASS, 0 FAIL, 6,22 sn |
+| Ana 100k son verify | 62 PASS, 0 FAIL, 98,65 sn; 100k korundu |
+
+### Yük testi
+
+MacBook Air Apple M1, 8 GB RAM / Docker Desktop: 2 CPU, 4,11 GB RAM / PostgreSQL 16 / 100k veri; 20 VU, 3 dakika. Ayrı setup'ta rol girişleri ve her VU'ya ayrı poliçe hazırlanır. Poliçe listesi underwriter ile 100k kayıt kapsamını gezer. Ölçüm karışımı: poliçe/keyset %30, teklif preview %20, ödeme planı %20, görev %10, health %10, dar 30 gün raporu %5, idempotent 1 kuruş ödeme/aynı anahtar tekrarı %5. Yeni ödeme ve replay ayrı uç olarak ölçülür; setup özel uç tablolarına dahil değildir. Çıktı [docs/load](docs/load).
+
+Eşikler ölçümden önce sabittir: hata <%1, check >%99; normal p95<1500 ms/p99<3000 ms; dar rapor p95<5000 ms/p99<10000 ms;health p95<500 ms;idempotent tekrar %100. Yük şekli kapalı 20 kullanıcıdır; sabit geliş hızı kapasite testi değildir. Verilen yükte FAIL varsa tabloda korunur.
+
+| Uç | N | p50ms | p95ms | p99ms | Hata | İstek/sn |
+|---|---:|---:|---:|---:|---:|---:|
+| Poliçeler (keyset) | 7021 | 1.32 | 5.88 | 38.16 | %0.000 | 38.61 |
+| Teklif önizleme | 4618 | 1.26 | 6.58 | 48.22 | %0.000 | 25.39 |
+| Ödeme planı | 4642 | 1.96 | 7.70 | 30.20 | %0.000 | 25.53 |
+| Görevler | 2277 | 1.71 | 6.91 | 36.66 | %0.000 | 12.52 |
+| /health | 2226 | 0.39 | 2.80 | 13.66 | %0.000 | 12.24 |
+| 30 günlük rapor | 1096 | 35.68 | 84.70 | 215.35 | %0.000 | 6.03 |
+| Tahsilat | 1104 | 5.71 | 18.97 | 63.60 | %0.000 | 6.07 |
+| Aynı anahtar tekrarı | 1104 | 0.46 | 2.35 | 7.12 | %0.000 | 6.07 |
+
+24088 ölçülen istek; bütün eşikler PASS, idempotent tekrar %100. [Son JSON](docs/load/summary.json), [çıktı](docs/load/final.log). Süre 180 sn yük+1,857sn tamamlanma; istek/sn bu gerçek 181,857 sn üzerinden. Önceki imajın başarılı ölçümü before-pool-fix dosyalarında korunur. K6 zeyil yükünü içermez; küçük havuz hatası ayrıca bariyerli CI regresyonuyla sınanmıştır.
+
+### Kaos
+
+`make chaos` yalnız bu compose projesinin DB'sini durdurur. Sağlık 503/db=down, iş uçlarında JSON 5xx ve API konteynerinin aynı kaldığı doğrulanır. DB tekrar başlatılır, <=60 sn içinde toparlanma aranır. Kesintide başarısız ödeme aynı anahtarla tekrarlandığında tek ödeme/yevmiye ve 1200 mutabakatı kontrol edilir. Hata dahil her çıkışta DB'yi açan cleanup vardır. **PASS:** DB kapalıyken503/JSON5xx; aynı APIid/restartcount. İyileşme 0,475 sn; aynı anahtarla tek ödeme/yevmiye, defter ve1200 mutabakatı true. Betik toplam 12,01 sn. [Gerçek çıktı](docs/testing/a8-chaos.log).
+
+### İki indeksin gerçek karşılaştırması
+
+`make explain`, uygulamadaki ödeme/iade ve F-7 sorgusunu kaynaklarından alır; aynı parametrelerle indeksli/indekssiz çalıştırır. İndekssiz yöntem `BEGIN; DROP INDEX; EXPLAIN(ANALYZE,BUFFERS); ROLLBACK;`; planner zorlanmaz. Her varyantta 3 JSON planın medyanı ve ham metin plan saklanır. Başarısızlıkta bağlantı kapanması transaction'ı geri alır; sonunda indisvalid/indisready kontrol edilir. **Yalnız simülatör/yük kapalıyken çalıştırılır.**
+
+İlk indeks `payments(refund_of_payment_id) WHERE refund_of_payment_id IS NOT NULL`; ikinci adaylar `claims(workshop_id,loss_date)` ve `journal_entries(entry_date)`. İkinci indeks olarak rapor tarih indeksi seçildi: mutlak kazanç 348,522 ms; atölye adayında 0,348 ms. Yeni indeks/migration eklenmedi. [Ham planlar](docs/explain).
+
+| Sorgu / indeks | İndekssiz medyan | İndeksli medyan | Tampon/plan |
+|---|---:|---:|---|
+| İade FK / payments_refund_of_payment_idx | 178,767 ms | 0,171 ms | hit/read:211/30196 →21/0; alt sorgu Seq Scan →Index Scan |
+| Dönem raporu / journal_entries_date_idx | 382,542 ms | 34,020 ms | hit/read:14642/20145 →14808/0; tarih Bitmap Index Scan |
+| Atölye adayı / claims_workshop_loss_idx | 0,813 ms | 0,465 ms | hit/read:166/0 →26/0; 247 satır |
+
+Ham `.txt` ilk gözlemi, `.json` dosyaları üç ek çalıştırmayı içerir; tablo JSON medyanıdır. Önbellek ilk/sıcak gözlemler arasında değişebilir; hit/read PostgreSQL tampon sayısıdır, doğrudan fiziksel disk okuması değildir. İki varyant aynı sorgu ve parametreyi kullanır; üç indeks de rollback sonrası valid/ready.
+
+### Temiz kurulum
+
+Push edilmiş `ec8fef8` yeni klasöre clone edildi; `guvenpolice-a8-clean` proje adı, yeni volume ve **0B cache ile başlayan ayrı docker-container builder** kullanıldı. `.env` kopyasından `up --build -d --wait` sonuna **77,505 sn** (hedef ≤300 sn). Taze verify 62/0, 6,22 sn. Yalnız clone projesi `down -v` ile kaldırıldı; özel builder silindi. Ana volume aynı kimlik/oluşturulma tarihiyle, 100.000 SIM poliçe ve 3 geçerli indeksle döndü; son verify 62/0, 98,65 sn.
+
+Ölçümün sınırı: clone/builder bootstrap hazırlığı sayaç dışında, paylaşılan PostgreSQL taban imajı cache'te kaldı. Diğer projelerin cache'i silinmedi ve yeni builder'da kullanılmadı. Bu tamamen boş DockerVM ölçümü değildir. [Ölçüm ve koruma kanıtı](docs/testing/clean-install.json), [0B öncesi](docs/testing/clean-cache-before.txt), [1,14GB sonrası](docs/testing/clean-cache-after.txt), [build](docs/testing/clean-install-build.log). Builder seçimi [Docker'ın BUILDX_BUILDER yöntemiyle](https://docs.docker.com/build/building/variables/#buildx_builder) yapıldı.
+
+## Simülatör
+
+```bash
+make reset-demo
+SIM_ANCHOR_DATE=2026-10-25 SIM_SEED=42 SIM_POLICIES=100000 \
+SIM_YEARS=5 SIM_WORKERS=16 SIM_OPEN_WINDOW=48h make simulate
+make verify
+```
+
+**reset-demo demo ve simülasyon iş verisini siler.** Önce compose simulator servisini ve varsa adlandırılmış one-off simülatörü durdurur; sonra başvuru hesapları/geçişler hariç iş tablolarını temizleyip seed kurar. Gerçek veri ortamı için değildir. Yarım kalan koşu tamamlanmış sayılmaz: `make reset-demo` ardından aynı simulate komutunu yeniden çalıştırın; yarım verinin üstüne ekleme yapılmaz.
+
+Ayrı compose profili/binary, aynı Go servis kodunu binary içinden çağırır. Mevcut servislerin Issue/Pay/Transition/Appraise/Approve/Pay ve parçalı gün sonu yollarını kullanır. SIM kullanıcı/poliçe/plaka alanı demo hesabından ayrıdır; görev ataması ortak aktif uzman havuzunu kullanır (onaylı istisna). Simülatör DB oturumlarında `synchronous_commit=off`; hız kazandırır, makine/DB çöküşünde en son transaction'lar kaybolabilir. API oturumlarında bu ayar yapılmaz.
+
+Tohum ve iş parametreleri sabitken parmak izi aynıdır; worker sayısı kimliğe dahil değildir. Tarihsel v0 tarife 2020'den başlar; daha eski aralık açık hata verir. 300 atölye ve seyrek kasıtlı örnekler kullanılır; kurallar/eşikler normal veriye uydurulmaz. Pencere 48 saat dışında işaretli dosyalar incelenip kapatılır; yeni açık dosyalar işlem kuyruğunda kalır. Kapanan insan görevi işi yapana atanır, eski atanan audit'tedir; sistem geçişi atamayı değiştirmez.
+
+A8 pencere düzeltmesinin gerçek örnekleri (üretici 3, olay limiti öncesi):
+
+| Örnek | Süre | Hasar / işaretli | Açık inceleme | Açık görev / ihlal | İş sahibi uyuşmazlığı |
+|---|---:|---:|---:|---:|---:|
+|1k|36,808 sn|85 /3 (%3,53)|2|2 /0|0|
+|10k|445,294 sn|806 /40 (%4,96)|7|7 /1 (%14,29)|0|
+
+İkisinde de dengeli defter, 1200 mutabakatı ve pencere dışında açık görev 0. Son 100k üretici 4 ile tamamlandı: **7.780 hasar / 495 işaretli (%6,36)**; 46 açık inceleme/46 açık görev/9 SLA ihlali (%19,57). Pencere dışı açık görev, DONE ekspertiz sahibi uyuşmazlığı, ekspertizsiz DONE ve CANCELLED karar görevi sıfır. Mali denge/1200 mutabakatı true. Batch süresi 1826,410 sn; DB 2174540823 bayt. Parmak izi `32fde797213b8904e5febc4c33cb8bd38f8cd883fdbe1489f02e521226a23b9b`. [Ham kabul](docs/testing/a8-100k-acceptance.json), [günlük](docs/testing/a8-100k.log). Verify/yük sonrası eklenen kabul işlemleri bu batch fotoğrafına dahil değildir. Açık görevlerin SLA durumu gerçek saat ilerledikçe yaşlanır; oran bu ölçüm anına aittir.
+
+İşaretli dosyaların birbirini dışlayan kural birleşimleri: EARLY+WORKSHOP 349; üç kural 84; REPEAT+WORKSHOP 46; EARLY+REPEAT 16. Toplam 495. Atölye sinyali 479 işaretli dosyada bulunur; tek başına 30 puanla 60 eşiğini aşmaz. [Ham kırılım](docs/testing/a8-fraud-combinations.json).
+
+CI'nin ilk koşusu küçük havuzda gerçek bağlantı kilitlenmesini yakaladı. Kullanıcı onayıyla yetki profili sorgusu yeni havuz bağlantısı yerine mevcut transaction'a bağlandı; tüm servisler tarandı. [Yol listesi ve önce/sonra testi](docs/testing/transaction-pool-audit.md). Havuz kapasitesi veya timeout artırılmadı.
+
+## Sınırlar ve yapılmayanlar
+
+- Sahtecilikte atölye yoğunluğu **30 günde en az 4** gibi mutlak adede dayanır; atölyenin kendi normal hacmine göre anomali değildir. 300 atölye demo dağılımını düzeltir, kuralın bu sınırını kaldırmaz.
+- Mizan ve sınırsız dönem raporu bütün defteri toplar. Önceki 100k ölçümünde tek başına yaklaşık 2,7 sn; eşzamanlı ağır yazmada 10 sn istemci sınırı aşıldı. Verify bu iki doğruluk sorgusunda 30 sn istemci bütçesi, diğerlerinde 10 sn kullanır; API 15 sn bütçesi değişmedi. K6 gecikmesi ayrıca raporlanır.
+- Ekspertiz eklemede middleware ile iş commit'i/yanıt saklama ayrı adımlardır; bu arada süreç çökerse ikinci ekspertiz oluşabilir. Mali/bildirim uçlarında iş anahtarı veya kaynak durum kilidiyle ek koruma vardır (ADR-14).
+- Canlı simülasyon hatası tamamlanmış batch'i FAILED yapmaz; COMPLETED/LIVE_FAILED kalır. Canlı modda parmak izi batch sonunu temsil etmeyebilir; özet batch sonunun fotoğrafıdır.
+- Ödeme sağlayıcısı/banka entegrasyonu, mevzuat/tarife gerçekliği ve otomatik gün sonu zamanlayıcısı yok. Node 20 istenen teslim sürümüdür; bağımlılık yükseltme bu aşamanın kapsamı değildir.
+- Bonuslar: ekspertiz notu mevcut; acente performans panosu, poliçe PDF'i ve fotoğraf yükleme **YAPILMADI**. Kesilebilir genel okunabilirlik turu **YAPILMADI**; öncelik üretim havuz hatasına ve teslim kanıtlarına verildi. Yeni kodun okunabilirlik kuralları uygulandı.
+- Repo public olarak salt okunur doğrulandı. Son belge push'u, adayın kişisel yanıtları ve anket teslimi Enes'e aittir; uygulama testleri teslim formunu tamamlanmış saymaz.
+
+## Şartnamenin beş sorusu
+
+1. **En zor görev, alternatifler ve eleme gerekçeleri:** _Enes kendi deneyimiyle yazacak; yer tutucu._
+2. **Gerçek sınırlama/kırılma:** yoğun atölye normal hacmi mutlak eşiği aşabilir; ayrıca ağır eşzamanlı yazmada tüm defter raporunun zaman aşımı gözlendi. Yukarıdaki sınırlar ve [TESTING](TESTING.md) gerçek koşuları açıklar.
+3. **İki indeks/sorgu ve ölçüm:** yukarıdaki EXPLAIN tablosu ve ham planlar; iki varyant ve medyanlar kayıtlıdır.
+4. **Yapay zekâ çıktısı önce/sonra ve gerekçe:** _Enes seçeceği somut örneği kendi metniyle yazacak; yer tutucu. Değişiklik/kanıt geçmişi PROGRESS/DECISIONS'ta korunur._
+5. **Prim motoru doğruluğunun komutu/çıktısı:** `cd backend && go test ./internal/pricing -run 'TestGolden|TestBreakdownSumEqualsTotal|TestDeterminism' -v`; [gerçek çıktı](docs/testing/pricing-golden.log): `TestGoldenKasko`, `TestGoldenKonut`, `TestDeterminism`, `TestBreakdownSumEqualsTotal` PASS; paket 0,496 sn. [Son verify](docs/testing/a8-verify-final.log) T-1 deterministik/kalem-toplamı satırlarını gerçek API üzerinden de doğrular.
+
+## Yapay zekâ ve kanıt kaydı
+
+Codex uygulama/test/belge çalışmasını yürüttü; Opus A6/A7 için ayrı salt okunur inceleme yaptı. İnceleme önerileri kullanıcı tarafından seçilip onaylandı; kritik bulgular regresyon testine çevrildi. Mali kurallar ve kapsam kararları [DECISIONS](DECISIONS.md), başarı/başarısız gerçek koşular [PROGRESS](PROGRESS.md), rol denemeleri ve madde–kanıt matrisi [TESTING](TESTING.md), iş sırası [ROADMAP](ROADMAP.md) içindedir. Ölçümlerin çıktıları ve başarısız ilk koşular kanıt dosyalarında korunur.
+
+Tam şartname–kanıt tablosu [TESTING.md A8 izlenebilirliği](TESTING.md#a8-şartname-izlenebilirliği) içindedir.

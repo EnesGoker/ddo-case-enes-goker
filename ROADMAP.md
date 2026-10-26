@@ -80,29 +80,36 @@
 
 ### A7 — Gerçek veriyle 6 rolün tamamlanması ve simülatör (hedef 3 saat)
 
-A7 uygulaması ve eski üreticiyle gerçek 100k kabulü tamamlandı: 50 dk 25,12 sn; verify 61 PASS / 0 FAIL, 112,11 sn. Gün sonu kapısı, deterministik DB/mali/izolasyon testleri ve 6 rolün 375 px kabulü PASS. Son yönlendirmeyle üretici 300 atölye ve seyrek kasıtlı örneklerle güncellendi: 1k %3,53 / 10k %5,43 işaretli. **Yeni üreticiyle 100k bu gece çalıştırılmadı; sabah A8 ölçümlerinden önce reset-demo → simulate → verify bekliyor.** Mevcut 100k veri korundu; A8'e geçilmedi.
+A7 uygulaması ve altı rol375px kabulü tamamlandı. Önceki v1/v2 ölçümleri PROGRESS'te tarihsel kanıttır. A8'de48saat pencere/görev sahipliği/karar kapanışı ve olay limiti düzeltmeleriyle sonv4/100k bir kez üretildi:30dk26,410sn;7780hasar/495işaretli(%6,36),46açık inceleme/görev ve9ihlal(%19,57). Mali mutabakat true, sahiplik uyuşmazlığı0. Son100kverify62/0,98,65sn.
 - [x] Her rol için kendi işiyle ilişkili kullanılabilir ekranlar var.
 - [x] Tüm ekranlar gerçek API'den veri çekiyor; loading/empty/error/mobile durumları gözden geçirildi.
-- [x] Simülatör ayrı compose servisinde, aynı seed ile aynı sonuç; 100.000 poliçe + 5 yıl geçmiş eski üreticiyle ölçüldü (v2 tam ölçek tekrarı bekliyor).
+- [x] Simülatör ayrı compose servisinde, aynı seed ile aynı sonuç; 100.000 poliçe + 5 yıl geçmiş sonv4 ile A8'de tekrar ölçüldü;30dk26sn.
 - [x] UI üzerinde veri akışı/canlılık gösteriliyor.
 - [x] Demo ve büyük simülasyon verisi ayrıldı; assigned_to ortak havuzu onaylı istisna.
 
 **Çıkış kapısı:** Uygun yetkiyle giren her demo rolü kendi uçtan uca işini deneyebiliyor. Simülatör hedefi tamamlanamadıysa açıkça işaretle.
 
-### A8 — Doğrulamayı tamamlama, CI, dokümantasyon, yayın (en az 4–6 saat AYIR)
-- [ ] Gerçek API çağrılarıyla `make verify` F-1…F-7, T-1…T-5, health ve güvenlik kontrollerini raporluyor.
-- [ ] `make reset-demo` tekrar denenebilir; `requests.http` bütün uçları içeriyor.
-- [ ] 40 test / domain ≥%70 kapsam raporu gerçek CI çıktılarına dayanıyor.
-- [ ] Actions: test, lint, build, container image build.
-- [ ] OpenAPI ve Prometheus `/metrics` mevcut.
-- [ ] k6 ile p50/p95/p99/hata oranı **ölçülmüş**; README'ye aktarılmış.
-- [ ] Kaos betiği denenmiş; iki indeks için `EXPLAIN ANALYZE` karşılaştırması yazılmış.
-- [ ] `DECISIONS.md` en az 5 karar; `TESTING.md` her ID ve demo hesaplarını içeriyor.
-- [ ] README'nin 5 doğrulama sorusu dürüst ve somut şekilde yanıtlandı.
-- [ ] Public GitHub'da **birden çok anlamlı commit** var; temiz ortamda compose çalışıyor.
-- [ ] Repo bağlantısı **26 Ekim 23.59'dan önce** ankete yüklenmiş; public erişim kontrol edildi.
+### A8 — Doğrulamayı tamamlama, CI, dokümantasyon, yayın
 
-**Çıkış kapısı:** `make verify` gerçek çıktı + repo URL + başvuru formu teslimi. Bilinen eksikler README'de açık.
+**Ajanın onaylı teknik kapsamı TAMAMLANDI.** Sonuçlar README/TESTING/PROGRESS ve docs altındaki gerçek çıktılarda. Kullanıcının kişisel metni ve teslim adımları aşağıda açık bırakıldı.
+
+- [x] Gerçek API ile verify: F-1…F-7/T-1…T-5/health/auth/RBAC; son62PASS/0FAIL,98,65sn.
+- [x] reset-demo tekrar denenebilir; simulator önce durur; requests/OpenAPI güncel.
+- [x]173Testfonksiyonu; sekiz saf domain%92,1–100; CI kapsam kapısı≥%70.
+- [x] Actions5iş PASS:40287235419/ec8fef8; gerçek küçük-havuz hatası tüm servislerde düzeltildi.
+- [x] OpenAPI/Prometheus ve altı rol375px arayüz kabulü mevcut.
+- [x]20VU3dk k6:24088istek,%0hata; uç başına p50/p95/p99/RPS README'de.
+- [x] Kaos a/b/c PASS; DB0,475sn iyileşti, APIrestart0, tek ödeme/yevmiye/mutabakat.
+- [x] İki indeks ham EXPLAIN+3JSONmedyanı: refund178,767→0,171ms; rapor382,542→34,020ms. Atölye adayı da saklandı.
+- [x] DECISIONS25ADR, TESTING her madde/rol/komut ve başarısız ilk koşuları içerir.
+- [x] Aynı pushlanmışSHA ile tazeclone/boş özelbuilder/ayrıvolume:77,505sn; tazeverify62/0. PaylaşılanPGtabanimajcacheistisnası README'de; ana100k korunup sonverify geçti.
+- [ ] README1/4kişisel soruları Enes'in kendi metniyle doldurulacak; diğer üç soru/ölçümler hazır.
+- [x] Public repo ve anlamlı çoklu commit geçmişi salt okunur doğrulandı; ajan push/publicayarı yapmadı.
+- [ ] Son belge commit'leri kullanıcı tarafından push edilecek; repoURL'si26Ekim23.59TRT'den önce ankete yüklenecek.
+
+**Kesilenler:** genel okunabilirlik turu ve bonus acente panosu YAPILMADI. PDF/fotoğraf bonusu yok; ekspertiz notu mevcut. Yeni roadmap aşamasına başlanmadı.
+
+**Kapanış:** teknik kapı PASS; kişisel README ve anket teslimi kullanıcıya ait.
 
 ## Zaman daralınca karar kuralları
 
@@ -125,15 +132,15 @@ A7 uygulaması ve eski üreticiyle gerçek 100k kabulü tamamlandı: 50 dk 25,12
 | F-7 | PASS | `TestProductionReportGoldenLedgerPeriodsAndGroups`, dönem/RBAC testi; `make verify` prim-delta, defter-mutabakati, boyut-toplami, oran |
 | T-1 | PASS | `TestGoldenKasko`, `TestGoldenKonut`, `TestBreakdownSumEqualsTotal`, `TestSelectTariffByStartDate`; `make verify` T-1 satırları |
 | T-2 | PASS | `TestGoldenVehicleChange`, `TestGoldenShortPeriodCancellation`, `TestCancellationOnLeapDay`; `make verify` T-2 satırları; eşzamanlılık `TestConcurrentEndorsements` |
-| T-3 | PASS | `TestGoldenSettlements`; `TestConcurrentClaimApprovals -count=10 -race`; mutasyon LIMIT_CHANGED; `make verify` hesap-adimlari/paralel-limit |
+| T-3 | PASS | `TestGoldenSettlements`, `TestGoldenEventLimitsInOrder`, gerçek CAMsnapshot/onayı; `TestConcurrentClaimApprovals -count=10 -race`; A8 verify olay-limiti/hesap-adımları/paralel-limit |
 | T-4 | PASS | Kayıt bazında awk faiz hesabı, gerçek paralel ödeme, 1200 mutabakatı; 10 tekrar `-race` ve kilit mutasyonu; billing %92,1 |
 | T-5 | PASS | Fraud/workflow %100; kalıcı sinyaller, görev/SLA/RBAC, 20 transaction 7/7/6 ×10 `-race`, advisory mutasyonu FAIL ve geri yükleme; `make verify` yedi T-5 satırı |
 
 ## Teslim kontrolü
 
-- [ ] Aday adı ve kurulum bilgileri README başında.
+- [x] Aday adı ve kurulum bilgileri README başında; kişisel1/4metni bekliyor.
 - [ ] Ajan çıktıları manuel olarak incelendi, kritik kararlar açıklanabiliyor.
-- [ ] `.env`/secret repoda yok, Git remote ve branch doğru.
-- [ ] Her public commit anlamlı; force-push yapılmadı.
-- [ ] README ve `TESTING.md` yapılmayanları saklamıyor.
+- [x] `.env`/derleme çıktıları ignore; Git remote ve branch doğrulandı.
+- [x] Çoklu anlamlı commit; ajan push/force-push yapmadı.
+- [x] README ve TESTING gerçek sonuç, cache sınırı, başarısız koşu ve yapılmayanları gösteriyor.
 - [ ] **Anket bağlantısı gönderildi ve teslim teyit edildi.**

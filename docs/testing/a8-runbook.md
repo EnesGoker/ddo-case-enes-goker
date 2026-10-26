@@ -5,7 +5,7 @@ Bu dosya yöntem/işlem sırasıdır; sonuçlar PROGRESS/TESTING/README ve ham a
 ## Veri kapısı
 
 1. Eski100k üzerinde00011/12 uygulandı: [önce/sonra](../a8-migration-preservation.json). SIMpoliçe100000, v0referansı63742 ve sürüm primi72130792135kuruş değişmedi. Eski olay limitleri NULL.
-2. Son uygulama kodu4155bae, üretici4, anchor2026-10-25,seed42,5y,16worker,48h. Kullanıcı onaylı reset ve tek100k.
+2. Batch üretim kodu4155bae (sonradan onaylı havuz düzeltmesi ec8fef8), üretici4, anchor2026-10-25,seed42,5y,16worker,48h. Kullanıcı onaylı reset ve tek100k.
 3. Batch tamamlanmadan Docker işlemi/test/verify/yük/kaos yok; çalışma günlüğü/tmp/gp-a8-100k.log.
 4. Tamamlandıktan sonra simulation_runs.status/phase/processed/target, summary, fingerprint, süre ve DBboyutu saklanır. Sayısal kapı: açıkFRAUD_REVIEW onlar düzeyinde, açık görev ihlali<%50, DONEAPPRAISAL/eksper uyuşmazlığı0, defter/mutabakat true. Pencere dışı açık görev0.
 5. Bu fotoğraftan sonra verify/k6/kaos kendi demo kabul kayıtlarını oluşturur;100k batch summary'si canlı toplam diye sunulmaz.

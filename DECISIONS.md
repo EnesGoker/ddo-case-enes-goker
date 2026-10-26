@@ -229,3 +229,20 @@ CUSTOMER/AGENT bildirim, liste ve detay/geçmiş projeksiyonunda FRAUD_REVIEW ye
 Simülatör açık iş penceresi SIM_OPEN_WINDOW (varsayılan48h) parametresidir; parametre kimliği sürüm3 olur. Pencere anchor gününün sonundan geriye hesaplanır. Tarihsel yaşam döngüsünün sonu pencere dışına sarkacaksa aynı sıradaki olaylar pencere öncesinde tamamlanacak biçimde sıkıştırılır; eski dosya açık bırakılmaz. Seyrek üçlülerde erken iki olay korunur, üçüncü tekrar/atölye örneği çoğunlukla anchor, bir kısmı önceki güne yerleştirilir; ilk iki örnek aynı gün bildirilerek küçük N'deki patlama korunur. Bu kabul verisi zamanlamasıdır, gerçek hasar dağılımı iddiası değildir. Kurallar ve puan/eşikler değişmez.
 
 A8 olay limiti taşınması: katalogdaki CAM için kurgusal1.000.000kuruş (10.000TL), teminat dönemi limiti2.500.000kuruş. Yeni teklif seçimi, düzenleme ve zeyil sürümüne snapshot olarak kopyalanır. Eski JSON seçimlerde/DB sürümlerinde eksik/NULL değer korunur; güncel katalogdan geriye dönük limit türetilmez.00012 yalnız nullable kolon ekler; sıfır/negatif değer CHECK ile reddedilir. Non-NULL sözleşme varsa Down bilgi kaybını önlemek için başarısız olur.
+
+## ADR-24 — A8 kanıt üretimi ve ölçüm sınırları
+
+CI beş bağımsız iş kullanır: backend build/vet/kapsam, PostgreSQL16 entegrasyon, ayrı ağır simülasyon, Node20 frontend ve imaj build. Simülasyon yalnız main push veya elle tetiklemede; PR temel doğrulamayı ağır100k kabulüne bağlamaz. Kapsam sekiz saf domain paketinde statement ağırlığıyla ayrı ayrı≥%70; düşük bir paketi diğerinin yüksek kapsamı gizleyemez. Servis/HTTP paketlerinin unit kapsamı bu saf domain oranına dahil değildir; gerçek DB/HTTP doğruluğu ayrıca entegrasyon testidir.
+
+K6 ölçümünden önce20VU/3dk ve eşikler betikte sabitlenir. Uç başına özel metrikler setup giriş/fixture yazmalarını dışarıda tutar; yerel JSON yalnız toplu ölçüm içerir. Dış bulut hizmetine sonuç/kimlik bilgisi gönderilmez; resmî imaj digest'i sabittir. Kapalı VU yükü belirli eşzamanlı kullanıcının gecikmesini gösterir; sabit geliş hızı altında azami kapasite iddiası değildir.
+
+İndeks karşılaştırması yalnız simülatör ve yük kapalıyken aynı parametrelerle yapılır. Planner ayarı zorlanmaz. İndekssiz varyant transaction içinde DROP→EXPLAIN→ROLLBACK; hata bağlantıyı kapatır, DDL geri alınır. Ham metin ve üç JSON ölçüm/medyan birlikte saklanır. İlk soğuk/sıcak önbellek ve bu küçük örneğin tüm iş yükünü temsil etmemesi yorumda belirtilir; yalnız daha iyi çıkan süreyi seçip diğer aday gizlenmez.
+
+Temiz kurulum ana100k volume'unu korur. Farklı proje adı/yeni volume ve boş, yalnız bu ölçüme ait buildx builder kullanılır. Paylaşılan varsayılan cache'in hangi projeye ait olduğu güvenle ayrılamadığından küresel prune yapılmaz; ölçüm builder'ı bu cache'i kullanmaz. Paylaşılan PostgreSQL temel imajının önbellekte kalması gibi istisnalar ölçüm kaydında açıkça yazılır. Enes'e ait push/public/anket adımları ajan tarafından yapılmaz.
+
+
+## ADR-25 — Havuz doluyken transaction içi profil sorgusu (A8)
+
+İkiCPU'lu CI'nin dört bağlantılı pgxpool'unda paralel zeyiller kilitlendi. İşlemler transaction bağlantılarını tutarken access.Resolve pool'dan ikinci bağlantı istedi; aktif işlem boş bağlantı beklerken diğerleri onun poliçe satırını bekledi. Kullanıcı bu üretim hatasının tüm servislerde taranmasını onayladı. Çözüm kapasite/timeout artırmak değil, mevcut db.DBTX ile yetki sorgusunu aynı transaction'a bağlamaktır. Policy target/replay, payment target ve claim visible bu bağı taşır; transaction dışındaki çağrılar pool kullanabilir. Beş bağ ve diğer servislerin neden güvenli olduğu docs/testing/transaction-pool-audit.md'dedir. Dört bağlantıyı aynı anda tutan bariyerli regresyon eski kodda deadlineFAIL, yeni kodda altı senaryodaPASS verdi. API/RBAC/para/kilit sırası değişmez; yeni migration ve100k tekrarına gerek yok.
+
+Sonv4/100k işaretli oranı495/7780=%6,36; atölye sinyali479işaretli dosyada, kombinasyonlar349EARLY+WORKSHOP/84üçlü/46REPEAT+WORKSHOP/16EARLY+REPEAT.300atölye kabul hedefini karşılar; eşik hâlâ atölyenin kendi taban hacmine göre değil mutlak önceki dosya adedidir. İstatistik doğrulaması kural/eşik değiştirmek için kullanılmadı.
