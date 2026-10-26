@@ -509,7 +509,7 @@ Opus'un e457cf5 üzerinden çıkardığı salt okunur tablo, A8'de uygulanmış 
 | Root olmayan/multi-stage | backend distroless nonroot, web nginx-unprivileged | UYGULANDI |
 | Deterministik ayrı simülatör 100k/5 y | Ayrı testler/CI PASS; v4/100k 30 dk 26 sn, parmak izi/izolasyon/mutabakat | PASS |
 | Görünür canlılık | TestActivityAllRolesAndRealEvent, TestActivitySummaryOnlyFinancialRoles; UI grafik | PASS |
-| §7 ≥40 otomatik test | Kaynaklarda 173 ayrı Test* fonksiyonu; normal ve simulation etiketleri ayrı koşularda | PASS (≥40) |
+| §7 ≥40 otomatik test | Kaynaklarda 189 ayrı Test* fonksiyonu (TestMain hariç); normal ve simulation etiketleri ayrı koşularda | PASS (≥40) |
 | Domain≥%70/CI görünür kapsam | make coverage 8 paket 92,1–100; check-coverage.sh / Actions summary+artifact | PASS; CI 40287235419 |
 | Actions build/test/lint/Docker | .github/workflows/ci.yml 5 iş;40287235419 | PASS |
 | verify F/T/health/auth/RBAC,<15 dk,nonzero | Gerçek HTTP/DB kontrolü, hata exit 1, live ön kontrol exit 2; 100k ölçümü tamamlandı | PASS 62/0,98,65 sn |
@@ -519,7 +519,7 @@ Opus'un e457cf5 üzerinden çıkardığı salt okunur tablo, A8'de uygulanmış 
 | k6 p50/p95/p99/hata | make load 20 VU 3 dk 24088 istek,%0 hata; README tablo | PASS |
 | Kaos bağımlılık kesinti/iyileşme | make chaos a/b/c,0,475 sn iyileşme, cleanup | PASS |
 | İki indeks EXPLAIN | refund 178,767→0,171 ms;report 382,542→34,020 ms; rollback | PASS |
-| En az 5 ADR | DECISIONS ADR-1…23, A8 ADR-10/14/17/22 güncel | TAMAM |
+| En az 5 ADR | DECISIONS ADR-1…28, A8 ADR-10/14/17/22 güncel; B1 ADR-27, B2 ADR-28 | TAMAM |
 | §8 aday/kurulum/mimari/demo hesapları | README | TAMAM |
 | README S1 en zor görev | Enes'in metni A8.2'de eklendi; iki ifade A8.3'te netleştirildi | TAMAM |
 | README S2 gerçek sınır | Mutlak atölye eşiği, ağır rapor süresi ve idempotans çökme aralığı | TAMAM |
@@ -528,7 +528,7 @@ Opus'un e457cf5 üzerinden çıkardığı salt okunur tablo, A8'de uygulanmış 
 | README S5 prim altın komut/çıktı | docs/testing/pricing-golden.log ve son verify T-1 | PASS |
 | §9 anlamlı commit geçmişi | Küçük testli aşama commitleri, push kullanıcıya ait | TAMAM |
 | Public repo/kullanıcı hesabı/anket 23.59 | Repo teslimde public yapılır; anket bağlantısı aday tarafından gönderilir. | KULLANICIYA AİT |
-| §10 bonus | Ekspertiz notu ve B1 acente panosu var; TestAgentPerformanceAccessAndGoldenRows, ADR-18 tutarlılık testi, verify B1; PDF/fotoğraf yok | KISMEN |
+| §10 bonus | Ekspertiz notu, B1 acente panosu ve B2 poliçe PDF'i var; TestAgentPerformanceAccessAndGoldenRows, ADR-18 tutarlılık testi, verify B1, TestPolicyPDFAccessAndRealForeignPortfolio, TestPolicyPDFEndorsementCancellationAndNoQuote ve TestPolicyPDFUsesOnePoolConnection entegrasyon testleri (ADR-28); hasar fotoğrafı yükleme yok | KISMEN |
 
 ## A8 ölçüm sırası ve güvenli çalışma
 
@@ -573,9 +573,9 @@ Muhasebe/UW 100000/100000 ve 46/9mali özetini görüyor; müşteri Sistem yaln�
 
 ### İzlenebilirlik tablosunun kapanışı
 
-Yukarıdaki “BEKLİYOR” notları ölçüm öncesi anlık kayıttır. Son durum: yeni 100k, taze kurulum, CI/kapsam, verify, k6,kaos,iki indeks ve S5 prim kanıtı **PASS**; README kurulum/mimari/ölçümler tamam. 173 Test fonksiyonu. README kişisel 1/4 cevapları A8.2/A8.3'te tamamlandı; son push/CI teyidi ve anket kullanıcıya ait. Repo teslimde public yapılır; anket bağlantısı aday tarafından gönderilir. Acente performans panosu B1’de eklendi (ADR-27).
+Yukarıdaki “BEKLİYOR” notları ölçüm öncesi anlık kayıttır. Son durum: yeni 100k, taze kurulum, CI/kapsam, verify, k6,kaos,iki indeks ve S5 prim kanıtı **PASS**; README kurulum/mimari/ölçümler tamam. 189 Test* fonksiyonu (TestMain hariç). README kişisel 1/4 cevapları A8.2/A8.3'te tamamlandı; son push/CI teyidi ve anket kullanıcıya ait. Repo teslimde public yapılır; anket bağlantısı aday tarafından gönderilir. Acente performans panosu B1’de (ADR-27), poliçe PDF'i B2'de (ADR-28) eklendi.
 
-Poliçe PDF’i ve fotoğraf yükleme yok. Kesilebilir genel okunabilirlik turu **YAPILMADI**. Önceki başarısız koşular silinmedi.
+Hasar fotoğrafı yükleme yok; poliçe PDF'i B2'de eklendi (ADR-28). Kesilebilir genel okunabilirlik turu **YAPILMADI**. Önceki başarısız koşular silinmedi.
 
 
 ## B1 — Acente performans panosu

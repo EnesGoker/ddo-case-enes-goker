@@ -1,6 +1,6 @@
 # B2 — Poliçe PDF çıktısı
 
-**Durum: TAMAMLANDI.** Taban `ec70df6`; yerel dal `bonus/police-pdf`. Main'e merge ve push yapılmadı; push kullanıcıya aittir.
+**Durum: TAMAMLANDI.** Taban `ec70df6`; `bonus/police-pdf` dalında geliştirildi ve main'e alındı (`d01618a`).
 
 ## Kapsam
 

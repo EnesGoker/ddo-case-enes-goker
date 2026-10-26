@@ -41,4 +41,4 @@ Aşağıdakiler onaylı görev değildir; [bilinen sınırlamalar](../../README.
 2. Geriye dönük iptalde önceden yazılmış faizin geri alınmasını tasarlamak.
 3. Ağır rapor sorgularının veri büyümesi altındaki davranışını ölçmek.
 4. Gerçek cihaz, ekran okuyucu ve %200 metin büyütme kabulünü tamamlamak.
-5. Poliçe PDF'i ve hasar fotoğrafı yüklemeyi ayrı kapsam ve onayla ele almak.
+5. Hasar fotoğrafı yüklemeyi ayrı kapsam ve onayla ele almak.
