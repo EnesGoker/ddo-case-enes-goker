@@ -53,6 +53,22 @@ type Appraisal struct {
 	CreatedAt         time.Time `json:"created_at"`
 }
 
+func findAppraisal(ctx context.Context, q db.DBTX, claimID, actorID int64, key *string) (Appraisal, bool, error) {
+	var out Appraisal
+	if key == nil {
+		return out, false, nil
+	}
+	err := q.QueryRow(ctx, `
+		SELECT id, appraiser_id, inspected_at, damage_amount_kurus, is_total_loss, notes, created_at
+		  FROM appraisals
+		 WHERE claim_id=$1 AND appraiser_id=$2 AND request_key=$3`, claimID, actorID, key).
+		Scan(&out.ID, &out.AppraiserID, &out.InspectedAt, &out.DamageAmountKurus, &out.IsTotalLoss, &out.Notes, &out.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return out, false, nil
+	}
+	return out, err == nil, err
+}
+
 type Settlement struct {
 	ID                    int64           `json:"id"`
 	ClaimID               int64           `json:"claim_id"`

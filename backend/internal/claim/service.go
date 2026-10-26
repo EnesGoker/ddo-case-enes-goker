@@ -296,19 +296,39 @@ func (s *Service) Appraise(ctx context.Context, id int64, req AppraisalRequest) 
 	if err != nil || (req.DamageAmountKurus == nil || *req.DamageAmountKurus < 0) || len(req.Notes) > 4000 {
 		return out, httpx.Invalid(map[string]string{"appraisal": "RFC3339 inspected_at, negatif olmayan hasar ve en fazla 4000 karakter not gerekli"})
 	}
+	p, _ := auth.FromContext(ctx)
+	key := idempotency.Key(ctx)
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		c, err := s.visible(ctx, tx, id, true)
 		if err != nil {
 			return err
 		}
+		previous, found, err := findAppraisal(ctx, tx, id, p.UserID, key)
+		if err != nil {
+			return err
+		}
+		if found {
+			notes := ""
+			if previous.Notes != nil {
+				notes = *previous.Notes
+			}
+			if previous.DamageAmountKurus != *req.DamageAmountKurus || previous.IsTotalLoss != req.IsTotalLoss ||
+				!previous.InspectedAt.Equal(inspected.Truncate(time.Microsecond)) || notes != req.Notes {
+				return httpx.NewError(http.StatusUnprocessableEntity, "IDEMPOTENCY_KEY_REUSED", "iş anahtarındaki ekspertiz içeriği farklı")
+			}
+			out = previous
+			return nil
+		}
 		if c.Status != "APPRAISAL" {
 			return httpx.NewError(http.StatusConflict, "INVALID_CLAIM_STATUS", "ekspertiz yalnızca APPRAISAL durumunda girilebilir")
 		}
-		p, _ := auth.FromContext(ctx)
 		out = Appraisal{AppraiserID: p.UserID, InspectedAt: inspected, DamageAmountKurus: *req.DamageAmountKurus, IsTotalLoss: req.IsTotalLoss, Notes: &req.Notes}
 		err = tx.QueryRow(ctx, `
-  INSERT INTO appraisals (claim_id,appraiser_id,inspected_at,damage_amount_kurus,is_total_loss,notes,created_at)
-  VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,created_at`, id, p.UserID, inspected, *req.DamageAmountKurus, req.IsTotalLoss, req.Notes, clock.Now(ctx)).Scan(&out.ID, &out.CreatedAt)
+			INSERT INTO appraisals
+			       (claim_id, appraiser_id, inspected_at, damage_amount_kurus, is_total_loss, notes, created_at, request_key)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+			RETURNING id, created_at`, id, p.UserID, inspected, *req.DamageAmountKurus, req.IsTotalLoss, req.Notes, clock.Now(ctx), key).
+			Scan(&out.ID, &out.CreatedAt)
 		if err != nil {
 			return err
 		}
@@ -317,5 +337,5 @@ func (s *Service) Appraise(ctx context.Context, id int64, req AppraisalRequest) 
 		}
 		return audit.Write(ctx, tx, audit.Entry{Action: "CLAIM_APPRAISED", EntityType: "claim", EntityID: id, New: out})
 	})
-	return out, err
+	return out, idempotency.Conflict(err)
 }

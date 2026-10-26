@@ -402,7 +402,7 @@ func TestMigrationsUpDownUp(t *testing.T) {
 	require.NoError(t, goose.UpContext(ctx, sqlDB, migrationsDir), "up")
 	v, err := goose.GetDBVersionContext(ctx, sqlDB)
 	require.NoError(t, err)
-	assert.Equal(t, int64(12), v)
+	assert.Equal(t, int64(13), v)
 
 	// 00010 çevrimiçi indeks tek başına Down/Up ve mevcut indeksle tekrar Up.
 	var refundIndexValid bool

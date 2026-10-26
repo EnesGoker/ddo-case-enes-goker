@@ -23,7 +23,7 @@ func Key(ctx context.Context) *string {
 }
 
 func Conflict(err error) error {
-	if db.Violates(err, "payments_request_key_uq", "endorsements_request_key_uq", "claims_request_key_uq") {
+	if db.Violates(err, "payments_request_key_uq", "endorsements_request_key_uq", "claims_request_key_uq", "appraisals_request_key_uq") {
 		return httpx.NewError(http.StatusConflict, "IDEMPOTENCY_CONFLICT", "istek anahtarı eşzamanlı kaydedildi")
 	}
 	return err
