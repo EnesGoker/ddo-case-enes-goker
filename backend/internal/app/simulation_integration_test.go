@@ -198,3 +198,46 @@ func TestSimulatorResetRemovesDatasetAndRestoresTariffs(t *testing.T) {
 	assert.True(t, trial.Balanced)
 	assert.True(t, trial.ReceivableReconciliation.Matches)
 }
+
+func TestSimulatorLiveFailurePreservesCompletedBatch(t *testing.T) {
+	ctx := context.Background()
+	u, drop, err := createTempDB(ctx, os.Getenv("DATABASE_URL"), "gp_live_failure")
+	require.NoError(t, err)
+	defer drop()
+	require.NoError(t, db.Migrate(ctx, u, migrationsDir))
+	cfg := simulation.DefaultConfig()
+	cfg.Policies, cfg.Workers, cfg.Live = 10, 2, true
+	p, err := simulation.OpenPool(ctx, u, cfg.Workers)
+	require.NoError(t, err)
+	defer p.Close()
+	require.NoError(t, seed.Demo(ctx, p, demoPassword))
+	finished := make(chan error, 1)
+	go func() {
+		_, err := simulation.Run(ctx, p, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		finished <- err
+	}()
+	require.Eventually(t, func() bool {
+		var status string
+		return p.QueryRow(ctx, `SELECT status FROM simulation_runs`).Scan(&status) == nil && status == "LIVE"
+	}, 20*time.Second, 20*time.Millisecond)
+	// Bu taze DB'de adres uzayını doldurarak ticker'ın gerçek hata yoluna girilir.
+	_, err = p.Exec(ctx, `
+      INSERT INTO policies(policy_no,product,customer_id,start_date,end_date)
+      SELECT 'SIM-810000','KASKO',id,DATE '2026-01-01',DATE '2027-01-01'
+        FROM customers ORDER BY id LIMIT 1`)
+	require.NoError(t, err)
+	select {
+	case err := <-finished:
+		require.ErrorContains(t, err, "plaka uzayı doldu")
+	case <-time.After(10 * time.Second):
+		t.Fatal("canlı hata yolu tamamlanmadı")
+	}
+	var status, phase string
+	require.NoError(t, p.QueryRow(ctx, `SELECT status,phase FROM simulation_runs`).Scan(&status, &phase))
+	assert.Equal(t, "COMPLETED", status)
+	assert.Equal(t, "LIVE_FAILED", phase)
+	cfg.Live = false
+	result, err := simulation.Run(ctx, p, cfg, nil)
+	require.NoError(t, err, "batch reset gerektirmeden yeniden kullanılabilir")
+	assert.True(t, result.Reused)
+}

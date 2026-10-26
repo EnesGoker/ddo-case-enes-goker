@@ -14,6 +14,18 @@ import (
 
 func (r *runner) live(ctx context.Context) (resultErr error) {
 	r.realtime = true
+	defer func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		phase := "LIVE_STOPPED"
+		if resultErr != nil {
+			phase = "LIVE_FAILED"
+		}
+		_, _ = r.pool.Exec(cleanup, `
+          UPDATE simulation_runs SET status='COMPLETED',phase=$2,finished_at=now(),updated_at=now(),
+                 fingerprint=CASE WHEN status='LIVE' THEN NULL ELSE fingerprint END
+           WHERE id=$1 AND status IN ('LIVE','COMPLETED')`, r.id, phase)
+	}()
 	if len(r.refs.customers) == 0 {
 		rows, err := r.pool.Query(ctx, `
           SELECT c.id,c.birth_date,c.region_code,a.id,a.user_id FROM customers c
@@ -60,16 +72,6 @@ func (r *runner) live(ctx context.Context) (resultErr error) {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		status := "COMPLETED"
-		if resultErr != nil {
-			status = "FAILED"
-		}
-		_, _ = r.pool.Exec(cleanup, `
-          UPDATE simulation_runs SET status=$2,phase='LIVE_STOPPED',finished_at=now(),updated_at=now(),fingerprint=NULL WHERE id=$1 AND status='LIVE'`, r.id, status)
-	}()
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {

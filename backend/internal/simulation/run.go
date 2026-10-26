@@ -111,7 +111,8 @@ func Run(ctx context.Context, pool *pgxpool.Pool, cfg Config, logger *slog.Logge
 			cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			_, _ = pool.Exec(cleanup, `
-              UPDATE simulation_runs SET status='FAILED',finished_at=now(),updated_at=now() WHERE id=$1`, r.id)
+              UPDATE simulation_runs SET status='FAILED',finished_at=now(),updated_at=now()
+               WHERE id=$1 AND status='RUNNING'`, r.id)
 		}
 	}()
 	started := time.Now()
