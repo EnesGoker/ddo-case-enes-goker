@@ -1,0 +1,26 @@
+{
+  "measured_at_utc": "2026-10-26T12:43:32.597155+00:00",
+  "branch": "bonus/acente-panosu",
+  "base_commit": "4d27405a780bd9d04c8917e8002e5eb5267da41b",
+  "measurement": "existing ADR-18 query, agent grouping; read-only SQL EXPLAIN ANALYZE, not a new HTTP endpoint",
+  "period": {
+    "from": null,
+    "to": null,
+    "default_equals_widest": true
+  },
+  "execution_ms": 3972.337,
+  "planning_ms": 109.486,
+  "limit_ms": 1000,
+  "result": "FAIL",
+  "samples": 1,
+  "dataset": {
+    "sim_policy_count": 100000,
+    "all_policy_count": 100085,
+    "run_status": "COMPLETED",
+    "stored_fingerprint": "32fde797213b8904e5febc4c33cb8bd38f8cd883fdbe1489f02e521226a23b9b",
+    "database_time": "2026-10-26T12:43:32.393254+00:00"
+  },
+  "sql": "b1-baseline.sql",
+  "plan": "b1-baseline.txt",
+  "action": "Stopped before implementation as instructed; no migration, simulator, dataset or volume changes."
+}
