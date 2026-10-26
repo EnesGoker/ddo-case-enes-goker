@@ -174,7 +174,7 @@ func TestTaskLifecycleSLAAndRBAC(t *testing.T) {
 	assert.Equal(t, http.StatusOK, status, other)
 	assert.Empty(t, other["items"])
 	appraiser = tokenFor(t, assignedEmail)
-	status, body = newClient(t).do(http.MethodPost, claimPath(c)+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": 100, "inspected_at": time.Now().UTC().Format(time.RFC3339)})
+	status, body = postAppraisal(t, claimPath(c)+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": 100, "inspected_at": time.Now().UTC().Format(time.RFC3339)})
 	require.Equal(t, http.StatusCreated, status, body)
 	var taskStatus string
 	var completed, due time.Time

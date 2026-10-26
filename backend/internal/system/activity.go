@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -95,6 +96,10 @@ func ActivityHandler(pool *pgxpool.Pool) http.HandlerFunc {
 		if err != nil {
 			httpx.Error(w, http.StatusServiceUnavailable, "DATABASE_UNAVAILABLE", "veritabanına ulaşılamıyor")
 			return
+		}
+		actor, _ := auth.FromContext(r.Context())
+		if actor.Role != auth.RoleAccounting && actor.Role != auth.RoleUnderwriter {
+			out.Simulation = nil
 		}
 		httpx.JSON(w, http.StatusOK, out)
 	}

@@ -149,11 +149,12 @@ Normal tekrarın yanıtı bytea olarak saklanır ve aynı baytlarla döner. Önc
 
 | Uç | İş transaction'ındaki koruma |
 |---|---|
-| Poliçe ödemesi, manuel iade | Poliçe kilidi → payments(created_by,request_key) |
-| Zeyil, iptal | Poliçe kilidi → endorsements(created_by,request_key) |
+| Poliçe ödemesi, manuel iade | Poliçe kilidi → payments(created_by,request_key); kind/refund_of ve tutar aynı olmalı, farklıysa422 |
+| Zeyil, iptal | Poliçe kilidi → endorsements(created_by,request_key); tür aynı olmalı, farklıysa422 |
 | Hasar bildirimi | Poliçe kilidi → claims(created_by,request_key) |
 | Teklif çevirme | Teklif kilidi + durum + policies.quote_id UNIQUE |
 | Tazminat onayı / ödemesi | Hasar kilidi + durum + claim_settlements.claim_id UNIQUE / durum |
+| Ekspertiz ekleme | Idempotency-Key middleware; aynı gövde/anahtar aynı yanıt. Ayrı iş request_key koruması yok; iş commit'i–yanıt saklama çökme penceresi sürer. |
 
 ## ADR-15 — Faturalama düzeltmeleri (A6)
 
@@ -217,7 +218,7 @@ Adaylar aktif ödeme planında as_of öncesi açık vadesi veya açık faizi ola
 
 ## ADR-22 — Sistem canlılığı (A7)
 
-Canlılık kaynağı audit_log.occurred_at zamanları ve simulation_runs ilerlemesidir. API tüm giriş yapmış rollere yalnız dakikalık sayılar, son olay zamanı ve simülasyon özeti verir; audit içeriği ve kimlikleri paylaşılmaz. Son 30 dakika sorgusu ve son olay okuması occurred_at indeksiyle sınırlıdır; tablo toplamı alınmaz. Üst çubuk 15 saniyede bir yenilenir ve bağlantı hatasını gösterir.
+Canlılık kaynağı audit_log.occurred_at zamanları ve simulation_runs ilerlemesidir. API tüm giriş yapmış rollere dakikalık sayılar ve son olay zamanını verir; simülasyon ayrıntısı ve mali özet yalnız ACCOUNTING/UNDERWRITER'a döner. Diğer rollerde simulation=null; audit içeriği ve kimlikleri paylaşılmaz. Son 30 dakika sorgusu ve son olay okuması occurred_at indeksiyle sınırlıdır; tablo toplamı alınmaz. Üst çubuk 15 saniyede bir yenilenir ve bağlantı hatasını gösterir.
 
 ## ADR-23 — A8 tarih sınırı, dış hasar görünümü ve açık iş penceresi
 

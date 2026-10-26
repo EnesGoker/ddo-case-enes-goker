@@ -138,7 +138,7 @@ func NewRouter(d Deps) http.Handler {
 				r.With(readers).Get("/{id}", claims.Get)
 				r.With(auth.RequireRoles(auth.RoleCustomer, auth.RoleAgent, auth.RoleClaimsAdjuster), idem.Middleware).Post("/", claims.Report)
 				r.With(adjuster).Post("/{id}/transition", claims.Transition)
-				r.With(auth.RequireRoles(auth.RoleAppraiser)).Post("/{id}/appraisals", claims.Appraise)
+				r.With(auth.RequireRoles(auth.RoleAppraiser), idem.Middleware).Post("/{id}/appraisals", claims.Appraise)
 				r.With(adjuster).Post("/{id}/settlement/preview", claims.Preview)
 				r.With(adjuster, idem.Middleware).Post("/{id}/settlement/approve", claims.Approve)
 				r.With(auth.RequireRoles(auth.RoleAccounting), idem.Middleware).Post("/{id}/pay", claims.Pay)

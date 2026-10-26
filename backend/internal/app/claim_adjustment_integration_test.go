@@ -25,7 +25,7 @@ func TestAdjustmentRequiresAppraisalOnEveryEntry(t *testing.T) {
 				c = transitionClaim(t, adjuster, c, "TRIAGED")
 				c = transitionClaim(t, adjuster, c, "APPRAISAL")
 				if hasAppraisal {
-					s, out := newClient(t).do(http.MethodPost, claimPath(c)+"/appraisals", appraiser, map[string]any{
+					s, out := postAppraisal(t, claimPath(c)+"/appraisals", appraiser, map[string]any{
 						"damage_amount_kurus": 100000, "inspected_at": time.Now().UTC().Format(time.RFC3339),
 					})
 					require.Equal(t, http.StatusCreated, s, out)

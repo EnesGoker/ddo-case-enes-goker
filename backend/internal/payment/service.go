@@ -67,6 +67,9 @@ func accrualDate(h policy.Header, at time.Time) time.Time {
 }
 
 func concurrencyError(err error) error {
+	if errors.Is(err, store.ErrRequestKeyMismatch) {
+		return httpx.NewError(http.StatusUnprocessableEntity, "IDEMPOTENCY_KEY_REUSED", "anahtar farklı ödeme veya iade için kullanılmış")
+	}
 	err = idempotency.Conflict(err)
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) && pg.Code == "23514" && (pg.TableName == "installments" || pg.TableName == "late_interest_charges") {
@@ -108,11 +111,14 @@ func (s *Service) Pay(ctx context.Context, id int64, req PayRequest) (store.Paym
 			return err
 		}
 
-		previous, found, err := store.FindPayment(ctx, tx, h.ID, p.UserID, idempotency.Key(ctx))
+		previous, found, err := store.FindPayment(ctx, tx, h.ID, p.UserID, idempotency.Key(ctx), "PAYMENT", nil)
 		if err != nil {
 			return err
 		}
 		if found {
+			if previous.AmountKurus != *req.AmountKurus {
+				return httpx.NewError(http.StatusUnprocessableEntity, "IDEMPOTENCY_KEY_REUSED", "iş anahtarındaki ödeme tutarı farklı")
+			}
 			out = previous
 			return nil
 		}
@@ -196,11 +202,14 @@ func (s *Service) Refund(ctx context.Context, id int64, req RefundRequest) (stor
 			return err
 		}
 
-		previous, found, err := store.FindPayment(ctx, tx, h.ID, p.UserID, idempotency.Key(ctx))
+		previous, found, err := store.FindPayment(ctx, tx, h.ID, p.UserID, idempotency.Key(ctx), "REFUND", &id)
 		if err != nil {
 			return err
 		}
 		if found {
+			if previous.AmountKurus != *req.AmountKurus {
+				return httpx.NewError(http.StatusUnprocessableEntity, "IDEMPOTENCY_KEY_REUSED", "iş anahtarındaki iade tutarı farklı")
+			}
 			out = previous
 			return nil
 		}

@@ -416,7 +416,7 @@ func (s *ChangeService) PreviewVehicleChange(ctx context.Context, id int64, req 
 func (s *ChangeService) VehicleChange(ctx context.Context, id int64, req VehicleChangeRequest) (VehicleChangeResult, error) {
 	var out VehicleChangeResult
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		detail, prior, err := s.replayChange(ctx, tx, id)
+		detail, prior, err := s.replayChange(ctx, tx, id, "VEHICLE_CHANGE")
 		if err != nil {
 			return err
 		}
@@ -646,7 +646,7 @@ func (s *ChangeService) Cancel(ctx context.Context, id int64, req CancelRequest)
 // HTTP rol kuralı router'da kalır; sistem çağrısında aktör ACCOUNTING kullanıcısıdır.
 func (s *ChangeService) CancelTx(ctx context.Context, tx pgx.Tx, id int64, req CancelRequest) (CancelResult, error) {
 	var out CancelResult
-	detail, prior, err := s.replayChange(ctx, tx, id)
+	detail, prior, err := s.replayChange(ctx, tx, id, "CANCELLATION")
 	if err != nil {
 		return out, err
 	}

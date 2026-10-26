@@ -3,6 +3,7 @@ package policy
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/EnesGoker/guvenpolice/backend/internal/access"
 	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
@@ -11,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *ChangeService) replayChange(ctx context.Context, tx pgx.Tx, id int64) (*Detail, *EndorsementView, error) {
+func (s *ChangeService) replayChange(ctx context.Context, tx pgx.Tx, id int64, kind string) (*Detail, *EndorsementView, error) {
 	h, err := LoadHeader(ctx, tx, id, true)
 	if errors.Is(err, ErrNotFound) {
 		return nil, nil, httpx.NotFound("poliçe")
@@ -32,13 +33,17 @@ func (s *ChangeService) replayChange(ctx context.Context, tx pgx.Tx, id int64) (
 		return nil, nil, nil
 	}
 	var eid int64
+	var previousKind string
 	err = tx.QueryRow(ctx, `
-  SELECT id FROM endorsements WHERE policy_id=$1 AND created_by=$2 AND request_key=$3`, id, actor.UserID, key).Scan(&eid)
+  SELECT id,type FROM endorsements WHERE policy_id=$1 AND created_by=$2 AND request_key=$3`, id, actor.UserID, key).Scan(&eid, &previousKind)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, nil
 	}
 	if err != nil {
 		return nil, nil, err
+	}
+	if previousKind != kind {
+		return nil, nil, httpx.NewError(http.StatusUnprocessableEntity, "IDEMPOTENCY_KEY_REUSED", "iş anahtarındaki zeyil türü farklı")
 	}
 	d, err := LoadDetail(ctx, tx, h)
 	if err != nil {

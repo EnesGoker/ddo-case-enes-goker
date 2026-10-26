@@ -53,6 +53,7 @@ export function ReportClaimForm({ policyID, onDone }: { policyID: number; onDone
 }
 
 export function AppraisalForm({ claimID, onDone }: { claimID: number; onDone: () => void }) {
+	const [key, setKey] = useState(newIdempotencyKey)
   const [amount, setAmount] = useState('0')
   const [totalLoss, setTotalLoss] = useState(false)
   const [notes, setNotes] = useState('')
@@ -65,11 +66,11 @@ export function AppraisalForm({ claimID, onDone }: { claimID: number; onDone: ()
   async function submit(e: FormEvent) {
     e.preventDefault(); setBusy(true); setError(null)
     try {
-      await api(`/api/v1/claims/${claimID}/appraisals`, { method: 'POST', body: JSON.stringify({ damage_amount_kurus: Number(amount), is_total_loss: totalLoss, notes, inspected_at: new Date(inspected).toISOString() }) })
+      await api(`/api/v1/claims/${claimID}/appraisals`, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ damage_amount_kurus: Number(amount), is_total_loss: totalLoss, notes, inspected_at: new Date(inspected).toISOString() }) })
       onDone()
     } catch (e) { setError(errorText(e)) } finally { setBusy(false) }
   }
-  return <form className="panel" onSubmit={(e) => void submit(e)}>
+  return <form className="panel" onSubmit={(e) => void submit(e)} onChange={() => setKey(newIdempotencyKey())}>
     <h4>Ekspertiz ekle</h4>
     <div className="form-grid">
       <label>Brüt hasar (kuruş)<input type="number" required min="0" max={Number.MAX_SAFE_INTEGER} step="1" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={busy} /></label>

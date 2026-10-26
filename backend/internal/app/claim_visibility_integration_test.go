@@ -65,7 +65,7 @@ func TestCustomerAndAgentClaimBodiesHideReviewInternals(t *testing.T) {
 			checkDetail()
 			change("APPRAISAL", "fraud iç temize çıkış notu")
 			checkDetail()
-			s, body := newClient(t).do(http.MethodPost, claimPath(c)+"/appraisals", tokenFor(t, "eksper@guvenpolice.test"), map[string]any{
+			s, body := postAppraisal(t, claimPath(c)+"/appraisals", tokenFor(t, "eksper@guvenpolice.test"), map[string]any{
 				"damage_amount_kurus": 100, "inspected_at": time.Now().UTC().Format(time.RFC3339),
 			})
 			require.Equal(t, http.StatusCreated, s, body)

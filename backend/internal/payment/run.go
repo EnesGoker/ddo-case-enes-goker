@@ -139,6 +139,9 @@ func (s *Service) Run(ctx context.Context, date string, options ...RunOptions) (
 					cancelled = true
 				}
 			}
+			if accrued.Count == 0 && !cancelled {
+				return nil
+			}
 			return audit.Write(ctx, tx, audit.Entry{Action: "BILLING_RUN", EntityType: "policy", EntityID: id, New: map[string]any{
 				"as_of": out.AsOf, "accrual": accrued, "cancelled": cancelled, "skipped": reason,
 			}})

@@ -129,7 +129,7 @@ func TestFraudReviewCanReturnToAppraisal(t *testing.T) {
 	require.Equal(t, http.StatusConflict, s, b)
 	assert.Equal(t, "APPRAISAL_REQUIRED", errCode(b))
 	c = transitionClaim(t, adjuster, c, "APPRAISAL")
-	s, b = newClient(t).do(http.MethodPost, claimPath(c)+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": 100000, "inspected_at": time.Now().UTC().Format(time.RFC3339)})
+	s, b = postAppraisal(t, claimPath(c)+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": 100000, "inspected_at": time.Now().UTC().Format(time.RFC3339)})
 	require.Equal(t, http.StatusCreated, s, b)
 	c = transitionClaim(t, adjuster, c, "ADJUSTMENT")
 	s, b, _ = postKey(t, adjuster, claimPath(c)+"/settlement/approve", nil, fmt.Sprintf("review-approve-%v", c["id"]))

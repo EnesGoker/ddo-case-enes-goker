@@ -7,6 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # Canlı/batch simülatör veri temizliği sırasında yeniden kayıt eklememeli.
+docker compose --profile sim stop simulator
 if [ "$(docker inspect -f '{{.State.Running}}' guvenpolice-simulator 2>/dev/null || true)" = true ]; then
   docker stop -t 15 guvenpolice-simulator >/dev/null
 fi

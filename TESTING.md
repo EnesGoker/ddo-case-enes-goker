@@ -423,3 +423,9 @@ V0 başlangıcı2020-01-01;2019-12-31 tarife-yok.00011 Up/Down/Up referans/prim 
 00012: policy_version_coverages.event_limit_kurus, NULL=yok/varsa pozitif. Eski kayıtlar yeniden fiyatlanmaz. Kurgusal katalog CAM10.000TL olay/25.000TL dönem;500TL sabit muafiyet. Saf TestGoldenEventLimitsInOrder dört sınırın sırasını; TestEventLimitInt64AndValidation büyük tutar/geçersiz girişi doğrular. Yeni hesapta7adım, NULL olay adımı skipped; geçmiş settlement dökümleri korunur.
 
 TestEventLimitSnapshotAndPerClaimApproval gerçek API'de iki ayrı olayın her birinde1.000.000kuruş onayı, toplam2.000.000kuruş tüketimi, zeyilde snapshot ve eski NULL davranışını doğruladı. TestEventLimitMigrationUpDownUpAndDataGuard PASS. `make test-integration` PASS/exit0 (app70,830sn), lint/build PASS. Yeni verify T-3 olay-limiti satırı son100k sonrasında çalışacak.
+
+## A8 iç inceleme regresyonları
+
+`./scripts/test-integration.sh -run 'TestActivity|TestBusinessKeyRejects|TestUnchangedBilling|TestAppraisalIdempotency|TestRefundIndexRecovers|TestBusinessRequestKeyRecovery|TestMigrationsUpDownUp' -v`: PASS (app13,442sn). Yanlış kind/refund_of/tutar veya zeyil türü422, etkisiz gün sonu audit0, ekspertiz tekrarında1kayıt, INVALID çevrimiçi indeks kurtarma. Tam normal entegrasyon PASS76,972sn; simülasyon testleri ayrı.
+
+Ekspertiz isteğinde Idempotency-Key zorunlu. UI değişmeyen formu tekrar gönderirken aynı anahtarı korur; alan değişince yeniler. Sistem sayfasında tüm roller canlılık sayısını görür; mali simülasyon özeti yalnız muhasebe/UW'ye açıktır. Verify macOS BSD date üzerinde nanosaniye için Python3 gerektirir; GNU date doğrudan kullanılır.

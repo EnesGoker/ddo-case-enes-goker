@@ -25,7 +25,8 @@ paths:
       summary: Sistem canlılığı ve simülasyon ilerlemesi (tüm giriş yapmış roller)
       description: |
         Audit içeriği/kimlikleri verilmez. Son olay ve son 30 dakikanın olay sayıları
-        audit_log.occurred_at indeksinden okunur. Simülasyon bilgisi en son koşudur.
+        audit_log.occurred_at indeksinden okunur. Simülasyon bilgisi en son koşudur;
+        yalnız ACCOUNTING/UNDERWRITER alır. Diğer rollerde simulation=null, yalnız canlılık sayıları döner.
         Bağlam saati HTTP yollarında ayarlanmaz; bu uç gerçek zamanı kullanır.
       security: [{ bearerAuth: [] }]
       responses:
@@ -718,6 +719,7 @@ paths:
         kullanılır.
       parameters:
       - "$ref": "#/components/parameters/ID"
+      - "$ref": "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:

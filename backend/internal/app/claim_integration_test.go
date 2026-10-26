@@ -70,7 +70,7 @@ func adjustmentClaim(t *testing.T, pol map[string]any, adjuster, appraiser strin
 	c := reportClaim(t, adjuster, pol, "KASKO_ANA", caldate.Format(caldate.Today(time.Now())))
 	c = transitionClaim(t, adjuster, c, "TRIAGED")
 	c = transitionClaim(t, adjuster, c, "APPRAISAL")
-	s, b := newClient(t).do(http.MethodPost, claimPath(c)+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": damage, "is_total_loss": false, "notes": "tespit", "inspected_at": time.Now().UTC().Format(time.RFC3339)})
+	s, b := postAppraisal(t, claimPath(c)+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": damage, "is_total_loss": false, "notes": "tespit", "inspected_at": time.Now().UTC().Format(time.RFC3339)})
 	require.Equal(t, 201, s, b)
 	return transitionClaim(t, adjuster, c, "ADJUSTMENT")
 }
@@ -262,7 +262,7 @@ func TestClaimTransitionsValidationAndRBAC(t *testing.T) {
 	s, b = get(t, appraiser, path)
 	assert.Equal(t, 200, s, b)
 	for _, amount := range []int64{100000, 200000} {
-		s, b = newClient(t).do(http.MethodPost, path+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": amount, "inspected_at": time.Now().UTC().Format(time.RFC3339)})
+		s, b = postAppraisal(t, path+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": amount, "inspected_at": time.Now().UTC().Format(time.RFC3339)})
 		require.Equal(t, 201, s, b)
 	}
 	c = transitionClaim(t, adjuster, c, "ADJUSTMENT")
@@ -272,7 +272,7 @@ func TestClaimTransitionsValidationAndRBAC(t *testing.T) {
 	require.Equal(t, 200, s, b)
 	assert.Equal(t, int64(200000), num(b["gross_damage_kurus"]))
 	assert.Equal(t, int64(150000), num(b["payable_kurus"]))
-	s, b = newClient(t).do(http.MethodPost, path+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": 1, "inspected_at": time.Now().UTC().Format(time.RFC3339)})
+	s, b = postAppraisal(t, path+"/appraisals", appraiser, map[string]any{"damage_amount_kurus": 1, "inspected_at": time.Now().UTC().Format(time.RFC3339)})
 	assert.Equal(t, 409, s, b)
 	// Keyset ve filtre.
 	s, b = get(t, customer, "/api/v1/claims?status=ADJUSTMENT&limit=1")
@@ -344,4 +344,10 @@ func TestClaimValidationAndLedgerRollback(t *testing.T) {
 	var n int
 	require.NoError(t, pool.QueryRow(context.Background(), `SELECT count(*) FROM journal_entries WHERE ref_type='A4_TEST_ROLLBACK'`).Scan(&n))
 	assert.Zero(t, n)
+}
+
+func postAppraisal(t *testing.T, path, token string, body any) (int, map[string]any) {
+	t.Helper()
+	status, out, _ := postKey(t, token, path, body, fmt.Sprintf("appraisal-%d", time.Now().UnixNano()))
+	return status, out
 }

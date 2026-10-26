@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ayakta ve seed edilmiş sisteme karşı gerçek HTTP kontrolleri. Yalnızca curl + POSIX araçları.
+# Ayakta ve seed edilmiş sisteme karşı gerçek HTTP kontrolleri. curl + POSIX araçları; BSD date için Python3 nanosaniye saati.
 # Her kontrol PASS/FAIL yazar; herhangi bir FAIL'de çıkış kodu 1'dir.
 #   API_URL (varsayılan http://localhost:8080), WEB_URL (varsayılan http://localhost:3000),
 #   DEMO_PASSWORD (yoksa .env'den okunur)
@@ -296,7 +296,16 @@ A4KEY="verify-a4-$$-$(date +%s)"
 claim_policy() { # ürün; POLICY değişkenini doldurur
   local body
   VERIFY_PLATE_SEQ=$(( ${VERIFY_PLATE_SEQ:-0} + 1 ))
-  local unique_plate="34VFY$(printf '%04d' "$(( ($$ + $(date +%s) + VERIFY_PLATE_SEQ) % 10000 ))")"
+  local stamp alphabet serial letters unique_plate
+  stamp="$(date +%s%N)"
+  # BSD date nanosaniye desteklemez; macOS'ta mevcut Python3 saati kullanılır.
+  case "$stamp" in *[!0-9]*) stamp="$(python3 -c 'import time; print(time.time_ns())')" ;; esac
+  alphabet=ABCDEFGHIJKLMNOPQRSTUVWXYZ
+  serial=$(( (stamp + $$ + VERIFY_PLATE_SEQ) % 175760000 ))
+  letters=$((serial / 10000))
+  unique_plate="34${alphabet:$((letters / 676)):1}${alphabet:$((letters / 26 % 26)):1}${alphabet:$((letters % 26)):1}$(printf '%04d' "$((serial % 10000))")"
+  # SIM plaka alanı yalnızca simülatöre aittir.
+  unique_plate="${unique_plate/34SIM/34SJN}"
   if [ "$1" = KASKO_RACE ]; then
     body="{\"customer_id\":$AYSE,\"product\":\"KASKO\",\"term_start\":\"$TODAY\",\"ncd_level\":2,\"vehicle_group\":\"C\",\"plate\":\"34ABC123\",\"coverages\":[\"KASKO_ANA\",\"IMM\"]}"
   else body="$(quote_body "$AYSE" "$TODAY")"; fi
@@ -321,7 +330,7 @@ ready_claim() { # poliçe, teminat, brüt; READY_CLAIM / READY_OK
   [ "$STATUS" = 200 ] || READY_OK=no
   req POST "$API_URL/api/v1/claims/$READY_CLAIM/transition" -H "Authorization: Bearer $ADJ" -H 'Content-Type: application/json' --data '{"to_status":"APPRAISAL","expected_row_version":2}'
   [ "$STATUS" = 200 ] || READY_OK=no
-  req POST "$API_URL/api/v1/claims/$READY_CLAIM/appraisals" -H "Authorization: Bearer $APPRAISER" -H 'Content-Type: application/json' \
+  req POST "$API_URL/api/v1/claims/$READY_CLAIM/appraisals" -H "Authorization: Bearer $APPRAISER" -H "Idempotency-Key: $A4KEY-appraisal-$READY_CLAIM" -H 'Content-Type: application/json' \
     --data "{\"damage_amount_kurus\":$3,\"is_total_loss\":false,\"notes\":\"verify\",\"inspected_at\":\"${TODAY}T10:00:00+03:00\"}"
   [ "$STATUS" = 201 ] || READY_OK=no
   req POST "$API_URL/api/v1/claims/$READY_CLAIM/transition" -H "Authorization: Bearer $ADJ" -H 'Content-Type: application/json' --data '{"to_status":"ADJUSTMENT","expected_row_version":3}'

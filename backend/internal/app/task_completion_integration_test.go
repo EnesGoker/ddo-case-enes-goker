@@ -34,7 +34,7 @@ func TestTaskCompletionTakesOwnershipAndRejectionIsWork(t *testing.T) {
 			c = transitionClaim(t, adjuster, c, "TRIAGED")
 			if kind == "ADJUSTMENT" {
 				c = transitionClaim(t, adjuster, c, "APPRAISAL")
-				s, body := newClient(t).do(http.MethodPost, claimPath(c)+"/appraisals", tokenFor(t, "eksper@guvenpolice.test"), map[string]any{
+				s, body := postAppraisal(t, claimPath(c)+"/appraisals", tokenFor(t, "eksper@guvenpolice.test"), map[string]any{
 					"damage_amount_kurus": 100, "inspected_at": time.Now().UTC().Format(time.RFC3339),
 				})
 				require.Equal(t, http.StatusCreated, s, body)
@@ -75,7 +75,7 @@ func TestTaskCompletionTakesOwnershipAndRejectionIsWork(t *testing.T) {
 	c = transitionClaim(t, adjuster, c, "APPRAISAL")
 	_, err := pool.Exec(ctx, `UPDATE claim_tasks SET assigned_to=$2 WHERE claim_id=$1 AND status='OPEN'`, num(c["id"]), otherAppraiser)
 	require.NoError(t, err)
-	s, body := newClient(t).do(http.MethodPost, claimPath(c)+"/appraisals", tokenFor(t, "eksper@guvenpolice.test"), map[string]any{
+	s, body := postAppraisal(t, claimPath(c)+"/appraisals", tokenFor(t, "eksper@guvenpolice.test"), map[string]any{
 		"damage_amount_kurus": 100, "inspected_at": time.Now().UTC().Format(time.RFC3339),
 	})
 	require.Equal(t, http.StatusCreated, s, body)
