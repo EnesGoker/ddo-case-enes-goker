@@ -1,0 +1,105 @@
+name: CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Build ve vet (tüm test etiketleri)
+        working-directory: backend
+        run: |
+          go build ./...
+          go vet ./...
+          go vet -tags integration ./...
+          go vet -tags integration,simulation ./...
+      - name: Birim testleri ve statement kapsamı
+        working-directory: backend
+        run: go test -count=1 -coverprofile=coverage.out ./...
+      - name: Domain başına en az yüzde 70
+        run: |
+          set -o pipefail
+          ./scripts/check-coverage.sh backend/coverage.out | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage.out
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: it
+          POSTGRES_PASSWORD: it
+          POSTGRES_DB: it
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U it -d it"
+          --health-interval 3s --health-timeout 3s --health-retries 30
+    env:
+      DATABASE_URL: postgres://it:it@127.0.0.1:5432/it?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - run: make test-integration
+  simulation:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: it
+          POSTGRES_PASSWORD: it
+          POSTGRES_DB: it
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U it -d it"
+          --health-interval 3s --health-timeout 3s --health-retries 30
+    env:
+      DATABASE_URL: postgres://it:it@127.0.0.1:5432/it?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - run: make test-simulation
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npx tsc -b
+          npm run lint
+          npm run build
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f backend/Dockerfile -t guvenpolice-api:ci .
+      - run: docker build -t guvenpolice-web:ci frontend

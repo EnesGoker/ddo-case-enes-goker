@@ -2,10 +2,10 @@
 GO      ?= go
 COMPOSE ?= docker compose
 
-.PHONY: help env up down logs ps test test-integration test-simulation lint build verify reset-demo simulate
+.PHONY: help env up down logs ps test test-integration test-simulation lint build verify reset-demo simulate load chaos explain coverage
 
 help:
-	@echo "make up | down | logs | ps | test | test-integration | test-simulation | lint | build | verify | reset-demo | simulate"
+	@echo "make up | down | logs | ps | test | test-integration | test-simulation | lint | build | verify | reset-demo | simulate | load | chaos | explain | coverage"
 
 env:
 	@test -f .env || (cp .env.example .env && echo ".env, .env.example'dan oluşturuldu")
@@ -32,7 +32,7 @@ test-simulation:
 	GP_TEST_TAGS=integration,simulation GP_TEST_TIMEOUT=20m ./scripts/test-integration.sh -run '^(TestSimulator|TestVerifyStopsBeforeBusinessRequestsDuringLive)'
 
 lint:
-	cd backend && $(GO) vet ./... && $(GO) vet -tags integration ./...
+	cd backend && $(GO) vet ./... && $(GO) vet -tags integration ./... && $(GO) vet -tags integration,simulation ./...
 	cd frontend && npm run lint
 
 build:
@@ -47,3 +47,16 @@ reset-demo:
 
 simulate: env
 	$(COMPOSE) --profile sim run --rm --name guvenpolice-simulator --use-aliases simulator
+
+coverage:
+	cd backend && $(GO) test -count=1 -coverprofile=coverage.out ./...
+	./scripts/check-coverage.sh backend/coverage.out
+
+load: env
+	./scripts/load.sh
+
+chaos: env
+	./scripts/chaos.sh
+
+explain: env
+	./scripts/explain.sh
