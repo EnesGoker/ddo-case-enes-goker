@@ -379,7 +379,10 @@ func TestSeedIsIdempotent(t *testing.T) {
 }
 
 func TestMetricsExposed(t *testing.T) {
-	resp, err := http.Get(server.URL + "/metrics")
+	req, err := http.NewRequest(http.MethodGet, server.URL+"/metrics", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+tokenFor(t, "muhasebe@guvenpolice.test"))
+	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	b, _ := io.ReadAll(resp.Body)

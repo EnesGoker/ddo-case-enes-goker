@@ -11,7 +11,9 @@ info:
     Para alanları kuruş cinsinden tam sayıdır (`*_kurus`); oranlar bp (10000 = ×1).
     Erişim kuralı: rol uca hiç erişemiyorsa 403; erişebiliyor ama kayıt kapsam dışındaysa 404.
     Listeler keyset sayfalıdır: `?limit=` (1–100) ve önceki yanıttaki opak `next_cursor`.
-    Normal Idempotency-Key tekrarı aynı yanıt baytlarını döner; çökme kurtarmasında aynı kaynak ve özgün HTTP durumuyla kanonik yanıt döner.
+    Normal Idempotency-Key tekrarı aynı yanıt baytlarını döner. Tahsilat/iade, zeyil/iptal, hasar bildirimi ve ekspertizde
+    iş anahtarıyla çökme kurtarması aynı kaynak ve özgün HTTP durumuyla kanonik yanıt döner.
+    Teklif çevirme ve tazminat onayı/ödemesinde yanıt kaydı kayıpsa durum/kısıt koruması ikinci etkiyi engeller; tekrar 409 alabilir.
     Tüm hatalar `{"error":{"code","message","details?"}}` biçimindedir.
     Refresh token yalnızca httpOnly `gp_refresh` cookie'sinde taşınır (Path=/api/v1/auth, SameSite=Strict).
 servers:
@@ -59,13 +61,18 @@ paths:
 
   /metrics:
     get:
-      summary: Prometheus metin biçiminde metrikler
-      security: []
+      summary: Prometheus metin biçiminde metrikler (ACCOUNTING/UNDERWRITER)
+      description: Toplu iç inceleme sayıları içerdiğinden yalnız mali roller erişebilir. Sağlık denetimi için kimliksiz /health kullanılır.
+      security: [{ bearerAuth: [] }]
       responses:
         "200":
           description: http_requests_total, http_request_duration_seconds_sum, auth_login_total; scrape sırasında claim_tasks_open ve claim_tasks_sla_breached gauge (task_type etiketi, guvenpolice_ öneki). DB hatasında gauge örnekleri atlanır.
           content:
             text/plain: { schema: { type: string } }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /api/v1/auth/login:
     post:
@@ -715,8 +722,11 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-      description: Birden çok ekspertiz eklenebilir; en son eklenen (id DESC) tazminatta
-        kullanılır.
+      description: |
+        Farklı Idempotency-Key ile birden çok ekspertiz eklenebilir; en son eklenen (id DESC) tazminatta kullanılır.
+        İş kaydındaki appraiser_id/request_key kurtarması, yanıt kaydı kaybolsa veya bayat IN_PROGRESS devralınsa da
+        aynı ekspertizi 201 ile döndürür; kayıt, görev kapanışı ve audit tekrarlanmaz. Aynı anahtarla farklı içerik 422'dir.
+        Kurtarma durum kontrolünden önce yapılır; yeni ekspertiz ekleme yalnız APPRAISAL durumunda mümkündür.
       parameters:
       - "$ref": "#/components/parameters/ID"
       - "$ref": "#/components/parameters/IdempotencyKey"

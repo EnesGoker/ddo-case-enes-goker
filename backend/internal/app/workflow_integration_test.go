@@ -219,7 +219,10 @@ func TestTaskLifecycleSLAAndRBAC(t *testing.T) {
 		} else {
 			assert.Contains(t, string(raw), `"breached":true`)
 		}
-		metrics, err := http.Get(fixed.URL + "/metrics")
+		metricsRequest, err := http.NewRequest(http.MethodGet, fixed.URL+"/metrics", nil)
+		require.NoError(t, err)
+		metricsRequest.Header.Set("Authorization", "Bearer "+tokenFor(t, "muhasebe@guvenpolice.test"))
+		metrics, err := http.DefaultClient.Do(metricsRequest)
 		require.NoError(t, err)
 		raw, err = io.ReadAll(metrics.Body)
 		metrics.Body.Close()
@@ -382,9 +385,14 @@ func TestFraudSeedStableAndMetricsDatabaseFailure(t *testing.T) {
 	closed, err := pgxpool.New(context.Background(), pool.Config().ConnString())
 	require.NoError(t, err)
 	closed.Close()
-	handler := app.NewRouter(app.Deps{Pool: closed, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	handler := app.NewRouter(app.Deps{
+		Pool: closed, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		JWTSecret: []byte("integration-secret-at-least-32-bytes"),
+	})
 	recorder := httptest.NewRecorder()
-	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	request := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	request.Header.Set("Authorization", "Bearer "+tokenFor(t, "muhasebe@guvenpolice.test"))
+	handler.ServeHTTP(recorder, request)
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.NotContains(t, recorder.Body.String(), `guvenpolice_claim_tasks_open{`)
 	assert.NotContains(t, recorder.Body.String(), `guvenpolice_claim_tasks_sla_breached{`)

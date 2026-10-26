@@ -70,7 +70,7 @@ req GET "$API_URL/health"
 if [ "$STATUS" = 200 ] && body_has '"db":"ok"'; then pass HEALTH "/health 200, db=ok"
 else fail HEALTH "/health durum=$STATUS"; fi
 
-req GET "$API_URL/metrics"
+req GET "$API_URL/metrics" -H "Authorization: Bearer $preflight_token"
 if [ "$STATUS" = 200 ] && body_has 'http_requests_total'; then pass METRICS "/metrics Prometheus biçimi"
 else fail METRICS "/metrics durum=$STATUS"; fi
 
@@ -107,6 +107,21 @@ else fail AUTH-NO-TOKEN "durum=$STATUS kod=$(field code)"; fi
 req GET "$API_URL/api/v1/customers" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.e30.sahte"
 if [ "$STATUS" = 401 ]; then pass AUTH-BAD-TOKEN "sahte JWT 401"
 else fail AUTH-BAD-TOKEN "durum=$STATUS"; fi
+
+# --- Metrik erişimi: yalnız muhasebe ve underwriter ---
+metrics_access_ok=yes
+req GET "$API_URL/metrics"
+[ "$STATUS" = 401 ] || metrics_access_ok=no
+for metrics_role in CUSTOMER AGENT APPRAISER CLAIMS_ADJUSTER; do
+  eval "metrics_token=\${TOKEN_$metrics_role:-}"
+  req GET "$API_URL/metrics" -H "Authorization: Bearer $metrics_token"
+  [ "$STATUS" = 403 ] && [ "$(field code)" = FORBIDDEN ] || metrics_access_ok=no
+done
+req GET "$API_URL/metrics" -H "Authorization: Bearer ${TOKEN_UNDERWRITER:-}"
+[ "$STATUS" = 200 ] && body_has 'http_requests_total' || metrics_access_ok=no
+if [ "$metrics_access_ok" = yes ]; then
+  pass METRICS-RBAC "kimliksiz 401; dış roller/eksper/hasar 403; underwriter 200"
+else fail METRICS-RBAC "metrik erişim kuralı başarısız"; fi
 
 # --- Rol yetkisi (sunucu tarafı) ---
 for role in CUSTOMER APPRAISER CLAIMS_ADJUSTER ACCOUNTING; do
@@ -649,7 +664,7 @@ else fail "T-5 paralel-atama" "hazırlık yok"; fi
 req GET "$API_URL/api/v1/claim-tasks?claim_id=${seed_claim1:-0}&status=all&breached=true" -H "Authorization: Bearer $ADJ"
 sla_ok=no
 [ "$STATUS" = 200 ] && body_has '"breached":true' && body_has '"task_type":"APPRAISAL"' && sla_ok=yes
-req GET "$API_URL/metrics"
+req GET "$API_URL/metrics" -H "Authorization: Bearer ${TOKEN_ACCOUNTING:-}"
 if [ "$sla_ok" = yes ] && [ "$STATUS" = 200 ] && body_has 'guvenpolice_claim_tasks_sla_breached{task_type="APPRAISAL"}'; then
   pass "T-5 sla" "FP-1 geçmiş SLA ihlali listede ve scrape gauge mevcut"
 else fail "T-5 sla" "FP-1 dosya=${seed_claim1:-yok} ihlal=$sla_ok"; fi

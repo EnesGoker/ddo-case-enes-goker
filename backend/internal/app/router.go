@@ -108,7 +108,8 @@ func NewRouter(d Deps) http.Handler {
 	})
 
 	r.Get("/health", health.Handler(d.Pool))
-	r.Get("/metrics", reg.Handler())
+	r.With(auth.Authenticate(tokens), auth.RequireRoles(auth.RoleAccounting, auth.RoleUnderwriter)).
+		Get("/metrics", reg.Handler())
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", authH.Routes)

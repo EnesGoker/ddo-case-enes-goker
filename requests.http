@@ -6,7 +6,7 @@
 ### Sağlık
 GET {{api}}/health
 
-### Metrikler
+### Kimliksiz metrik isteği → 401
 GET {{api}}/metrics
 
 ### Giriş (acente)
@@ -170,6 +170,10 @@ Content-Type: application/json
 
 {"email":"muhasebe@guvenpolice.test","password":"{{password}}"}
 
+### Metrikler — ACCOUNTING/UNDERWRITER; diğer roller 403
+GET {{api}}/metrics
+Authorization: Bearer {{accounting.response.body.access_token}}
+
 ### Hasar bildir (aynı anahtarla tekrar aynı yanıt)
 # @name claim
 POST {{api}}/api/v1/claims
@@ -201,7 +205,8 @@ Content-Type: application/json
 
 {"to_status":"APPRAISAL","expected_row_version":2}
 
-### Ekspertiz ekle
+### Ekspertiz ekle — aynı anahtar çökme sonrasında da aynı kayıt/201 döndürür
+# Farklı ekspertiz için farklı anahtar; aynı anahtarla farklı içerik → 422.
 POST {{api}}/api/v1/claims/{{claim.response.body.id}}/appraisals
 Idempotency-Key: demo-appraisal-1
 Authorization: Bearer {{appraiser.response.body.access_token}}
