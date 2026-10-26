@@ -77,6 +77,13 @@ func planPolicy(c Config, i int) policyPlan {
 	}
 	if product.IsVehicle() && hasDeliberateClaims(i) {
 		p.Losses = []time.Time{start.AddDate(0, 0, 2), start.AddDate(0, 0, 5), start.AddDate(0, 0, 8)}
+		if i%1000 <= 1 {
+			// Erken iki olay korunur; üçüncü tekrar/atölye örneği yakın döneme yayılır.
+			p.Losses[2] = c.Anchor
+			if i/1000%4 == 3 {
+				p.Losses[2] = c.Anchor.AddDate(0, 0, -1)
+			}
+		}
 	}
 	if len(p.Losses) == 0 && !unpaid && rng.Intn(100) < 3 {
 		at := start.AddDate(0, 0, 30+rng.Intn(240))

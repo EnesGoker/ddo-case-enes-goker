@@ -16,19 +16,20 @@ import (
 )
 
 type Config struct {
-	Seed     int64           `json:"seed"`
-	Policies int             `json:"policies"`
-	Years    int             `json:"years"`
-	Anchor   time.Time       `json:"anchor"`
-	Workers  int             `json:"-"`
-	Live     bool            `json:"-"`
-	Fraud    fraud.Config    `json:"fraud"`
-	Workflow workflow.Config `json:"workflow"`
-	Rate     int64           `json:"late_interest_daily_ppm"`
+	Seed       int64           `json:"seed"`
+	Policies   int             `json:"policies"`
+	Years      int             `json:"years"`
+	Anchor     time.Time       `json:"anchor"`
+	Workers    int             `json:"-"`
+	Live       bool            `json:"-"`
+	Fraud      fraud.Config    `json:"fraud"`
+	Workflow   workflow.Config `json:"workflow"`
+	Rate       int64           `json:"late_interest_daily_ppm"`
+	OpenWindow time.Duration   `json:"open_window"`
 }
 
 func DefaultConfig() Config {
-	return Config{Seed: 42, Policies: 100000, Years: 5, Anchor: caldate.Today(time.Now()), Workers: 8, Fraud: fraud.DefaultConfig(), Workflow: workflow.DefaultConfig(), Rate: 1000}
+	return Config{Seed: 42, Policies: 100000, Years: 5, Anchor: caldate.Today(time.Now()), Workers: 8, Fraud: fraud.DefaultConfig(), Workflow: workflow.DefaultConfig(), Rate: 1000, OpenWindow: 48 * time.Hour}
 }
 
 func LoadConfig() (Config, error) {
@@ -64,6 +65,12 @@ func LoadConfig() (Config, error) {
 			return c, fmt.Errorf("SIM_LIVE: %w", err)
 		}
 	}
+	if raw := os.Getenv("SIM_OPEN_WINDOW"); raw != "" {
+		c.OpenWindow, err = time.ParseDuration(raw)
+		if err != nil {
+			return c, fmt.Errorf("SIM_OPEN_WINDOW: %w", err)
+		}
+	}
 	return c, c.Validate()
 }
 
@@ -74,8 +81,11 @@ func (c Config) Validate() error {
 	if c.Anchor.After(caldate.Today(time.Now())) {
 		return fmt.Errorf("SIM_ANCHOR_DATE gelecekte olamaz")
 	}
-	if c.Anchor.AddDate(-c.Years, 0, 0).Year() < 1 {
-		return fmt.Errorf("simülasyon başlangıcı 0001 yılından önce olamaz")
+	if c.Anchor.AddDate(-c.Years, 0, 0).Before(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)) {
+		return fmt.Errorf("simülasyon başlangıcı 2020-01-01 öncesinde olamaz: v0 tarifesi yok")
+	}
+	if c.OpenWindow <= 0 {
+		return fmt.Errorf("SIM_OPEN_WINDOW pozitif süre olmalı")
 	}
 	if err := c.Fraud.Validate(); err != nil {
 		return err
@@ -87,7 +97,7 @@ func (c Config) parameters() ([]byte, string, error) {
 	business, err := json.Marshal(struct {
 		Version int `json:"version"`
 		Config
-	}{2, c})
+	}{3, c})
 	if err != nil {
 		return nil, "", err
 	}
@@ -97,6 +107,6 @@ func (c Config) parameters() ([]byte, string, error) {
 		Config
 		Workers int  `json:"workers"`
 		Live    bool `json:"live"`
-	}{2, c, c.Workers, c.Live})
+	}{3, c, c.Workers, c.Live})
 	return stored, hex.EncodeToString(sum[:]), err
 }

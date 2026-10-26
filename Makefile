@@ -2,10 +2,10 @@
 GO      ?= go
 COMPOSE ?= docker compose
 
-.PHONY: help env up down logs ps test test-integration lint build verify reset-demo simulate
+.PHONY: help env up down logs ps test test-integration test-simulation lint build verify reset-demo simulate
 
 help:
-	@echo "make up | down | logs | ps | test | test-integration | lint | build | verify | reset-demo | simulate"
+	@echo "make up | down | logs | ps | test | test-integration | test-simulation | lint | build | verify | reset-demo | simulate"
 
 env:
 	@test -f .env || (cp .env.example .env && echo ".env, .env.example'dan oluşturuldu")
@@ -27,6 +27,9 @@ test:
 
 test-integration:
 	./scripts/test-integration.sh
+
+test-simulation:
+	GP_TEST_TAGS=integration,simulation GP_TEST_TIMEOUT=20m ./scripts/test-integration.sh -run '^(TestSimulator|TestVerifyStopsBeforeBusinessRequestsDuringLive)'
 
 lint:
 	cd backend && $(GO) vet ./... && $(GO) vet -tags integration ./...

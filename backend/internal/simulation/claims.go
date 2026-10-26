@@ -3,6 +3,7 @@ package simulation
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"sort"
 	"time"
 
@@ -29,6 +30,27 @@ type claimEvent struct {
 	Stage int
 }
 
+func (c Config) openSince() time.Time {
+	return c.Anchor.Add(24 * time.Hour).Add(-c.OpenWindow)
+}
+
+// Olay tabanı eventContext'te öğlene taşınır. Eski dosyalar pencere başlamadan
+// tamamlanır; yalnız yeni dosyaların sonraki adımları anchor sonrasına kalabilir.
+func claimTimes(c Config, first time.Time, rng *rand.Rand) [8]time.Time {
+	times := [8]time.Time{first}
+	for stage := 1; stage < len(times); stage++ {
+		times[stage] = times[stage-1].AddDate(0, 0, 1+rng.Intn(6))
+	}
+	cutoff := c.openSince().Add(-12 * time.Hour)
+	if first.Before(cutoff) && !times[7].Before(cutoff) {
+		span := cutoff.Add(-time.Microsecond).Sub(first)
+		for stage := 1; stage < len(times); stage++ {
+			times[stage] = first.Add(span * time.Duration(stage) / 7)
+		}
+	}
+	return times
+}
+
 func (r *runner) claims(ctx context.Context) error {
 	var plans []claimPlan
 	var events []claimEvent
@@ -41,11 +63,11 @@ func (r *runner) claims(ctx context.Context) error {
 			}
 			n := len(plans)
 			plans = append(plans, plan)
-			at := loss.AddDate(0, 0, rng.Intn(3))
-			for stage := 0; stage < 8; stage++ {
-				if stage > 0 {
-					at = at.AddDate(0, 0, 1+rng.Intn(6))
-				}
+			reportAt := loss.AddDate(0, 0, rng.Intn(3))
+			if i <= 1 && j == 2 {
+				reportAt = loss // Küçük N'deki kasıtlı atölye patlaması anchor içinde kalır.
+			}
+			for stage, at := range claimTimes(r.cfg, reportAt, rng) {
 				if !at.After(r.cfg.Anchor) {
 					events = append(events, claimEvent{At: at, Plan: n, Stage: stage})
 				}
@@ -107,7 +129,7 @@ func (r *runner) claimEvent(ctx context.Context, p *claimPlan, e claimEvent) err
 		}
 		p.Claim = c
 		if c.Status == "FRAUD_REVIEW" {
-			if !p.Loss.Before(r.cfg.Anchor.AddDate(0, 0, -30)) {
+			if !at.Before(r.cfg.openSince()) {
 				p.Hold = true
 			} else if entityRNG(r.cfg.Seed, p.Policy, 200+p.Index).Intn(100) < 80 {
 				p.Reject = true

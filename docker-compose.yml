@@ -71,6 +71,7 @@ services:
       SIM_WORKERS: ${SIM_WORKERS:-8}
       SIM_ANCHOR_DATE: ${SIM_ANCHOR_DATE:-}
       SIM_LIVE: ${SIM_LIVE:-false}
+      SIM_OPEN_WINDOW: ${SIM_OPEN_WINDOW:-48h}
     depends_on:
       api:
         condition: service_healthy

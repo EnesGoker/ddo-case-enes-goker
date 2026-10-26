@@ -89,3 +89,19 @@ func TestLargePlanAnnualIncidence(t *testing.T) {
 		assert.InDelta(t, expected, bp, 150, product)
 	}
 }
+
+func TestHistoricalClaimEventsFinishBeforeOpenWindow(t *testing.T) {
+	c := DefaultConfig()
+	first := c.Anchor.AddDate(0, 0, -3)
+	events := claimTimes(c, first, entityRNG(42, 0, 1))
+	assert.Equal(t, first, events[0])
+	for i, at := range events {
+		assert.True(t, at.Add(12*time.Hour).Before(c.openSince()))
+		if i > 0 {
+			assert.True(t, at.After(events[i-1]))
+		}
+	}
+	first = c.Anchor
+	events = claimTimes(c, first, entityRNG(42, 0, 1))
+	assert.True(t, events[7].After(c.Anchor), "pencere içindeki akış açık kalabilir")
+}
