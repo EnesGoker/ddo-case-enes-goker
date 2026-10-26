@@ -1123,3 +1123,18 @@ Belge kontrolleri PASS: OpenAPI YAML/271 iç ref ve metrics güvenlik sözleşme
 - Belge/kanıt commit'inin kendi hash'i final raporda verilir: `docs: A8.1 kapanışı, ADR-14 kapsamı ve sınırlamalar`.
 
 Durum: TAMAMLANDI. D1–D5 PASS; verify63/0. Push yapılmadı. Sonraki öneri yalnız kullanıcının kişisel README1/4 metni ve push/CI/teslim kontrolüdür; bu adımlara başlanmadı.
+
+
+## A8.2 — README kişisel cevapları ve son belge kontrolleri (26 Ekim 2026)
+
+Durum: TAMAMLANDI. Başlangıç HEAD'i `4e71d8c`, çalışma ağacı temizdi. Kullanıcının doğrudan onayıyla yalnız README ve belge kanıtı düzenlendi; kod, test, migration, CI ve betik değiştirilmedi. Docker, veritabanı, simülasyon, verify, derleme, test ve paket kurulumu çalıştırılmadı.
+
+- İlk FAIL sonrası ekspertiz karşılaştırması kaldırılmamış: `inspected_at` saat diliminden bağımsız an/mikrosaniye hassasiyetinde, diğer alanlar birebir karşılaştırılıyor. Nanosaniyeli girdi hassasiyet kapsamını artırıyor. Ara FAIL sürümü ayrı commit olmadığından karşılaştırma diff'i yeniden oluşturma olarak açıkça etiketlendi.
+- ADR-14 altı iş anahtarlı uçta aynı kayıt/201, durumla korunan üç uçta kayıp yanıt sonrası 409 ve ikinci etkinin engellenmesi ayrımını zaten doğru içeriyor; değiştirilmedi. README'deki SLA oranının ölçüm anına ait olduğu cümle de mevcuttu.
+- Başlangıç HEAD'inin 273 UTF-8 metin dosyası ve yerel .env hassas ayarlarıyla eşleşmeler tarandı. Gizlenecek kullanılabilir sır bulunmadı; redaksiyon listesi boş. Örnek/demo bilgileri, değişken başvuruları ve bilerek bozuk negatif JWT testi ayrı sınıflandırılıp korundu. docs/testing kayıtlarında sır adayı yok. `git log -p --all --no-ext-diff --no-color` akışındaki 109 commit / 55.810 diff satırında yalnız özel anahtar ve gerçek API anahtarı kalıpları arandı; eşleşme yok, geçmiş değiştirilmedi.
+- REQUIREMENTS genel okunabilirlik turu istemiyor; bonus satırından yalnız belirtilen iki cümle çıkarıldı, bonusların durumu korundu.
+- README 1/4 cevapları Enes'in verdiği metinle birebir eklendi. Teknik a–j iddiaları kaynak, ADR, kayıt ve commit geçmişine karşı doğrulandı. “Tek koşu” son kabul edilen v4 veri kümesidir; deterministik eşitlik aynı seed/anchor/iş parametrelerinde geçerlidir; sim profili ve SIM veri alanı ayrıdır, fiziksel DB ortaktır. Kullanıcının kapsam dışında bıraktığı kişisel gözlemler doğrulanmaya çalışılmadı. Eski %24 kaydı TESTING.md:365 ve DECISIONS.md:206'da bulunuyor.
+
+Kanıt ve dosya:satır tablosu: [A8.2 son belge kontrolü](docs/testing/a82-final-audit.md). Belge kontrolleri PASS: yazar metni hash'leri, elle girinti incelemesi, 1–5 numaralandırması, 2/3/5 cevaplarının ve bonus cümlesinin korunması, 31 yerel kanıt bağlantısı, yalnız izinli Markdown dosyaları ve `git diff --check`. Bu görevde uygulama testleri ÇALIŞTIRILMADI; belge işi sınırı gereği önceki sonuçlar yeniden üretilmedi.
+
+Değişen dosyalar: README.md (kişisel cevaplar ve iki cümlenin çıkarılması), docs/testing/a82-final-audit.md (zaman diff'i, sır taraması ve a–j kanıtları), PROGRESS.md (bu kayıt). Tek yerel commit mesajı `docs: README kişisel cevapları ve son belge kontrolleri`; kendi hash'i final raporda verilir. Push yapılmadı. Sonraki adım yalnız kullanıcının push ve teslim değerlendirmesidir; başlanmadı.

@@ -183,15 +183,39 @@ CI'nin ilk koşusu küçük havuzda gerçek bağlantı kilitlenmesini yakaladı.
 - İş anahtarıyla çökme kurtarması kanonik yanıt döndürür; zaman gösterimi ve JSON baytları ilk HTTP yanıtıyla birebir aynı olmayabilir (ADR-14).
 - Canlı simülasyon hatası tamamlanmış batch'i FAILED yapmaz; COMPLETED/LIVE_FAILED kalır. Canlı modda parmak izi batch sonunu temsil etmeyebilir; özet batch sonunun fotoğrafıdır.
 - Ödeme sağlayıcısı/banka entegrasyonu, mevzuat/tarife gerçekliği ve otomatik gün sonu zamanlayıcısı yok. Node 20 istenen teslim sürümüdür; bağımlılık yükseltme bu aşamanın kapsamı değildir.
-- Bonuslar: ekspertiz notu mevcut; acente performans panosu, poliçe PDF'i ve fotoğraf yükleme **YAPILMADI**. Kesilebilir genel okunabilirlik turu **YAPILMADI**; öncelik üretim havuz hatasına ve teslim kanıtlarına verildi. Yeni kodun okunabilirlik kuralları uygulandı.
+- Bonuslar: ekspertiz notu mevcut; acente performans panosu, poliçe PDF'i ve fotoğraf yükleme **YAPILMADI**.
 - Repo public olarak salt okunur doğrulandı. Son belge push'u, adayın kişisel yanıtları ve anket teslimi Enes'e aittir; uygulama testleri teslim formunu tamamlanmış saymaz.
 
 ## Şartnamenin beş sorusu
 
-1. **En zor görev, alternatifler ve eleme gerekçeleri:** _Enes kendi deneyimiyle yazacak; yer tutucu._
+1. **En zor görev, alternatifler ve eleme gerekçeleri:**
+
+   En zor görev 100 bin poliçelik simülasyon verisini üretmekti. Zorluk, veriyi hangi yolla üreteceğime karar vermek ve bu kararın bedelini yönetmekti.
+
+   - **SQL ile toplu (set tabanlı) üretim, elendi.** Dakikalar içinde biterdi ama kayıtlar uygulamanın kurallarından geçmezdi: prim hesabı, durum geçişleri, muhasebe kayıtları, fraud puanı ve görev ataması kodda bir yerde, veri başka bir yerde üretilmiş olurdu. Raporlar ve mutabakat da sistemin hiçbir zaman üretmeyeceği bir veriyi ölçerdi.
+   - **Servis katmanı üzerinden üretim, seçildi (ADR-19/20).** Her poliçe ve hasar, API'nin kullandığı servis kodundan geçiyor. Yavaş ama veri gerçekten sistemin ürettiği veri.
+
+   Bedeli süre oldu: 8 GB RAM'li bir dizüstünde 100 bin poliçe yaklaşık 30 dakika sürüyor. Bunu çalışma düzenine yansıttım; 100k'yı tek sefer ürettim, koşu sırasında derleme ve test çalıştırmadım. Üretim deterministik: aynı tohum aynı parmak izini veriyor, yani sonuç tekrarlanabilir. Simülasyon verisi demo verisinden ayrı bir profilde duruyor.
+
+   Karşılığında veri gerçekten sınandı: 100 bin poliçeden 7.780 hasar çıktı ve mali mutabakat tutuyor. 4. maddedeki fraud oranı sorunu da bu veriyi incelerken ortaya çıktı.
+
 2. **Gerçek sınırlama/kırılma:** yoğun atölye normal hacmi mutlak eşiği aşabilir; paralel 10k entegrasyon üretimi sırasında mizan 10 sn istemci sınırını aştı (HTTP 000), F-7 defter/boyut kontrolleri de başarısız oldu. Aynı verify 279,62 sn sürdü ve 58 PASS/3 FAIL verdi. [TESTING kaydı](TESTING.md) gerçek koşulları açıklar.
 3. **İki indeks/sorgu ve ölçüm:** yukarıdaki EXPLAIN tablosu ve ham planlar; iki varyant ve medyanlar kayıtlıdır.
-4. **Yapay zekâ çıktısı önce/sonra ve gerekçe:** _Enes seçeceği somut örneği kendi metniyle yazacak; yer tutucu. Değişiklik/kanıt geçmişi PROGRESS/DECISIONS'ta korunur._
+4. **Yapay zekâ çıktısı önce/sonra ve gerekçe:**
+
+   Geliştirmede yapay zekâ ajanlarını uygulayıcı olarak kullandım; çıktılarını testler, CI ve ayrı bir modelin salt okunur incelemesiyle denetledim.
+
+   **Ana örnek: simülatörün fraud oranı**
+   - **Önce:** Ajanın yazdığı simülatörün ürettiği veride hasarların yaklaşık %24'ü fraud incelemesine düşüyordu. Veritabanını inceleyince sebebini buldum: atölye sayısı çok azdı, atölye başına düşen hasar yapay olarak yüksekti ve atölye yoğunluğu sinyali sık sık tetikleniyordu. Bu sinyal tek başına eşiği aşmıyor ama ikinci bir sinyalle birlikte aşıyordu.
+   - **Sonra:** Simülatör 300 atölyeyle çalışıyor; oran %6,36.
+   - **Gerekçe:** Sorun eşikte değil veride olduğu için eşiği gevşetmedim, veriyi gerçekçi hâle getirdim. Bu süreç, eşiğin atölyenin normal hacmine göre değil mutlak sayıyla çalıştığını da gösterdi; gerçek veride büyük atölyeler haksız yere işaretlenebilir. Bunu bilinen sınırlamalara yazdım.
+
+   **Diğer iki örnek**
+   - **Geriye dönük ek prim:** Etki tarihi geçmişte olan bir zeyilde ek prim taksiti vadesi geçmiş olarak doğuyor, gecikme kuralı da primi tamamen ödenmiş poliçeyi iptale götürüyordu. Bunu ikinci modelin incelemesi yakaladı; ek primin vadesi `max(etki tarihi, bugün)` oldu (ADR-15). Primini ödemiş bir müşterinin poliçesi, geçmişe dönük bir düzeltme yüzünden iptal edilemez.
+   - **Transaction içinde ikinci bağlantı:** Yetki sorguları açık transaction'ın bağlantısı yerine havuzdan yeni bağlantı istiyordu. Yerel testlerde görünmedi; CI'da havuz tükenince integration işi kilitlendi (CI #1). Sorgular aynı bağlantıya taşındı ve aynı desen bütün servislerde tarandı (`docs/testing/transaction-pool-audit.md`).
+
+   Üçünde de testler tek başına yeterli değildi: birini veriye bakmak, birini ikinci bir inceleme, birini CI yakaladı.
+
 5. **Prim motoru doğruluğunun komutu/çıktısı:** `cd backend && go test ./internal/pricing -run 'TestGolden|TestBreakdownSumEqualsTotal|TestDeterminism' -v`; [gerçek çıktı](docs/testing/pricing-golden.log): `TestGoldenKasko`, `TestGoldenKonut`, `TestDeterminism`, `TestBreakdownSumEqualsTotal` PASS; paket 0,496 sn. [Son verify](docs/testing/a8-verify-final.log) T-1 deterministik/kalem-toplamı satırlarını gerçek API üzerinden de doğrular.
 
 ## Yapay zekâ ve kanıt kaydı
