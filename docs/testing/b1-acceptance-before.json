@@ -1,0 +1,167 @@
+{
+  "measured_at": "2026-10-26T13:17:51.638882+00:00",
+  "status": "COMPLETED",
+  "phase": "DONE",
+  "processed": 100000,
+  "target": 100000,
+  "elapsed_seconds": 1826.409721,
+  "parameters": {
+    "live": false,
+    "seed": 42,
+    "fraud": {
+      "EarlyDays": 15,
+      "Threshold": 60,
+      "RepeatDays": 365,
+      "EarlyPoints": 40,
+      "RepeatPoints": 35,
+      "WorkshopDays": 30,
+      "RepeatMinimum": 2,
+      "WorkshopPoints": 30,
+      "WorkshopMinimum": 4
+    },
+    "years": 5,
+    "anchor": "2026-10-25T00:00:00Z",
+    "version": 4,
+    "workers": 16,
+    "policies": 100000,
+    "workflow": {
+      "Appraisal": 259200000000000,
+      "Adjustment": 172800000000000,
+      "FraudReview": 86400000000000
+    },
+    "open_window": 172800000000000,
+    "late_interest_daily_ppm": 1000
+  },
+  "fingerprint": "32fde797213b8904e5febc4c33cb8bd38f8cd883fdbe1489f02e521226a23b9b",
+  "summary": {
+    "tasks": {
+      "open": 46,
+      "breached": 9
+    },
+    "claims": [
+      {
+        "count": 7727,
+        "status": "CLOSED",
+        "flagged": 449
+      },
+      {
+        "count": 46,
+        "status": "FRAUD_REVIEW",
+        "flagged": 46
+      },
+      {
+        "count": 1,
+        "status": "REJECTED",
+        "flagged": 0
+      },
+      {
+        "count": 6,
+        "status": "REPORTED",
+        "flagged": 0
+      }
+    ],
+    "ledger": {
+      "cash_kurus": 50470293835,
+      "claim_expense_kurus": 17516008148,
+      "written_premium_kurus": 71414285904
+    },
+    "balanced": true,
+    "payments": [
+      {
+        "kind": "PAYMENT",
+        "count": 930433,
+        "amount_kurus": 68384835847
+      },
+      {
+        "kind": "REFUND",
+        "count": 4696,
+        "amount_kurus": 398533864
+      }
+    ],
+    "policies": [
+      {
+        "count": 48742,
+        "status": "ACTIVE",
+        "product": "KASKO"
+      },
+      {
+        "count": 1258,
+        "status": "CANCELLED",
+        "product": "KASKO"
+      },
+      {
+        "count": 14600,
+        "status": "ACTIVE",
+        "product": "KONUT"
+      },
+      {
+        "count": 400,
+        "status": "CANCELLED",
+        "product": "KONUT"
+      },
+      {
+        "count": 34069,
+        "status": "ACTIVE",
+        "product": "TRAFIK"
+      },
+      {
+        "count": 931,
+        "status": "CANCELLED",
+        "product": "TRAFIK"
+      }
+    ],
+    "installments": [
+      {
+        "count": 3677,
+        "status": "CANCELLED",
+        "paid_kurus": 0,
+        "amount_kurus": 275659114
+      },
+      {
+        "count": 507477,
+        "status": "PAID",
+        "paid_kurus": 68214266344,
+        "amount_kurus": 68214266344
+      },
+      {
+        "count": 35821,
+        "status": "PENDING",
+        "paid_kurus": 0,
+        "amount_kurus": 3598553424
+      }
+    ],
+    "receivable_matches": true
+  },
+  "database_bytes": 2184715287,
+  "sim_policies": 100000,
+  "claims": 7780,
+  "flagged": 495,
+  "open_fraud_review": 46,
+  "open_tasks": 46,
+  "breached_at_batch_end": 9,
+  "breached_at_measurement": 46,
+  "open_before_window": 0,
+  "appraisal_owner_mismatch": 0,
+  "done_appraisal_without_record": 0,
+  "cancelled_decision_tasks": 0,
+  "rule_breakdown": [
+    {
+      "rule_code": "EARLY_CLAIM",
+      "signals": 819,
+      "claims": 819,
+      "flagged_signals": 449
+    },
+    {
+      "rule_code": "REPEAT_PLATE",
+      "signals": 146,
+      "claims": 146,
+      "flagged_signals": 146
+    },
+    {
+      "rule_code": "WORKSHOP_CONCENTRATION",
+      "signals": 500,
+      "claims": 500,
+      "flagged_signals": 479
+    }
+  ]
+}

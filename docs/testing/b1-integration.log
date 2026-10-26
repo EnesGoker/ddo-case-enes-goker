@@ -1,0 +1,38 @@
+./scripts/test-integration.sh
+?   	github.com/EnesGoker/guvenpolice/backend/cmd/api	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/cmd/simulator	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/access	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/app	89.785s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/audit	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/auth	1.007s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/billing	0.686s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/caldate	0.818s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/claim	1.109s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/config	0.786s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/customer	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/fraud	0.754s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/health	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/idempotency	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/ledger	0.573s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/lossratio	0.248s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/payment	0.619s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/payment/store	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform	0.256s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/clock	0.246s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/db	0.260s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/platform/logging	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/metrics	0.246s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/page	0.255s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/policy	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/pricing	0.389s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/proration	0.244s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/quote	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/report	0.552s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/seed	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/settlement	0.241s
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/simulation	1.752s
+?   	github.com/EnesGoker/guvenpolice/backend/internal/system	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/tariff	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/task	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/workflow	0.249s

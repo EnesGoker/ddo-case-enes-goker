@@ -1,0 +1,31 @@
+{
+  "measured_at": "2026-10-26T13:17:57.110463+00:00",
+  "sim_policies": 100000,
+  "strategy": "independent per-agent aggregates for issues, endorsements and approvals, then join the grouped sources",
+  "new_index": false,
+  "runs": [
+    {
+      "period": "all-time",
+      "from": null,
+      "to": null,
+      "execution_ms": [
+        2113.342,
+        501.841,
+        443.704
+      ],
+      "median_ms": 501.841
+    },
+    {
+      "period": "default",
+      "from": "2025-10-27",
+      "to": "2026-10-27",
+      "execution_ms": [
+        250.441,
+        257.549,
+        278.072
+      ],
+      "median_ms": 257.549
+    }
+  ],
+  "gate": "PASS"
+}

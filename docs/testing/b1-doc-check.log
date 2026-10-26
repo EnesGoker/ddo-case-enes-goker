@@ -1,0 +1,7 @@
+Initial checks: local and bundled Python yaml unavailable; frontend js-yaml unavailable. No package installed.
+PASS: system Ruby YAML parsed openapi.yaml; 276 internal references resolved.
+PASS: new /api/v1/reports/agents exists; requests named references resolve.
+PASS: README personal answers unchanged; existing ADR-18 report.go and forbidden simulator/migration/CI/k6 sources unchanged.
+PASS: measured b1-after.sql equals agentPerformanceSQL.
+Secret-pattern scan first flagged the unchanged invalid negative JWT fixture at scripts/verify.sh:107. Confirmed empty claims / deliberately false signature, preserved from baseline; no usable credential or newly introduced token.
+PASS: 53-file manifest links, JSON evidence, personal answers, forbidden source preservation, measured/service SQL equality, actual DB identity, SIM comparison and classified secret-pattern scan.

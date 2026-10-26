@@ -1,0 +1,64 @@
+[
+  {
+    "command": "make test lint build",
+    "started_at": "2026-10-26T13:23:54.799050+00:00",
+    "seconds": 10.131,
+    "exit_code": 0,
+    "log": "b1-test-lint-build.log"
+  },
+  {
+    "command": "make test-integration",
+    "started_at": "2026-10-26T13:25:05.229714+00:00",
+    "seconds": 96.149,
+    "exit_code": 0,
+    "log": "b1-integration.log"
+  },
+  {
+    "command": "docker compose up --build -d --no-deps --wait api web",
+    "started_at": "2026-10-26T13:28:54.375120+00:00",
+    "seconds": 45.2,
+    "exit_code": 0,
+    "log": "b1-services.log",
+    "db_before": "2a7827096972cfec8973770c4d29db7609dcdf2fe9e4dd8bce6133a466ce273e",
+    "db_after": "2a7827096972cfec8973770c4d29db7609dcdf2fe9e4dd8bce6133a466ce273e"
+  },
+  {
+    "command": "make verify",
+    "started_at": "2026-10-26T13:29:39.731956+00:00",
+    "seconds": 112.608,
+    "exit_code": 0,
+    "log": "b1-verify.log"
+  },
+  {
+    "command": "make test lint build",
+    "started_at": "2026-10-26T13:35:01.006137+00:00",
+    "seconds": 7.685,
+    "exit_code": 0,
+    "log": "b1-final-test-lint-build.log",
+    "revision": "FormData date submission fix"
+  },
+  {
+    "command": "make test-integration",
+    "started_at": "2026-10-26T13:35:08.692465+00:00",
+    "seconds": 92.566,
+    "exit_code": 0,
+    "log": "b1-final-integration.log",
+    "revision": "FormData date submission fix"
+  },
+  {
+    "command": "docker compose up --build -d --no-deps --wait api web",
+    "started_at": "2026-10-26T13:36:41.260726+00:00",
+    "seconds": 13.084,
+    "exit_code": 0,
+    "log": "b1-final-services.log",
+    "revision": "FormData date submission fix"
+  },
+  {
+    "command": "make verify",
+    "started_at": "2026-10-26T13:36:54.346712+00:00",
+    "seconds": 108.895,
+    "exit_code": 0,
+    "log": "b1-final-verify.log",
+    "revision": "FormData date submission fix"
+  }
+]

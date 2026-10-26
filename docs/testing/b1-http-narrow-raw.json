@@ -1,0 +1,365 @@
+{
+  "panel": {
+    "from": "2026-09-26",
+    "to": "2026-10-26",
+    "items": [
+      {
+        "key": "1",
+        "label": "Örnek Sigorta Acentesi",
+        "written_premium_kurus": 2844444,
+        "policy_count": 2,
+        "incurred_claims_kurus": 0,
+        "loss_ratio_bp": 0
+      },
+      {
+        "key": "2",
+        "label": "Kurgusal SIM Acente 00",
+        "written_premium_kurus": 190958271,
+        "policy_count": 146,
+        "incurred_claims_kurus": 20234082,
+        "loss_ratio_bp": 1060
+      },
+      {
+        "key": "3",
+        "label": "Kurgusal SIM Acente 01",
+        "written_premium_kurus": 162018869,
+        "policy_count": 141,
+        "incurred_claims_kurus": 115772162,
+        "loss_ratio_bp": 7146
+      },
+      {
+        "key": "4",
+        "label": "Kurgusal SIM Acente 02",
+        "written_premium_kurus": 42260933,
+        "policy_count": 43,
+        "incurred_claims_kurus": 28472874,
+        "loss_ratio_bp": 6737
+      },
+      {
+        "key": "5",
+        "label": "Kurgusal SIM Acente 03",
+        "written_premium_kurus": 45539062,
+        "policy_count": 43,
+        "incurred_claims_kurus": 38843162,
+        "loss_ratio_bp": 8530
+      },
+      {
+        "key": "6",
+        "label": "Kurgusal SIM Acente 04",
+        "written_premium_kurus": 54253768,
+        "policy_count": 50,
+        "incurred_claims_kurus": 23337863,
+        "loss_ratio_bp": 4302
+      },
+      {
+        "key": "7",
+        "label": "Kurgusal SIM Acente 05",
+        "written_premium_kurus": 34667246,
+        "policy_count": 37,
+        "incurred_claims_kurus": 28512163,
+        "loss_ratio_bp": 8225
+      },
+      {
+        "key": "8",
+        "label": "Kurgusal SIM Acente 06",
+        "written_premium_kurus": 37584197,
+        "policy_count": 41,
+        "incurred_claims_kurus": 24871424,
+        "loss_ratio_bp": 6618
+      },
+      {
+        "key": "9",
+        "label": "Kurgusal SIM Acente 07",
+        "written_premium_kurus": 37590249,
+        "policy_count": 41,
+        "incurred_claims_kurus": 25391145,
+        "loss_ratio_bp": 6755
+      },
+      {
+        "key": "10",
+        "label": "Kurgusal SIM Acente 08",
+        "written_premium_kurus": 57184255,
+        "policy_count": 57,
+        "incurred_claims_kurus": 17458248,
+        "loss_ratio_bp": 3053
+      },
+      {
+        "key": "11",
+        "label": "Kurgusal SIM Acente 09",
+        "written_premium_kurus": 37354143,
+        "policy_count": 44,
+        "incurred_claims_kurus": 17481023,
+        "loss_ratio_bp": 4680
+      },
+      {
+        "key": "12",
+        "label": "Kurgusal SIM Acente 10",
+        "written_premium_kurus": 33292821,
+        "policy_count": 42,
+        "incurred_claims_kurus": 29089608,
+        "loss_ratio_bp": 8738
+      },
+      {
+        "key": "13",
+        "label": "Kurgusal SIM Acente 11",
+        "written_premium_kurus": 36686396,
+        "policy_count": 45,
+        "incurred_claims_kurus": 35086774,
+        "loss_ratio_bp": 9564
+      },
+      {
+        "key": "14",
+        "label": "Kurgusal SIM Acente 12",
+        "written_premium_kurus": 32022125,
+        "policy_count": 41,
+        "incurred_claims_kurus": 11509387,
+        "loss_ratio_bp": 3594
+      },
+      {
+        "key": "15",
+        "label": "Kurgusal SIM Acente 13",
+        "written_premium_kurus": 37008230,
+        "policy_count": 49,
+        "incurred_claims_kurus": 15803754,
+        "loss_ratio_bp": 4270
+      },
+      {
+        "key": "16",
+        "label": "Kurgusal SIM Acente 14",
+        "written_premium_kurus": 33719212,
+        "policy_count": 36,
+        "incurred_claims_kurus": 24737802,
+        "loss_ratio_bp": 7336
+      },
+      {
+        "key": "17",
+        "label": "Kurgusal SIM Acente 15",
+        "written_premium_kurus": 25481247,
+        "policy_count": 39,
+        "incurred_claims_kurus": 19154054,
+        "loss_ratio_bp": 7517
+      },
+      {
+        "key": "18",
+        "label": "Kurgusal SIM Acente 16",
+        "written_premium_kurus": 37818598,
+        "policy_count": 39,
+        "incurred_claims_kurus": 26421629,
+        "loss_ratio_bp": 6986
+      },
+      {
+        "key": "19",
+        "label": "Kurgusal SIM Acente 17",
+        "written_premium_kurus": 34698347,
+        "policy_count": 41,
+        "incurred_claims_kurus": 18904772,
+        "loss_ratio_bp": 5448
+      },
+      {
+        "key": "20",
+        "label": "Kurgusal SIM Acente 18",
+        "written_premium_kurus": 37398912,
+        "policy_count": 40,
+        "incurred_claims_kurus": 26293505,
+        "loss_ratio_bp": 7031
+      },
+      {
+        "key": "21",
+        "label": "Kurgusal SIM Acente 19",
+        "written_premium_kurus": 29654954,
+        "policy_count": 45,
+        "incurred_claims_kurus": 24487199,
+        "loss_ratio_bp": 8257
+      }
+    ],
+    "total": {
+      "key": "total",
+      "label": "Toplam",
+      "written_premium_kurus": 1040036279,
+      "policy_count": 1062,
+      "incurred_claims_kurus": 571862630,
+      "loss_ratio_bp": 5498
+    }
+  },
+  "adr18": {
+    "group_by": "agent",
+    "items": [
+      {
+        "key": "1",
+        "label": "Örnek Sigorta Acentesi",
+        "written_premium_kurus": 2844444,
+        "policy_count": 2,
+        "incurred_claims_kurus": 0,
+        "loss_ratio_bp": 0
+      },
+      {
+        "key": "10",
+        "label": "Kurgusal SIM Acente 08",
+        "written_premium_kurus": 57184255,
+        "policy_count": 57,
+        "incurred_claims_kurus": 17458248,
+        "loss_ratio_bp": 3053
+      },
+      {
+        "key": "11",
+        "label": "Kurgusal SIM Acente 09",
+        "written_premium_kurus": 37354143,
+        "policy_count": 44,
+        "incurred_claims_kurus": 17481023,
+        "loss_ratio_bp": 4680
+      },
+      {
+        "key": "12",
+        "label": "Kurgusal SIM Acente 10",
+        "written_premium_kurus": 33292821,
+        "policy_count": 42,
+        "incurred_claims_kurus": 29089608,
+        "loss_ratio_bp": 8738
+      },
+      {
+        "key": "13",
+        "label": "Kurgusal SIM Acente 11",
+        "written_premium_kurus": 36686396,
+        "policy_count": 45,
+        "incurred_claims_kurus": 35086774,
+        "loss_ratio_bp": 9564
+      },
+      {
+        "key": "14",
+        "label": "Kurgusal SIM Acente 12",
+        "written_premium_kurus": 32022125,
+        "policy_count": 41,
+        "incurred_claims_kurus": 11509387,
+        "loss_ratio_bp": 3594
+      },
+      {
+        "key": "15",
+        "label": "Kurgusal SIM Acente 13",
+        "written_premium_kurus": 37008230,
+        "policy_count": 49,
+        "incurred_claims_kurus": 15803754,
+        "loss_ratio_bp": 4270
+      },
+      {
+        "key": "16",
+        "label": "Kurgusal SIM Acente 14",
+        "written_premium_kurus": 33719212,
+        "policy_count": 36,
+        "incurred_claims_kurus": 24737802,
+        "loss_ratio_bp": 7336
+      },
+      {
+        "key": "17",
+        "label": "Kurgusal SIM Acente 15",
+        "written_premium_kurus": 25481247,
+        "policy_count": 39,
+        "incurred_claims_kurus": 19154054,
+        "loss_ratio_bp": 7517
+      },
+      {
+        "key": "18",
+        "label": "Kurgusal SIM Acente 16",
+        "written_premium_kurus": 37818598,
+        "policy_count": 39,
+        "incurred_claims_kurus": 26421629,
+        "loss_ratio_bp": 6986
+      },
+      {
+        "key": "19",
+        "label": "Kurgusal SIM Acente 17",
+        "written_premium_kurus": 34698347,
+        "policy_count": 41,
+        "incurred_claims_kurus": 18904772,
+        "loss_ratio_bp": 5448
+      },
+      {
+        "key": "2",
+        "label": "Kurgusal SIM Acente 00",
+        "written_premium_kurus": 190958271,
+        "policy_count": 146,
+        "incurred_claims_kurus": 20234082,
+        "loss_ratio_bp": 1060
+      },
+      {
+        "key": "20",
+        "label": "Kurgusal SIM Acente 18",
+        "written_premium_kurus": 37398912,
+        "policy_count": 40,
+        "incurred_claims_kurus": 26293505,
+        "loss_ratio_bp": 7031
+      },
+      {
+        "key": "21",
+        "label": "Kurgusal SIM Acente 19",
+        "written_premium_kurus": 29654954,
+        "policy_count": 45,
+        "incurred_claims_kurus": 24487199,
+        "loss_ratio_bp": 8257
+      },
+      {
+        "key": "3",
+        "label": "Kurgusal SIM Acente 01",
+        "written_premium_kurus": 162018869,
+        "policy_count": 141,
+        "incurred_claims_kurus": 115772162,
+        "loss_ratio_bp": 7146
+      },
+      {
+        "key": "4",
+        "label": "Kurgusal SIM Acente 02",
+        "written_premium_kurus": 42260933,
+        "policy_count": 43,
+        "incurred_claims_kurus": 28472874,
+        "loss_ratio_bp": 6737
+      },
+      {
+        "key": "5",
+        "label": "Kurgusal SIM Acente 03",
+        "written_premium_kurus": 45539062,
+        "policy_count": 43,
+        "incurred_claims_kurus": 38843162,
+        "loss_ratio_bp": 8530
+      },
+      {
+        "key": "6",
+        "label": "Kurgusal SIM Acente 04",
+        "written_premium_kurus": 54253768,
+        "policy_count": 50,
+        "incurred_claims_kurus": 23337863,
+        "loss_ratio_bp": 4302
+      },
+      {
+        "key": "7",
+        "label": "Kurgusal SIM Acente 05",
+        "written_premium_kurus": 34667246,
+        "policy_count": 37,
+        "incurred_claims_kurus": 28512163,
+        "loss_ratio_bp": 8225
+      },
+      {
+        "key": "8",
+        "label": "Kurgusal SIM Acente 06",
+        "written_premium_kurus": 37584197,
+        "policy_count": 41,
+        "incurred_claims_kurus": 24871424,
+        "loss_ratio_bp": 6618
+      },
+      {
+        "key": "9",
+        "label": "Kurgusal SIM Acente 07",
+        "written_premium_kurus": 37590249,
+        "policy_count": 41,
+        "incurred_claims_kurus": 25391145,
+        "loss_ratio_bp": 6755
+      }
+    ],
+    "total": {
+      "key": "total",
+      "label": "Toplam",
+      "written_premium_kurus": 1040036279,
+      "policy_count": 1062,
+      "incurred_claims_kurus": 571862630,
+      "loss_ratio_bp": 5498
+    }
+  }
+}

@@ -1,0 +1,69 @@
+./scripts/verify.sh
+GüvenPoliçe verify — API: http://localhost:8080  WEB: http://localhost:3000
+
+  PASS  HEALTH                      /health 200, db=ok
+  PASS  METRICS                     /metrics Prometheus biçimi
+  PASS  WEB-UP                      frontend :3000 200
+  PASS  LOGIN-CUSTOMER              giriş + /me rol=CUSTOMER
+  PASS  LOGIN-AGENT                 giriş + /me rol=AGENT
+  PASS  LOGIN-UNDERWRITER           giriş + /me rol=UNDERWRITER
+  PASS  LOGIN-APPRAISER             giriş + /me rol=APPRAISER
+  PASS  LOGIN-CLAIMS_ADJUSTER       giriş + /me rol=CLAIMS_ADJUSTER
+  PASS  LOGIN-ACCOUNTING            giriş + /me rol=ACCOUNTING
+  PASS  AUTH-WRONG-PASSWORD         401 INVALID_CREDENTIALS
+  PASS  AUTH-NO-TOKEN               token'sız 401 UNAUTHENTICATED
+  PASS  AUTH-BAD-TOKEN              sahte JWT 401
+  PASS  METRICS-RBAC                kimliksiz 401; dış roller/eksper/hasar 403; underwriter 200
+  PASS  RBAC-CUSTOMER-403           /customers yasak
+  PASS  RBAC-APPRAISER-403          /customers yasak
+  PASS  RBAC-CLAIMS_ADJUSTER-403    /customers yasak
+  PASS  RBAC-ACCOUNTING-403         /customers yasak
+  PASS  RBAC-AGENT-200              /customers izinli
+  PASS  RBAC-UNDERWRITER-200        /customers izinli
+  PASS  AUTH-REFRESH                yeni access + yeni refresh cookie
+  PASS  AUTH-REFRESH-REUSE          kullanılmış refresh 401
+  PASS  T-1 determinizm             aynı girdi iki kez → aynı döküm/prim/hash (1514382 kuruş)
+  PASS  T-1 dokum-toplami           satır toplamı 1514382 = prim 1514382
+  PASS  T-1 tarife-tarihi           2026-06-30→v1 (1188663), 2026-07-01→v2 (1514382)
+  PASS  F-1 teklif-kaydet-oku       teklif #97, 1514382 kuruş, döküm korunuyor
+  PASS  F-1 police-cevir            GP-KS-2026-00000097; aynı Idempotency-Key tekrarında aynı poliçe
+  PASS  F-1 cift-cevirme            farklı anahtarla ikinci çevirme 409
+  PASS  F-1 uw-onay                 genç sürücü → UW_REVIEW → APPROVED
+  PASS  T-2 zeyil-gun-esasli        (1829878 − 1514382) × 265 / 365 = 229059 kuruş (bağımsız hesap: 229059)
+  PASS  F-2 zeyil-kayit             zeyil no 1 → sürüm 2, delta=229059; aynı anahtar tekrarında aynı zeyil
+  PASS  T-2 tarihte-teminat         2027-02-09 → sürüm 1, 2027-02-10 → sürüm 2
+  PASS  F-2 surum-gecmisi           2 sürüm (v1 2027-02-10'de kapandı), 1 zeyil
+  PASS  T-2 kisa-donem-iade         200 gün → %80; iade = 1743441 − 1463902 = 279539 kuruş
+  PASS  F-2 iptal-sonrasi           iptalden bir gün önce teminat var; 2027-05-21'de 404, zeyil 422
+  PASS  F-4 hasar-dosya             hasar #7844; bildirim → triage → ekspertiz → değerlendirme, geçmiş kayıtlı
+  PASS  F-5 ekspertiz               gerçek ekspertiz kaydı: 2000000 kuruş
+  PASS  T-3 hesap-adimlari          2000000 − 50000 muafiyet → 1000000 olay limiti; yedi hesap adımı
+  PASS  F-6 idempotent-onay         tek tazminat #6743; aynı anahtarda aynı kayıt
+  PASS  T-3 olay-limiti             CAM onayı: 1950000 net → 1000000 olay limiti; 950000 kuruş kırpıldı
+  PASS  F-6 odeme                   1000000 kuruş ödendi; yevmiye #1479918
+  PASS  T-3 paralel-limit           iki paralel onay: 147000000 + 33000000 = 180000000 ≤ 180000000 yıllık limit
+  PASS  T-4 idem-bayt               normal ödeme tekrarı cmp ile bayt bayt aynı
+  PASS  F-3 taksit-tahsilat-idem    3 taksit toplamı=1514382; ilk taksite 252397; tekrarında tek ödeme #937739
+  PASS  F-3 asiri-odeme             tamamı 422 OVERPAYMENT ile reddedildi
+  PASS  F-3 iade                    1 kuruş iade anaparayı yeniden açtı; bakiye=1261986
+  PASS  T-4 paralel-odeme           iki gerçek paralel HTTP: 422/201; bakiye=378596
+  PASS  T-4 gun-sonu-parcali        102 parça, done=true
+  PASS  F-3 gun-sonu-iptal          Gecikmiş-A NON_PAYMENT ile iptal (tekrar çalıştırmaya uygun)
+  PASS  T-4 faiz-kayit-hesabi       Gecikmiş-B 1 faiz kaydının her biri awk ile doğrulandı
+  PASS  T-4 defter-mutabakat        her yevmiye ve genel defter dengeli; 1200 = açık anapara + faiz
+  PASS  F-7 prim-delta              [bugün,yarın) artışı=1514382 kuruş
+  PASS  F-7 defter-mutabakati       4000 net=71078755105; 5000 net=18602008148 kuruş
+  PASS  F-7 oran                    2617 bp (awk bağımsız yuvarlama)
+  PASS  F-7 boyut-toplami           ay/ürün/acente satırları toplamla aynı
+  PASS  B1 acente-panosu            rol kapsamı; parametreyle genişletme yok; pano toplamı = ADR-18
+  PASS  T-5 seed-supheli            FP-2 skor 75, iki sinyal ve atanmış inceleme görevi
+  PASS  T-5 esik                    ilk iki 40/REPORTED; üçüncü 75/FRAUD_REVIEW
+  PASS  T-5 atama                   en az yük/küçük id: uzman 39
+  PASS  T-5 inceleme                ekspertizsiz değerlendirme 409; incelemeden ekspertize 200 + görev
+  PASS  T-5 paralel-atama           farklı poliçelerde iki paralel curl; beklenen uzman kümesi aynı
+  PASS  T-5 sla                     FP-1 geçmiş SLA ihlali listede ve scrape gauge mevcut
+  PASS  T-5 yetki                   müşteri görev listesinde 403
+  PASS  WEB-PROXY-LOGIN             :3000/api üzerinden giriş + httpOnly cookie
+
+  PASS  SYS canlilik                db_ok=true; son olay verify işlem aralığında: 2026-10-26T13:38:42.778756Z
+Sonuç: 64 PASS, 0 FAIL

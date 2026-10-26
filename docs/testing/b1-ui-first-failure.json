@@ -1,0 +1,12 @@
+{
+  "observed_at": "2026-10-26T13:34:28.905520+00:00",
+  "role": "AGENT",
+  "viewport": 375,
+  "result": "FAIL",
+  "steps": "Clear both native date fields, inspect that DOM values are empty, submit Panoyu getir",
+  "observed": "Both fields returned to 2025-10-27 / 2026-10-27; period remained default instead of all-time",
+  "fix": "Read the submitted named date controls through FormData, update both state fields and request query from the same submitted values",
+  "status": "Fixed and confirmed in the rebuilt browser UI",
+  "retest_result": "PASS",
+  "retest_evidence": "b1-ui.json"
+}

@@ -1,0 +1,87 @@
+{
+  "checks": [
+    {
+      "role": "AGENT",
+      "viewport": 375,
+      "result": "PASS",
+      "checks": [
+        "own row only; no total",
+        "explicit empty dates select all-time",
+        "future period zero metrics and em dash",
+        "invalid period error and retry control",
+        "reset to last 12 months"
+      ]
+    },
+    {
+      "direct": false,
+      "document": 375,
+      "role": "UNDERWRITER",
+      "rows": 21,
+      "tableClient": 341,
+      "tableScroll": 780,
+      "totalRows": 1,
+      "viewport": 375
+    },
+    {
+      "sort": "policy_count",
+      "ascending": [
+        81,
+        907,
+        913,
+        925,
+        926,
+        935,
+        940,
+        953,
+        953,
+        954,
+        967,
+        975,
+        975,
+        981,
+        991,
+        999,
+        1017,
+        1030,
+        1032,
+        1034,
+        1054
+      ],
+      "descending": [
+        1054,
+        1034,
+        1032,
+        1030,
+        1017,
+        999,
+        991,
+        981,
+        975,
+        975,
+        967,
+        954,
+        953,
+        953,
+        940,
+        935,
+        926,
+        925,
+        913,
+        907,
+        81
+      ],
+      "result": "PASS"
+    },
+    {
+      "document": 1440,
+      "role": "UNDERWRITER",
+      "rows": 21,
+      "totalRows": 1,
+      "viewport": 1440
+    }
+  ],
+  "loadingObserved": true,
+  "errorObserved": true,
+  "emptyObserved": true,
+  "noFrontendTestRunner": true
+}

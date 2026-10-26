@@ -56,6 +56,21 @@ Tazminat sırası **muafiyet → olay başı limit → teminat dönem limiti →
 
 Müşteri/acente hasarında iç durum UNDER_REVIEW olarak görünür; iç inceleme/sistem notları gizlenir, red gerekçesi müşteriye gösterilir. İç rollerin görünümü korunur. Sistem mali özeti muhasebe/UW'ye; diğer rollere yalnız sayısal canlılık verilir.
 
+### Acente performansı (B1)
+
+Acente kendi satırını; underwriter ve muhasebe bütün acenteleri, varsa **Doğrudan** satırını ve toplamı görür. Dönem dışı/faaliyetsiz acenteler sıfırlarla listelenir. Prim sıfırsa oran “—”; genel oran toplamlardan hesaplanır. Menüde **Acente performansı**, iki tarih alanı ve sütun başlıklarıyla sıralama vardır. Varsayılan TRT bugün dahil son 12 ay; iki tarih boşaltılınca tüm zamanlar. Tarih aralığı yevmiye entry_date üzerinde [başlangıç, bitiş) şeklindedir; kazanılmış prim hesabı yoktur.
+
+| Uç | Erişim / kapsam |
+|---|---|
+| `GET /api/v1/reports/agents` | AGENT kendi satırı; UNDERWRITER/ACCOUNTING bütün satırlar ve toplam; diğer roller 403, kimliksiz 401 |
+| `GET /api/v1/reports/agents?from=&to=` | Aynı yetkiyle tüm zamanlar |
+
+| Şartname maddesi | Kanıt |
+|---|---|
+| §10 bonus: acente performans panosu | `TestAgentPerformanceAccessAndGoldenRows`, `TestAgentPerformanceGolden`, üç dönem ADR-18 eşitliği ve verify `B1 acente-panosu`; ayrıntılar [TESTING B1](TESTING.md#b1--acente-performans-panosu) |
+
+Yeni sorgu kaynakları acente bazında ayrı toplar; mevcut ADR-18 raporu değişmez. 100k SIM verisinde tüm zamanlar medyanı **501,841 ms**, son 12 ay **257,549 ms** (üçer EXPLAIN ölçümü, yeni indeks yok). İlk tüm-zamanlar örneği 2113,342 ms; medyan kapısı PASS olsa da her isteğin 1 sn altında olduğu iddia edilmez. [Ham ölçümler](docs/explain/b1-after.json), [sorgu](docs/explain/b1-after.sql), [üç dönem tutarlılığı](docs/testing/b1-consistency.json), [ADR-27](DECISIONS.md#adr-27--acente-performans-panosu-b1). Son kodda birim/lint/build ve entegrasyon PASS; verify **64 PASS / 0 FAIL, 108,895 sn**. Gerçek HTTP tüm zamanlar/12 ay medyanı **432,560 / 229,244 ms**; [dört metrik eşitliği](docs/testing/b1-http-consistency.json), [100k koruması](docs/testing/b1-comparison.json) ve [tarayıcı kabulü](docs/testing/b1-ui.json) kayıtlıdır.
+
 ## Doğrulama
 
 ```bash
@@ -183,7 +198,7 @@ CI'nin ilk koşusu küçük havuzda gerçek bağlantı kilitlenmesini yakaladı.
 - İş anahtarıyla çökme kurtarması kanonik yanıt döndürür; zaman gösterimi ve JSON baytları ilk HTTP yanıtıyla birebir aynı olmayabilir (ADR-14).
 - Canlı simülasyon hatası tamamlanmış batch'i FAILED yapmaz; COMPLETED/LIVE_FAILED kalır. Canlı modda parmak izi batch sonunu temsil etmeyebilir; özet batch sonunun fotoğrafıdır.
 - Ödeme sağlayıcısı/banka entegrasyonu, mevzuat/tarife gerçekliği ve otomatik gün sonu zamanlayıcısı yok. Node 20 istenen teslim sürümüdür; bağımlılık yükseltme bu aşamanın kapsamı değildir.
-- Bonuslar: ekspertiz notu mevcut; acente performans panosu, poliçe PDF'i ve fotoğraf yükleme **YAPILMADI**.
+- Bonuslar: ekspertiz notu ve acente performans panosu mevcut; pano acente bazında poliçe adedi, yazılan net prim, tahakkuk eden tazminat ve yazılan prime göre hasar/prim oranını rol kapsamıyla gösterir. Poliçe PDF'i ve fotoğraf yükleme **YAPILMADI**.
 - Repo public olarak salt okunur doğrulandı. Son belge push'u, adayın kişisel yanıtları ve anket teslimi Enes'e aittir; uygulama testleri teslim formunu tamamlanmış saymaz.
 
 ## Şartnamenin beş sorusu

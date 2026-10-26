@@ -1,0 +1,60 @@
+cd backend && go test ./...
+?   	github.com/EnesGoker/guvenpolice/backend/cmd/api	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/cmd/simulator	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/access	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/app	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/audit	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/auth	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/billing	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/caldate	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/claim	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/config	(cached)
+?   	github.com/EnesGoker/guvenpolice/backend/internal/customer	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/fraud	(cached)
+?   	github.com/EnesGoker/guvenpolice/backend/internal/health	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/idempotency	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/ledger	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/lossratio	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/payment	(cached)
+?   	github.com/EnesGoker/guvenpolice/backend/internal/payment/store	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/clock	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/db	(cached)
+?   	github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/platform/logging	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/metrics	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/platform/page	(cached)
+?   	github.com/EnesGoker/guvenpolice/backend/internal/policy	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/pricing	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/proration	(cached)
+?   	github.com/EnesGoker/guvenpolice/backend/internal/quote	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/report	(cached)
+?   	github.com/EnesGoker/guvenpolice/backend/internal/seed	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/settlement	(cached)
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/simulation	(cached)
+?   	github.com/EnesGoker/guvenpolice/backend/internal/system	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/tariff	[no test files]
+?   	github.com/EnesGoker/guvenpolice/backend/internal/task	[no test files]
+ok  	github.com/EnesGoker/guvenpolice/backend/internal/workflow	(cached)
+cd backend && go vet ./... && go vet -tags integration ./... && go vet -tags integration,simulation ./...
+cd frontend && npm run lint
+
+> guvenpolice-frontend@0.1.0 lint
+> eslint . --max-warnings 0
+
+cd backend && go build ./...
+cd frontend && npm run build
+
+> guvenpolice-frontend@0.1.0 build
+> tsc -b && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 47 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.39 kB │ gzip:  0.27 kB
+dist/assets/index-COVxmfI2.css    6.37 kB │ gzip:  1.94 kB
+dist/assets/index-3rujKLjF.js   292.83 kB │ gzip: 86.52 kB
+
+✓ built in 106ms

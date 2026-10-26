@@ -1,0 +1,168 @@
+                                                                                                              QUERY PLAN                                                                                                               
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=28780.03..28780.08 rows=22 width=87) (actual time=256.965..257.047 rows=21 loops=1)
+   Sort Key: agents.id
+   Sort Method: quicksort  Memory: 26kB
+   Buffers: shared hit=361079 read=44075
+   ->  Nested Loop Left Join  (cost=28765.19..28779.53 rows=22 width=87) (actual time=255.547..257.031 rows=21 loops=1)
+         Join Filter: (NOT (c.agent_id IS DISTINCT FROM agents.id))
+         Rows Removed by Join Filter: 420
+         Buffers: shared hit=361079 read=44075
+         ->  Nested Loop Left Join  (cost=27186.51..27200.22 rows=22 width=103) (actual time=242.403..243.677 rows=21 loops=1)
+               Join Filter: (NOT (z.agent_id IS DISTINCT FROM agents.id))
+               Rows Removed by Join Filter: 420
+               Buffers: shared hit=347158 read=43193
+               ->  Nested Loop Left Join  (cost=26145.66..26158.99 rows=22 width=71) (actual time=217.965..219.066 rows=21 loops=1)
+                     Join Filter: (NOT (i.agent_id IS DISTINCT FROM agents.id))
+                     Rows Removed by Join Filter: 420
+                     Buffers: shared hit=333464 read=39771
+                     ->  Append  (cost=0.00..9.76 rows=22 width=31) (actual time=0.009..0.051 rows=21 loops=1)
+                           Buffers: shared hit=1 read=3
+                           ->  Seq Scan on agents  (cost=0.00..1.21 rows=21 width=31) (actual time=0.008..0.011 rows=21 loops=1)
+                                 Buffers: shared hit=1
+                           ->  Result  (cost=8.43..8.44 rows=1 width=40) (actual time=0.037..0.037 rows=0 loops=1)
+                                 One-Time Filter: $0
+                                 Buffers: shared read=3
+                                 InitPlan 1 (returns $0)
+                                   ->  Index Only Scan using policies_agent_idx on policies  (cost=0.42..8.43 rows=1 width=0) (actual time=0.036..0.036 rows=0 loops=1)
+                                         Index Cond: (agent_id IS NULL)
+                                         Heap Fetches: 0
+                                         Buffers: shared read=3
+                     ->  Materialize  (cost=26145.66..26146.61 rows=8 width=48) (actual time=10.374..10.428 rows=21 loops=21)
+                           Buffers: shared hit=333463 read=39768
+                           ->  Subquery Scan on i  (cost=26145.66..26146.57 rows=8 width=48) (actual time=217.854..218.955 rows=21 loops=1)
+                                 Buffers: shared hit=333463 read=39768
+                                 ->  Finalize GroupAggregate  (cost=26145.66..26146.49 rows=8 width=48) (actual time=217.854..218.952 rows=21 loops=1)
+                                       Group Key: p.agent_id
+                                       Buffers: shared hit=333463 read=39768
+                                       ->  Gather Merge  (cost=26145.66..26146.34 rows=5 width=48) (actual time=217.718..218.932 rows=42 loops=1)
+                                             Workers Planned: 1
+                                             Workers Launched: 1
+                                             Buffers: shared hit=333463 read=39768
+                                             ->  Partial GroupAggregate  (cost=25145.65..25145.77 rows=5 width=48) (actual time=214.275..215.374 rows=21 loops=2)
+                                                   Group Key: p.agent_id
+                                                   Buffers: shared hit=333463 read=39768
+                                                   ->  Sort  (cost=25145.65..25145.66 rows=5 width=24) (actual time=214.265..214.741 rows=9765 loops=2)
+                                                         Sort Key: p.agent_id
+                                                         Sort Method: quicksort  Memory: 845kB
+                                                         Buffers: shared hit=333463 read=39768
+                                                         Worker 0:  Sort Method: quicksort  Memory: 839kB
+                                                         ->  Hash Join  (cost=16.36..25145.59 rows=5 width=24) (actual time=0.398..211.374 rows=9765 loops=2)
+                                                               Hash Cond: (l.account_id = a_1.id)
+                                                               Buffers: shared hit=333457 read=39768
+                                                               ->  Nested Loop  (cost=8.18..25129.70 rows=2914 width=32) (actual time=0.345..208.499 rows=19530 loops=2)
+                                                                     Buffers: shared hit=333440 read=39767
+                                                                     ->  Merge Join  (cost=7.75..18052.20 rows=1457 width=16) (actual time=0.314..123.220 rows=9765 loops=2)
+                                                                           Merge Cond: (p.id = e.ref_id)
+                                                                           Buffers: shared hit=275296 read=19733
+                                                                           ->  Parallel Index Scan using policies_pkey on policies p  (cost=0.29..3610.29 rows=59303 width=16) (actual time=0.007..19.017 rows=50042 loops=2)
+                                                                                 Buffers: shared hit=96226 read=1174
+                                                                           ->  Index Scan using journal_entries_ref_idx on journal_entries e  (cost=0.43..68429.50 rows=19471 width=16) (actual time=0.039..97.764 rows=19495 loops=2)
+                                                                                 Index Cond: (ref_type = 'POLICY_ISSUE'::text)
+                                                                                 Filter: ((entry_date >= '2025-10-27'::date) AND (entry_date < '2026-10-27'::date))
+                                                                                 Rows Removed by Filter: 80530
+                                                                                 Buffers: shared hit=179070 read=18559
+                                                                     ->  Index Scan using journal_lines_entry_idx on journal_lines l  (cost=0.43..4.84 rows=2 width=32) (actual time=0.008..0.008 rows=2 loops=19530)
+                                                                           Index Cond: (entry_id = e.id)
+                                                                           Buffers: shared hit=58144 read=20034
+                                                               ->  Hash  (cost=8.17..8.17 rows=1 width=8) (actual time=0.030..0.031 rows=1 loops=2)
+                                                                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                                     Buffers: shared hit=4 read=1
+                                                                     ->  Index Scan using accounts_code_key on accounts a_1  (cost=0.15..8.17 rows=1 width=8) (actual time=0.023..0.023 rows=1 loops=2)
+                                                                           Index Cond: (code = '4000'::text)
+                                                                           Buffers: shared hit=4 read=1
+               ->  Materialize  (cost=1040.86..1040.90 rows=1 width=40) (actual time=1.163..1.171 rows=21 loops=21)
+                     Buffers: shared hit=13694 read=3422
+                     ->  Subquery Scan on z  (cost=1040.86..1040.89 rows=1 width=40) (actual time=24.417..24.551 rows=21 loops=1)
+                           Buffers: shared hit=13694 read=3422
+                           ->  GroupAggregate  (cost=1040.86..1040.88 rows=1 width=40) (actual time=24.417..24.549 rows=21 loops=1)
+                                 Group Key: p_1.agent_id
+                                 Buffers: shared hit=13694 read=3422
+                                 ->  Sort  (cost=1040.86..1040.86 rows=1 width=24) (actual time=24.410..24.466 rows=1263 loops=1)
+                                       Sort Key: p_1.agent_id
+                                       Sort Method: quicksort  Memory: 108kB
+                                       Buffers: shared hit=13694 read=3422
+                                       ->  Nested Loop  (cost=844.38..1040.85 rows=1 width=24) (actual time=5.284..24.080 rows=1263 loops=1)
+                                             Buffers: shared hit=13694 read=3422
+                                             ->  Nested Loop  (cost=844.08..1038.39 rows=1 width=24) (actual time=5.251..19.868 rows=1263 loops=1)
+                                                   Buffers: shared hit=10424 read=2903
+                                                   ->  Nested Loop  (cost=843.93..1037.18 rows=7 width=32) (actual time=5.223..18.219 rows=2526 loops=1)
+                                                         Buffers: shared hit=5374 read=2901
+                                                         ->  Merge Join  (cost=843.50..1012.55 rows=3 width=16) (actual time=5.195..12.174 rows=1263 loops=1)
+                                                               Merge Cond: (e_1.ref_id = z_1.id)
+                                                               Buffers: shared hit=1287 read=1936
+                                                               ->  Index Scan using journal_entries_ref_idx on journal_entries e_1  (cost=0.43..12875.87 rows=838 width=16) (actual time=0.053..6.441 rows=1263 loops=1)
+                                                                     Index Cond: (ref_type = 'ENDORSEMENT'::text)
+                                                                     Filter: ((entry_date >= '2025-10-27'::date) AND (entry_date < '2026-10-27'::date))
+                                                                     Rows Removed by Filter: 2019
+                                                                     Buffers: shared hit=1287 read=1302
+                                                               ->  Sort  (cost=843.04..850.73 rows=3077 width=16) (actual time=5.138..5.321 rows=3283 loops=1)
+                                                                     Sort Key: z_1.id
+                                                                     Sort Method: quicksort  Memory: 225kB
+                                                                     Buffers: shared read=634
+                                                                     ->  Seq Scan on endorsements z_1  (cost=0.00..664.77 rows=3077 width=16) (actual time=0.018..4.598 rows=3283 loops=1)
+                                                                           Buffers: shared read=634
+                                                         ->  Index Scan using journal_lines_entry_idx on journal_lines l_1  (cost=0.43..8.19 rows=2 width=32) (actual time=0.004..0.004 rows=2 loops=1263)
+                                                               Index Cond: (entry_id = e_1.id)
+                                                               Buffers: shared hit=4087 read=965
+                                                   ->  Index Scan using accounts_pkey on accounts a_2  (cost=0.15..0.17 rows=1 width=8) (actual time=0.000..0.000 rows=0 loops=2526)
+                                                         Index Cond: (id = l_1.account_id)
+                                                         Filter: (code = '4000'::text)
+                                                         Rows Removed by Filter: 0
+                                                         Buffers: shared hit=5050 read=2
+                                             ->  Index Scan using policies_pkey on policies p_1  (cost=0.29..2.46 rows=1 width=16) (actual time=0.003..0.003 rows=1 loops=1263)
+                                                   Index Cond: (id = z_1.policy_id)
+                                                   Buffers: shared hit=3270 read=519
+         ->  Materialize  (cost=1578.67..1578.71 rows=1 width=40) (actual time=0.624..0.634 rows=21 loops=21)
+               Buffers: shared hit=13921 read=882
+               ->  Subquery Scan on c  (cost=1578.67..1578.71 rows=1 width=40) (actual time=13.110..13.282 rows=21 loops=1)
+                     Buffers: shared hit=13921 read=882
+                     ->  GroupAggregate  (cost=1578.67..1578.70 rows=1 width=40) (actual time=13.110..13.280 rows=21 loops=1)
+                           Group Key: p_2.agent_id
+                           Buffers: shared hit=13921 read=882
+                           ->  Sort  (cost=1578.67..1578.68 rows=1 width=24) (actual time=13.103..13.172 rows=1630 loops=1)
+                                 Sort Key: p_2.agent_id
+                                 Sort Method: quicksort  Memory: 125kB
+                                 Buffers: shared hit=13921 read=882
+                                 ->  Nested Loop  (cost=819.18..1578.66 rows=1 width=24) (actual time=4.909..12.827 rows=1630 loops=1)
+                                       Buffers: shared hit=13921 read=882
+                                       ->  Nested Loop  (cost=818.88..1577.51 rows=1 width=24) (actual time=4.898..8.886 rows=1630 loops=1)
+                                             Buffers: shared hit=9356 read=557
+                                             ->  Nested Loop  (cost=818.72..1575.61 rows=30 width=32) (actual time=4.888..8.217 rows=3260 loops=1)
+                                                   Buffers: shared hit=9352 read=557
+                                                   ->  Merge Join  (cost=818.29..1455.67 rows=15 width=16) (actual time=4.850..5.947 rows=1630 loops=1)
+                                                         Merge Cond: (e_2.ref_id = c_1.id)
+                                                         Buffers: shared hit=2902 read=487
+                                                         ->  Index Scan using journal_entries_ref_idx on journal_entries e_2  (cost=0.43..21520.52 rows=1511 width=16) (actual time=1.694..2.364 rows=1630 loops=1)
+                                                               Index Cond: (ref_type = 'CLAIM_APPROVAL'::text)
+                                                               Filter: ((entry_date >= '2025-10-27'::date) AND (entry_date < '2026-10-27'::date))
+                                                               Rows Removed by Filter: 5109
+                                                               Buffers: shared hit=2902 read=251
+                                                         ->  Sort  (cost=817.83..837.32 rows=7795 width=16) (actual time=2.686..3.008 rows=7822 loops=1)
+                                                               Sort Key: c_1.id
+                                                               Sort Method: quicksort  Memory: 498kB
+                                                               Buffers: shared read=236
+                                                               ->  Seq Scan on claims c_1  (cost=0.00..313.95 rows=7795 width=16) (actual time=0.015..1.719 rows=7831 loops=1)
+                                                                     Buffers: shared read=236
+                                                   ->  Index Scan using journal_lines_entry_idx on journal_lines l_2  (cost=0.43..7.98 rows=2 width=32) (actual time=0.001..0.001 rows=2 loops=1630)
+                                                         Index Cond: (entry_id = e_2.id)
+                                                         Buffers: shared hit=6450 read=70
+                                             ->  Memoize  (cost=0.16..0.18 rows=1 width=8) (actual time=0.000..0.000 rows=0 loops=3260)
+                                                   Cache Key: l_2.account_id
+                                                   Cache Mode: logical
+                                                   Hits: 3258  Misses: 2  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+                                                   Buffers: shared hit=4
+                                                   ->  Index Scan using accounts_pkey on accounts a_3  (cost=0.15..0.17 rows=1 width=8) (actual time=0.004..0.004 rows=0 loops=2)
+                                                         Index Cond: (id = l_2.account_id)
+                                                         Filter: (code = '5000'::text)
+                                                         Rows Removed by Filter: 0
+                                                         Buffers: shared hit=4
+                                       ->  Index Scan using policies_pkey on policies p_2  (cost=0.29..1.16 rows=1 width=16) (actual time=0.002..0.002 rows=1 loops=1630)
+                                             Index Cond: (id = c_1.policy_id)
+                                             Buffers: shared hit=4565 read=325
+ Planning:
+   Buffers: shared hit=723 read=111
+ Planning Time: 5.435 ms
+ Execution Time: 257.549 ms
+(164 rows)
+

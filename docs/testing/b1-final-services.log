@@ -1,0 +1,167 @@
+ Image guvenpolice-api Building 
+ Image guvenpolice-web Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.05kB done
+#1 DONE 0.0s
+
+#2 [api internal] load build definition from Dockerfile
+#2 transferring dockerfile: 810B done
+#2 DONE 0.0s
+
+#3 [web internal] load build definition from Dockerfile
+#3 transferring dockerfile: 503B done
+#3 DONE 0.0s
+
+#4 [web internal] load metadata for docker.io/library/node:20.20.2-alpine
+#4 ...
+
+#5 [api internal] load metadata for gcr.io/distroless/static-debian12:nonroot
+#5 DONE 0.7s
+
+#6 [web internal] load metadata for docker.io/nginxinc/nginx-unprivileged:1.27-alpine
+#6 ...
+
+#4 [web internal] load metadata for docker.io/library/node:20.20.2-alpine
+#4 DONE 1.0s
+
+#6 [web internal] load metadata for docker.io/nginxinc/nginx-unprivileged:1.27-alpine
+#6 DONE 1.0s
+
+#7 [web internal] load .dockerignore
+#7 transferring context: 58B done
+#7 DONE 0.0s
+
+#8 [web build 1/6] FROM docker.io/library/node:20.20.2-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#8 resolve docker.io/library/node:20.20.2-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.0s done
+#8 DONE 0.0s
+
+#9 [web stage-1 1/3] FROM docker.io/nginxinc/nginx-unprivileged:1.27-alpine@sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0
+#9 resolve docker.io/nginxinc/nginx-unprivileged:1.27-alpine@sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0 0.0s done
+#9 DONE 0.0s
+
+#10 [web internal] load build context
+#10 transferring context: 8.45kB 0.0s done
+#10 DONE 0.0s
+
+#11 [web build 3/6] COPY package.json package-lock.json .npmrc ./
+#11 CACHED
+
+#12 [web build 2/6] WORKDIR /app
+#12 CACHED
+
+#13 [web build 4/6] RUN npm ci --no-fund --no-audit
+#13 CACHED
+
+#14 [web build 5/6] COPY . .
+#14 DONE 0.0s
+
+#15 [api internal] load metadata for docker.io/library/golang:1.27.3-alpine
+#15 DONE 1.2s
+
+#16 [web build 6/6] RUN npm run build
+#16 ...
+
+#17 [api internal] load .dockerignore
+#17 transferring context: 95B done
+#17 DONE 0.0s
+
+#18 [api stage-1 1/4] FROM gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
+#18 resolve gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab 0.0s done
+#18 DONE 0.0s
+
+#19 [api build 1/7] FROM docker.io/library/golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c
+#19 resolve docker.io/library/golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c 0.0s done
+#19 DONE 0.0s
+
+#20 [api internal] load build context
+#20 transferring context: 10.62kB 0.0s done
+#20 DONE 0.0s
+
+#21 [api stage-1 2/4] COPY --from=build /out/api /app/api
+#21 CACHED
+
+#22 [api build 6/7] RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
+#22 CACHED
+
+#23 [api stage-1 3/4] COPY --from=build /out/simulator /app/simulator
+#23 CACHED
+
+#24 [api build 2/7] WORKDIR /src
+#24 CACHED
+
+#25 [api build 3/7] COPY backend/go.mod backend/go.sum ./
+#25 CACHED
+
+#26 [api build 7/7] RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/simulator ./cmd/simulator
+#26 CACHED
+
+#27 [api build 5/7] COPY backend/ ./
+#27 CACHED
+
+#28 [api build 4/7] RUN go mod download
+#28 CACHED
+
+#29 [api stage-1 4/4] COPY db/migrations /app/migrations
+#29 CACHED
+
+#30 [api] exporting to image
+#30 exporting layers done
+#30 exporting manifest sha256:9a51b38afeef583ff920c146f283004b6acd225507edb9799099bd3633310df3 done
+#30 exporting config sha256:47e25adcd9f1b33ae73ba6801d33c7de59decd91c48d073697a045df8bbeed8e done
+#30 exporting attestation manifest sha256:e057089e45513d83728e3d51937696945dfd3d63ea956c8cada11243910dead3 done
+#30 exporting manifest list sha256:49ef0a8a5680a3f2365c19384f27fdfde09dead2182f552ad2466915c22b1de5 done
+#30 naming to docker.io/library/guvenpolice-api:latest done
+#30 unpacking to docker.io/library/guvenpolice-api:latest 0.0s done
+#30 DONE 0.1s
+
+#31 [api] resolving provenance for metadata file
+#31 DONE 0.0s
+
+#16 [web build 6/6] RUN npm run build
+#16 0.446 
+#16 0.446 > guvenpolice-frontend@0.1.0 build
+#16 0.446 > tsc -b && vite build
+#16 0.446 
+#16 3.972 vite v8.3.5 building client environment for production...
+#16 3.983 transforming...
+#16 4.044 ✓ 47 modules transformed.
+#16 4.078 rendering chunks...
+#16 4.255 computing gzip size...
+#16 4.292 dist/index.html                   0.39 kB │ gzip:  0.27 kB
+#16 4.292 dist/assets/index-COVxmfI2.css    6.37 kB │ gzip:  1.94 kB
+#16 4.292 dist/assets/index-3rujKLjF.js   292.83 kB │ gzip: 86.52 kB
+#16 4.292 
+#16 4.293 ✓ built in 318ms
+#16 DONE 4.3s
+
+#32 [web stage-1 2/3] COPY nginx.conf /etc/nginx/conf.d/default.conf
+#32 CACHED
+
+#33 [web stage-1 3/3] COPY --from=build /app/dist /usr/share/nginx/html
+#33 DONE 0.0s
+
+#34 [web] exporting to image
+#34 exporting layers 0.0s done
+#34 exporting manifest sha256:fe1ca84029072cdbe359ff626da9178ce07670e5a0a307cc5ec3fe14896e2b6e done
+#34 exporting config sha256:b2d33b38053c375608a6756139a85af74f748501ad634bdc9b63d9e44145637f done
+#34 exporting attestation manifest sha256:c9a821eeadfcdcbac7c6f459286558f6b3e8512bddeb4dc439782dccc4f6c780 done
+#34 exporting manifest list sha256:2ba74b83286dd7828c37a74f8784c69aa033d1f31a0105324f2a94aaf2651e20 done
+#34 naming to docker.io/library/guvenpolice-web:latest done
+#34 unpacking to docker.io/library/guvenpolice-web:latest 0.0s done
+#34 DONE 0.1s
+
+#35 [web] resolving provenance for metadata file
+#35 DONE 0.0s
+ Image guvenpolice-api Built 
+ Image guvenpolice-web Built 
+ Container guvenpolice-api-1 Running 
+ Container guvenpolice-web-1 Recreate 
+ Container guvenpolice-web-1 Recreated 
+ Container guvenpolice-api-1 Waiting 
+ Container guvenpolice-api-1 Healthy 
+ Container guvenpolice-web-1 Starting 
+ Container guvenpolice-web-1 Started 
+ Container guvenpolice-api-1 Waiting 
+ Container guvenpolice-web-1 Waiting 
+ Container guvenpolice-api-1 Healthy 
+ Container guvenpolice-web-1 Healthy 

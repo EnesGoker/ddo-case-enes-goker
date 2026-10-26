@@ -1,0 +1,300 @@
+{
+  "panel": [
+    {
+      "key": "1",
+      "label": "Örnek Sigorta Acentesi",
+      "written_premium_kurus": 126457163,
+      "policy_count": 85,
+      "incurred_claims_kurus": 724000000
+    },
+    {
+      "key": "2",
+      "label": "Kurgusal SIM Acente 00",
+      "written_premium_kurus": 4458475784,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 1073564275
+    },
+    {
+      "key": "3",
+      "label": "Kurgusal SIM Acente 01",
+      "written_premium_kurus": 3791852563,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 1043148853
+    },
+    {
+      "key": "4",
+      "label": "Kurgusal SIM Acente 02",
+      "written_premium_kurus": 3941129185,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 924137372
+    },
+    {
+      "key": "5",
+      "label": "Kurgusal SIM Acente 03",
+      "written_premium_kurus": 3897092148,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 958913462
+    },
+    {
+      "key": "6",
+      "label": "Kurgusal SIM Acente 04",
+      "written_premium_kurus": 4346319924,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 986771191
+    },
+    {
+      "key": "7",
+      "label": "Kurgusal SIM Acente 05",
+      "written_premium_kurus": 3288194914,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 880902912
+    },
+    {
+      "key": "8",
+      "label": "Kurgusal SIM Acente 06",
+      "written_premium_kurus": 3580700887,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 924569023
+    },
+    {
+      "key": "9",
+      "label": "Kurgusal SIM Acente 07",
+      "written_premium_kurus": 3508541305,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 870178312
+    },
+    {
+      "key": "10",
+      "label": "Kurgusal SIM Acente 08",
+      "written_premium_kurus": 3779925180,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 939259274
+    },
+    {
+      "key": "11",
+      "label": "Kurgusal SIM Acente 09",
+      "written_premium_kurus": 3300965714,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 866352456
+    },
+    {
+      "key": "12",
+      "label": "Kurgusal SIM Acente 10",
+      "written_premium_kurus": 3264621088,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 807033966
+    },
+    {
+      "key": "13",
+      "label": "Kurgusal SIM Acente 11",
+      "written_premium_kurus": 3176060765,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 782801338
+    },
+    {
+      "key": "14",
+      "label": "Kurgusal SIM Acente 12",
+      "written_premium_kurus": 3583171618,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 811740950
+    },
+    {
+      "key": "15",
+      "label": "Kurgusal SIM Acente 13",
+      "written_premium_kurus": 3049725016,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 770506396
+    },
+    {
+      "key": "16",
+      "label": "Kurgusal SIM Acente 14",
+      "written_premium_kurus": 3266008651,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 747943867
+    },
+    {
+      "key": "17",
+      "label": "Kurgusal SIM Acente 15",
+      "written_premium_kurus": 3177293237,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 811288611
+    },
+    {
+      "key": "18",
+      "label": "Kurgusal SIM Acente 16",
+      "written_premium_kurus": 3613804164,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 882047818
+    },
+    {
+      "key": "19",
+      "label": "Kurgusal SIM Acente 17",
+      "written_premium_kurus": 3135281750,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 749661798
+    },
+    {
+      "key": "20",
+      "label": "Kurgusal SIM Acente 18",
+      "written_premium_kurus": 3409481807,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 824314363
+    },
+    {
+      "key": "21",
+      "label": "Kurgusal SIM Acente 19",
+      "written_premium_kurus": 3358089348,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 860871911
+    }
+  ],
+  "adr18": [
+    {
+      "key": "1",
+      "label": "Örnek Sigorta Acentesi",
+      "written_premium_kurus": 126457163,
+      "policy_count": 85,
+      "incurred_claims_kurus": 724000000
+    },
+    {
+      "key": "10",
+      "label": "Kurgusal SIM Acente 08",
+      "written_premium_kurus": 3779925180,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 939259274
+    },
+    {
+      "key": "11",
+      "label": "Kurgusal SIM Acente 09",
+      "written_premium_kurus": 3300965714,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 866352456
+    },
+    {
+      "key": "12",
+      "label": "Kurgusal SIM Acente 10",
+      "written_premium_kurus": 3264621088,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 807033966
+    },
+    {
+      "key": "13",
+      "label": "Kurgusal SIM Acente 11",
+      "written_premium_kurus": 3176060765,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 782801338
+    },
+    {
+      "key": "14",
+      "label": "Kurgusal SIM Acente 12",
+      "written_premium_kurus": 3583171618,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 811740950
+    },
+    {
+      "key": "15",
+      "label": "Kurgusal SIM Acente 13",
+      "written_premium_kurus": 3049725016,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 770506396
+    },
+    {
+      "key": "16",
+      "label": "Kurgusal SIM Acente 14",
+      "written_premium_kurus": 3266008651,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 747943867
+    },
+    {
+      "key": "17",
+      "label": "Kurgusal SIM Acente 15",
+      "written_premium_kurus": 3177293237,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 811288611
+    },
+    {
+      "key": "18",
+      "label": "Kurgusal SIM Acente 16",
+      "written_premium_kurus": 3613804164,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 882047818
+    },
+    {
+      "key": "19",
+      "label": "Kurgusal SIM Acente 17",
+      "written_premium_kurus": 3135281750,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 749661798
+    },
+    {
+      "key": "2",
+      "label": "Kurgusal SIM Acente 00",
+      "written_premium_kurus": 4458475784,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 1073564275
+    },
+    {
+      "key": "20",
+      "label": "Kurgusal SIM Acente 18",
+      "written_premium_kurus": 3409481807,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 824314363
+    },
+    {
+      "key": "21",
+      "label": "Kurgusal SIM Acente 19",
+      "written_premium_kurus": 3358089348,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 860871911
+    },
+    {
+      "key": "3",
+      "label": "Kurgusal SIM Acente 01",
+      "written_premium_kurus": 3791852563,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 1043148853
+    },
+    {
+      "key": "4",
+      "label": "Kurgusal SIM Acente 02",
+      "written_premium_kurus": 3941129185,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 924137372
+    },
+    {
+      "key": "5",
+      "label": "Kurgusal SIM Acente 03",
+      "written_premium_kurus": 3897092148,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 958913462
+    },
+    {
+      "key": "6",
+      "label": "Kurgusal SIM Acente 04",
+      "written_premium_kurus": 4346319924,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 986771191
+    },
+    {
+      "key": "7",
+      "label": "Kurgusal SIM Acente 05",
+      "written_premium_kurus": 3288194914,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 880902912
+    },
+    {
+      "key": "8",
+      "label": "Kurgusal SIM Acente 06",
+      "written_premium_kurus": 3580700887,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 924569023
+    },
+    {
+      "key": "9",
+      "label": "Kurgusal SIM Acente 07",
+      "written_premium_kurus": 3508541305,
+      "policy_count": 5000,
+      "incurred_claims_kurus": 870178312
+    }
+  ]
+}

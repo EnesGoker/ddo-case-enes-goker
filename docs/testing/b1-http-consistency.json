@@ -1,0 +1,69 @@
+{
+  "measured_at": "2026-10-26T13:42:16.411222+00:00",
+  "scope": "100k SIM plus current demo/verify records; measured after final verify, separately from pre-verify SQL snapshots",
+  "results": [
+    {
+      "period": "all-time",
+      "from": null,
+      "to": null,
+      "http_ms": [
+        719.323,
+        426.302,
+        432.56
+      ],
+      "median_ms": 432.56,
+      "total": {
+        "key": "total",
+        "label": "Toplam",
+        "written_premium_kurus": 71083298251,
+        "policy_count": 100105,
+        "incurred_claims_kurus": 18602008148,
+        "loss_ratio_bp": 2617
+      },
+      "result": "PASS"
+    },
+    {
+      "period": "default",
+      "from": "2025-10-27",
+      "to": "2026-10-27",
+      "http_ms": [
+        357.426,
+        229.244,
+        187.436
+      ],
+      "median_ms": 229.244,
+      "total": {
+        "key": "total",
+        "label": "Toplam",
+        "written_premium_kurus": 15852732138,
+        "policy_count": 19542,
+        "incurred_claims_kurus": 5335901030,
+        "loss_ratio_bp": 3366
+      },
+      "result": "PASS"
+    },
+    {
+      "period": "narrow",
+      "from": "2026-09-26",
+      "to": "2026-10-26",
+      "http_ms": [
+        63.486,
+        32.228,
+        56.785
+      ],
+      "median_ms": 56.785,
+      "total": {
+        "key": "total",
+        "label": "Toplam",
+        "written_premium_kurus": 1040036279,
+        "policy_count": 1062,
+        "incurred_claims_kurus": 571862630,
+        "loss_ratio_bp": 5498
+      },
+      "result": "PASS"
+    }
+  ],
+  "agent_parameter_isolation": "PASS",
+  "expected_agent_id": "1",
+  "token_saved": false
+}

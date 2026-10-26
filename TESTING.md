@@ -501,7 +501,7 @@ Opus'un e457cf5 üzerinden çıkardığı salt okunur tablo, A8'de uygulanmış 
 | README S5 prim altın komut/çıktı | docs/testing/pricing-golden.log ve sonverify T-1 | PASS |
 | §9 anlamlı commit geçmişi | Küçük testli aşama commitleri, push kullanıcıya ait | TAMAM |
 | Public repo/kullanıcı hesabı/anket23.59 | Public doğrulandı; sonpush/anket Enes'in | KULLANICIYA AİT |
-| §10bonus | Ekspertiz notu var; acente panosu/PDF/fotoğraf yok | KISMEN |
+| §10bonus | Ekspertiz notu ve B1 acente panosu var; TestAgentPerformanceAccessAndGoldenRows, ADR-18 tutarlılık testi, verify B1; PDF/fotoğraf yok | KISMEN |
 
 ## A8 ölçüm sırası ve güvenli çalışma
 
@@ -547,3 +547,44 @@ Muhasebe/UW100000/100000 ve46/9maliözetini görüyor; müşteriSistem yalnızca
 ### İzlenebilirlik tablosunun kapanışı
 
 Yukarıdaki “BEKLİYOR” notları ölçüm öncesi anlık kayıttır. Son durum: yeni100k, tazekurulum, CI/kapsam, verify, k6,kaos,ikiindeks veS5primkanıtı **PASS**; READMEkurulum/mimari/ölçümler tamam.173Testfonksiyonu. Kullanıcı isteğiyle READMEkişisel1/4soruları yer tutucu, sonpush/anket kullanıcıya ait. Repo public olarak saltokunur doğrulandı. Bonuspanosu/PDF/fotoğraf ve kesilebilir genelokunabilirlik **YAPILMADI**. Önceki başarısız koşular silinmedi.
+
+
+## B1 — Acente performans panosu
+
+`bonus/acente-panosu` dalı; mevcut ADR-18 sorgusu değiştirilmedi. Acente kendi satırını, underwriter/muhasebe bütün acenteler + Doğrudan + toplamı görür. Faaliyetsiz acenteler sıfırlarla, prim <=0 oranı “—” ile görünür. Müşteri/eksper/hasar uzmanı 403, kimliksiz 401. Parametreyle başka acente veya toplam istenmesi kapsamı genişletmez.
+
+Varsayılan TRT bugün dahil son 12 takvim ayıdır: 26 Ekim 2026 için [2025-10-27,2026-10-27). İki tarih boşaltılıp **Panoyu getir** seçilirse tüm zamanlar; tek sınır açıktır. Sütun başlıklarıyla artan/azalan sıralama yapılır; boş oranlar sonda kalır. Yükleniyor, hata/yeniden deneme ve boş faaliyet durumları mevcuttur. Frontend'de mevcut otomatik test deseni/çalıştırıcısı yok; yeni paket kurulmadı.
+
+### Performans ve 100k tutarlılık
+
+[Ham EXPLAIN ve ölçümler](docs/explain/b1-after.json): yeni indeks/migration yok. Tüm zamanlar 2113,342 / 501,841 / 443,704 ms; medyan **501,841 ms** (<1 sn PASS). Varsayılan 12 ay 250,441 / 257,549 / 278,072 ms; medyan **257,549 ms**. İlk örnek saklandı; soğuk önbellek veya yük altında alt sınır garantisi verilmez. Önceki 3972,337 ms tek ölçüm medyan değildir.
+
+Aynı REPEATABLE READ READ ONLY snapshot'ında pano toplamları ve hareketli satırlar ADR-18 ile birebir eşittir; sıfır faaliyetli satırlar ek olarak korunur. Kayıt [b1-consistency.json](docs/testing/b1-consistency.json), ham yanıtlar b1-consistency-*-raw.json.
+
+| Dönem | Poliçe | Yazılan net prim (kuruş) | Tahakkuk eden tazminat (kuruş) | Eşitlik |
+|---|---:|---:|---:|---|
+| Tüm zamanlar | 100085 | 71053192211 | 18240008148 | PASS |
+| Son 12 ay | 19530 | 15834741154 | 4973901030 | PASS |
+| [2026-09-26,2026-10-26) | 1062 | 1040036279 | 571862630 | PASS |
+
+Bu tabloda 100000 SIM ile mevcut demo/kabul kayıtları birlikte raporlanır; 100085 toplam poliçe sayısı, SIM hedefinin değiştiği anlamına gelmez. Bu ölçümler verify'ın sonraki demo mutasyonlarından öncedir.
+
+
+### B1 son doğrulama ve tarayıcı kabulü
+
+İstenen sıra son kodda tekrar tamamlandı (önceki başarılı koşular da b1-validation.json ve b1-*.log içinde korunur):
+
+| Komut | Gerçek sonuç | Süre |
+|---|---|---:|
+| `make test lint build` | PASS; testli 20 Go paketi, vet/ESLint/TypeScript/Vite | 7.685 sn |
+| `make test-integration` | PASS; testli 21 paket; app 88,777 sn | 92.566 sn |
+| `docker compose up --build -d --no-deps --wait api web` | PASS; yalnız api/web, DB konteyneri korundu | 13.084 sn |
+| `make verify` | PASS; 64 PASS / 0 FAIL, B1 rol ve tutarlılık dahil | 108.895 sn |
+
+İlk tarayıcı denemesinde alanlar boş görünürken gönderimin eski tarihleri kullandığı görüldü (FAIL, b1-ui-first-failure.json). FormData ile güncel alan değerleri tek kaynaktan gönderilerek düzeltildi; son sıralı testler ve yeniden derlenen tarayıcı kabulü PASS. Hiçbir başarısız kayıt silinmedi.
+
+375 px gerçek tarayıcı: document.scrollWidth = innerWidth = 375; tablo kabı 341 px, iç tablo 780 px. AGENT bir satır ve total yok; UNDERWRITER 21 acente ve bir toplam satırı görüyor. Ana veri kümesinde acentesiz poliçe olmadığı için Doğrudan satırı yok; bu satır geçici DB entegrasyon fixture'ında doğrulanır. Masaüstü 1440/1440; 21 satır + toplam. Artan/azalan poliçe adedi sıralaması, boş tarihle tüm zamanlar, boş dönem/sıfır primde “—”, hatalı tarihte error/yeniden deneme ve yükleniyor durumu gerçek tarayıcıda görüldü. Viewport sıfırlandı, kabul sekmesi kapatıldı. [Tarayıcı kaydı](docs/testing/b1-ui.json), [mobil](docs/testing/b1-ui-mobile.png), [masaüstü](docs/testing/b1-ui-desktop.png).
+
+Gerçek HTTP üçer isteğin medyanı: tüm zamanlar **432,560 ms**, son 12 ay **229,244 ms**, dar dönem **56,785 ms**. Üç dönemin dört metrikli toplamı ve hareketli satırları ADR-18 ile birebir aynı; [HTTP kayıtları](docs/testing/b1-http-consistency.json). Bu, verify sonrası mevcut demo/kabul kayıtlarıyla ayrı bir ölçümdür; önceki SQL tablosunun sayılarıyla farklı anlar karıştırılmaz.
+
+100k önce/sonra A8.1 yöntemiyle PASS: 100000 SIM poliçe, 7780 hasar, 6727 ekspertiz, 495 işaretli, 46 açık inceleme, 46 açık görev aynı. Gerçek saate bağlı SLA ihlali 46→46; düşüş yok. Kayıtlı parmak izi, eski ekspertiz alanlarının MD5'i ve volume kimliği aynı. Parmak izi yeniden hesaplanmadı. measured_at ve database_bytes farkları yalnız raporlandı. [Karşılaştırma](docs/testing/b1-comparison.json); ham b1-acceptance-before/after.json ve b1-preservation-before/after.json. Verify olağan demo/kabul işlemleri ekler; SIM iş alanları değişmedi. Simülasyon veya yeni 100k koşusu yok.
