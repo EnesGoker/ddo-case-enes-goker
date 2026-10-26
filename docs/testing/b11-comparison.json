@@ -1,0 +1,52 @@
+{
+  "tested_commit": "c374d9b6f96dabd180a0d655f85dfb7452064e87",
+  "baseline_commit": "4c52c39",
+  "result": "PASS",
+  "identical_fields": [
+    "status",
+    "phase",
+    "processed",
+    "target",
+    "elapsed_seconds",
+    "parameters",
+    "fingerprint",
+    "summary",
+    "sim_policies",
+    "claims",
+    "flagged",
+    "open_fraud_review",
+    "open_tasks",
+    "breached_at_batch_end",
+    "open_before_window",
+    "appraisal_owner_mismatch",
+    "done_appraisal_without_record",
+    "cancelled_decision_tasks",
+    "rule_breakdown"
+  ],
+  "sim_policies": 100000,
+  "claims": 7780,
+  "flagged": 495,
+  "open_fraud_review": 46,
+  "open_tasks": 46,
+  "sim_appraisals": 6727,
+  "fingerprint_unchanged": true,
+  "fingerprint_recomputed": false,
+  "appraisal_rows_md5_unchanged": true,
+  "volume_identity_unchanged": true,
+  "db_container_unchanged": true,
+  "sla": {
+    "before": 46,
+    "after": 46,
+    "nondecreasing": true
+  },
+  "measurement_only": {
+    "measured_at": {
+      "before": "2026-10-26T14:16:20.463946+00:00",
+      "after": "2026-10-26T14:32:12.053717+00:00"
+    },
+    "database_bytes": {
+      "before": 2185059351,
+      "after": 2185296919
+    }
+  }
+}

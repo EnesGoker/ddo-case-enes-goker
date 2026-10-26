@@ -587,7 +587,7 @@ Bu tabloda 100000 SIM ile mevcut demo/kabul kayıtları birlikte raporlanır; 10
 
 375 px gerçek tarayıcı: document.scrollWidth = innerWidth = 375; tablo kabı 341 px, iç tablo 780 px. AGENT bir satır ve total yok; UNDERWRITER 21 acente ve bir toplam satırı görüyor. Ana veri kümesinde acentesiz poliçe olmadığı için Acentesiz satırı yok; bu satır geçici DB entegrasyon fixture'ında doğrulanır. Masaüstü 1440/1440; 21 satır + toplam. Artan/azalan poliçe adedi sıralaması, boş tarihle tüm zamanlar, boş dönem/sıfır primde “—”, hatalı tarihte error/yeniden deneme ve yükleniyor durumu gerçek tarayıcıda görüldü. Viewport sıfırlandı, kabul sekmesi kapatıldı. [Tarayıcı kaydı](docs/testing/b1-ui.json), [mobil](docs/testing/b1-ui-mobile.png), [masaüstü](docs/testing/b1-ui-desktop.png).
 
-Gerçek HTTP üçer isteğin medyanı: tüm zamanlar **432,560 ms**, son 12 ay **229,244 ms**, dar dönem **56,785 ms**. Üç dönemin dört metrikli toplamı ve hareketli satırları ADR-18 ile birebir aynı; [HTTP kayıtları](docs/testing/b1-http-consistency.json). Bu, verify sonrası mevcut demo/kabul kayıtlarıyla ayrı bir ölçümdür; önceki SQL tablosunun sayılarıyla farklı anlar karıştırılmaz.
+B1.1 kod commit’i c374d9b üzerinde yenilenen gerçek HTTP üçer istek medyanı: tüm zamanlar **461,028 ms**, son 12 ay **259,123 ms**, dar dönem **146,023 ms**. Üç dönemin dört metrikli toplamı ve bütün acente satırları ADR-18 ile birebir aynı; ek satırlar sıfır/null kontrolünden geçti. [Güncel HTTP kayıtları](docs/testing/b1-http-consistency.json) scripts/check-agent-performance.py ile yeniden üretilebilir. Bu, verify sonrası mevcut demo/kabul kayıtlarıyla ayrı bir ölçümdür; önceki SQL tablosunun sayılarıyla farklı anlar karıştırılmaz.
 
 100k önce/sonra A8.1 yöntemiyle PASS: 100000 SIM poliçe, 7780 hasar, 6727 ekspertiz, 495 işaretli, 46 açık inceleme, 46 açık görev aynı. Gerçek saate bağlı SLA ihlali 46→46; düşüş yok. Kayıtlı parmak izi, eski ekspertiz alanlarının MD5'i ve volume kimliği aynı. Parmak izi yeniden hesaplanmadı. measured_at ve database_bytes farkları yalnız raporlandı. [Karşılaştırma](docs/testing/b1-comparison.json); ham b1-acceptance-before/after.json ve b1-preservation-before/after.json. Verify olağan demo/kabul işlemleri ekler; SIM iş alanları değişmedi. Simülasyon veya yeni 100k koşusu yok.
 
@@ -605,3 +605,31 @@ python3 scripts/check-agent-performance.py
 ```
 
 Parola `DEMO_PASSWORD` ortamından, yoksa yerel `.env` içinden yalnız belleğe okunur; token/parola kayda veya çıktıya yazılmaz. API_URL varsayılan localhost:8080'dir. Standart Python3, Docker Compose ve mevcut DB'nin salt okunur profil sorgusu kullanılır; paket kurulmaz. Betik `docs/testing/b1-http-consistency.json` ve üç ham yanıtı yeniler. `tested_commit` gerçek HEAD'dir; commit edilmemiş kaynak değişikliği varsa FAIL verir. Varsayılan pano yanıtındaki tarihler ADR-18'e aynen aktarılır; toplamlar, dört metrikli tüm acente satırları ve ek sıfır satırlar karşılaştırılır. AGENT'ın kimliği bağımsız profil sorgusuyla kontrol edilir; parametreyle acentesiz/genel toplam isteği kendi satırıyla sınırlı kalır. Başarısızlık JSON'da FAIL olarak saklanır ve non-zero döner.
+
+
+### B1.1 ölçülmüş sonuçlar
+
+Test edilen gerçek kod commit’i: **c374d9b6f96dabd180a0d655f85dfb7452064e87**. Kod önce commit'lendi; aşağıdaki sıra daha sonra çalıştırıldı. Her fazın log başlığında ve b11-validation.json içinde bu hash bulunur; kanıtlar ayrı docs commit'indedir.
+
+| Komut | Sonuç | Süre |
+|---|---|---:|
+| `make test lint build` | PASS; 20 testli Go paketi + vet/ESLint/TypeScript/Vite | 9,339 sn |
+| `make test-integration` | PASS; 21 testli paket, app88,465 sn; dört dönem acente satırı/toplamı | 96,582 sn |
+| `docker compose up --build -d --no-deps --wait api web` | PASS; yalnız api/web, DB aynı | 34,901 sn |
+| `make verify` | 64 PASS / 0 FAIL | 116,196 sn |
+| `python3 scripts/check-agent-performance.py` | Üç dönem satır/toplam eşitliği + AGENT izolasyonu PASS | 5,487 sn |
+
+AGENT kapsamlı SQL, 100000 SIM poliçe bulunan aynı DB'de ve eşzamanlı test/verify/simülasyon yükü olmadan salt okunur ölçüldü. Kimlik demo acente profilinden çözüldü; yeni indeks yok:
+
+| AGENT dönemi | Üç EXPLAIN süresi (ms) | Medyan (ms) |
+|---|---|---:|
+| Tüm zamanlar | 9,375 / 3,090 / 1,785 | **3,090** |
+| Varsayılan son 12 ay | 1,650 / 1,471 / 1,525 | **1,525** |
+
+[AGENT sorgu/plan/ölçüm kaydı](docs/explain/b11-agent.json); tüm kayıtlarda tested_commit c374d9b yer alır. İstek başına süre veya yük garantisi değildir.
+
+İlk taramada izlenen 323 dosyanın durum taramasında eski eksik pano bildirimi bulunmadı; AGENTS gereği ham proje.md okunmadı. Çıktı ve komut [b11-status-grep.txt](docs/testing/b11-status-grep.txt). ROADMAP110 ve TESTING549 B1/ADR-27 durumunu gösterir; PDF/fotoğraf hâlâ yoktur. Eski B1 ham SQL/plan/tarayıcı metadata kayıtları o commit’in tarihsel kanıtıdır; canlı sözleşme **Acentesiz / unassigned** olarak eşitlendi. Kanonik b1-http-consistency.json yeni betikle bu kod SHA'sında yenilendi; eski B1 kaydı Git’te 4c52c39 sürümünde korunur.
+
+100k karşılaştırması PASS: 100000 poliçe /7780 hasar /6727 ekspertiz /495 işaretli /46 açık inceleme /46 açık görev değişmedi. Anlık SLA46→46, kayıtlı parmak izi ve ekspertiz MD5’i aynı (parmak izi yeniden hesaplanmadı); DB konteyneri ve volume kimliği aynı. measured_at ve database_bytes farkları yalnız raporlandı. [b11-comparison.json](docs/testing/b11-comparison.json) ve ham b11-acceptance-before/after, b11-preservation-before/after dosyaları kayıtlıdır. Bu görevde test veya verify FAIL olmadı; paket kurulmadı, simülasyon/migration/CI/k6/main/merge/push işlemi yapılmadı.
+
+Son staging taramasında yeni kanıtlarla birlikte 344 izlenen dosyada da eşleşme yok; çıktı b11-status-grep.txt içinde korunur.

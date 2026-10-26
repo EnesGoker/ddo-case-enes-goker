@@ -1,0 +1,42 @@
+[
+  {
+    "tested_commit": "c374d9b6f96dabd180a0d655f85dfb7452064e87",
+    "command": "make test lint build",
+    "started_at": "2026-10-26T14:25:38.734079+00:00",
+    "seconds": 9.339,
+    "exit_code": 0,
+    "log": "b11-c374d9b-test-lint-build.log"
+  },
+  {
+    "tested_commit": "c374d9b6f96dabd180a0d655f85dfb7452064e87",
+    "command": "make test-integration",
+    "started_at": "2026-10-26T14:25:48.117951+00:00",
+    "seconds": 96.582,
+    "exit_code": 0,
+    "log": "b11-c374d9b-integration.log"
+  },
+  {
+    "tested_commit": "c374d9b6f96dabd180a0d655f85dfb7452064e87",
+    "command": "docker compose up --build -d --no-deps --wait api web",
+    "started_at": "2026-10-26T14:27:24.759142+00:00",
+    "seconds": 34.901,
+    "exit_code": 0,
+    "log": "b11-c374d9b-services.log"
+  },
+  {
+    "tested_commit": "c374d9b6f96dabd180a0d655f85dfb7452064e87",
+    "command": "make verify",
+    "started_at": "2026-10-26T14:27:59.729046+00:00",
+    "seconds": 116.196,
+    "exit_code": 0,
+    "log": "b11-c374d9b-verify.log"
+  },
+  {
+    "tested_commit": "c374d9b6f96dabd180a0d655f85dfb7452064e87",
+    "command": "python3 scripts/check-agent-performance.py",
+    "started_at": "2026-10-26T14:30:09.149881+00:00",
+    "seconds": 5.487,
+    "exit_code": 0,
+    "log": "b11-c374d9b-http-proof.log"
+  }
+]

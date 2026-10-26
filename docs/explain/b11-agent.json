@@ -1,0 +1,32 @@
+{
+  "tested_commit": "c374d9b6f96dabd180a0d655f85dfb7452064e87",
+  "measured_at": "2026-10-26T14:30:43.309086+00:00",
+  "sim_policies": 100000,
+  "scope": "AGENT resolved from demo user; existing indexes, READ ONLY, no concurrent test/verify/simulation load",
+  "runs": [
+    {
+      "period": "all-time",
+      "from": null,
+      "to": null,
+      "agent_id": 1,
+      "execution_ms": [
+        9.375,
+        3.09,
+        1.785
+      ],
+      "median_ms": 3.09
+    },
+    {
+      "period": "default",
+      "from": "2025-10-27",
+      "to": "2026-10-27",
+      "agent_id": 1,
+      "execution_ms": [
+        1.65,
+        1.471,
+        1.525
+      ],
+      "median_ms": 1.525
+    }
+  ]
+}

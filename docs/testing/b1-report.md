@@ -32,7 +32,7 @@ Yevmiye entry_date [from,to). Parametreler yokken TRT bugün dahil son 12 takvim
 | default | 229.244 | PASS |
 | narrow | 56.785 | PASS |
 
-[HTTP ham yanıtları ve kapsam](b1-http-consistency.json). AGENT'ın beklenen kimliği bağımsız DB profilinden kontrol edildi; Acentesiz/total isteği yalnız kendi satırını döndürdü.
+Bu tablodaki B1 HTTP kaydı Git’te `git show 4c52c39:docs/testing/b1-http-consistency.json` ile görülebilir; dosya B1.1’de yeni betikle yenilenmiştir. [Güncel HTTP ham yanıtları ve kapsam](b1-http-consistency.json). AGENT'ın beklenen kimliği bağımsız DB profilinden kontrol edildi; Acentesiz/total isteği yalnız kendi satırını döndürdü.
 
 ## 4. Testler ve tarayıcı
 

@@ -1,0 +1,8 @@
+tested_commit=c374d9b6f96dabd180a0d655f85dfb7452064e87
+command=python3 scripts/check-agent-performance.py
+started_at=2026-10-26T14:30:09.149881+00:00
+
+all-time: satır/toplam PASS; medyan 461.028 ms
+default: satır/toplam PASS; medyan 259.123 ms
+narrow: satır/toplam PASS; medyan 146.023 ms
+PASS: /Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/b1-http-consistency.json; tested_commit=c374d9b6f96dabd180a0d655f85dfb7452064e87

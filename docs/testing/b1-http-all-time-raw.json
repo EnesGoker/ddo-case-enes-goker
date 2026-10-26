@@ -1,4 +1,5 @@
 {
+  "tested_commit": "c374d9b6f96dabd180a0d655f85dfb7452064e87",
   "panel": {
     "from": null,
     "to": null,
@@ -6,10 +7,10 @@
       {
         "key": "1",
         "label": "Örnek Sigorta Acentesi",
-        "written_premium_kurus": 156563203,
-        "policy_count": 105,
-        "incurred_claims_kurus": 1086000000,
-        "loss_ratio_bp": 69365
+        "written_premium_kurus": 171616223,
+        "policy_count": 115,
+        "incurred_claims_kurus": 1267000000,
+        "loss_ratio_bp": 73828
       },
       {
         "key": "2",
@@ -175,10 +176,10 @@
     "total": {
       "key": "total",
       "label": "Toplam",
-      "written_premium_kurus": 71083298251,
-      "policy_count": 100105,
-      "incurred_claims_kurus": 18602008148,
-      "loss_ratio_bp": 2617
+      "written_premium_kurus": 71098351271,
+      "policy_count": 100115,
+      "incurred_claims_kurus": 18783008148,
+      "loss_ratio_bp": 2642
     }
   },
   "adr18": {
@@ -187,10 +188,10 @@
       {
         "key": "1",
         "label": "Örnek Sigorta Acentesi",
-        "written_premium_kurus": 156563203,
-        "policy_count": 105,
-        "incurred_claims_kurus": 1086000000,
-        "loss_ratio_bp": 69365
+        "written_premium_kurus": 171616223,
+        "policy_count": 115,
+        "incurred_claims_kurus": 1267000000,
+        "loss_ratio_bp": 73828
       },
       {
         "key": "10",
@@ -356,10 +357,10 @@
     "total": {
       "key": "total",
       "label": "Toplam",
-      "written_premium_kurus": 71083298251,
-      "policy_count": 100105,
-      "incurred_claims_kurus": 18602008148,
-      "loss_ratio_bp": 2617
+      "written_premium_kurus": 71098351271,
+      "policy_count": 100115,
+      "incurred_claims_kurus": 18783008148,
+      "loss_ratio_bp": 2642
     }
   }
 }

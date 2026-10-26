@@ -1,24 +1,26 @@
 {
-  "measured_at": "2026-10-26T13:42:16.411222+00:00",
-  "scope": "100k SIM plus current demo/verify records; measured after final verify, separately from pre-verify SQL snapshots",
+  "tested_commit": "c374d9b6f96dabd180a0d655f85dfb7452064e87",
+  "branch": "bonus/acente-panosu",
+  "measured_at": "2026-10-26T14:30:09.316400+00:00",
+  "command": "python3 scripts/check-agent-performance.py",
   "results": [
     {
       "period": "all-time",
       "from": null,
       "to": null,
       "http_ms": [
-        719.323,
-        426.302,
-        432.56
+        547.415,
+        365.922,
+        461.028
       ],
-      "median_ms": 432.56,
+      "median_ms": 461.028,
       "total": {
         "key": "total",
         "label": "Toplam",
-        "written_premium_kurus": 71083298251,
-        "policy_count": 100105,
-        "incurred_claims_kurus": 18602008148,
-        "loss_ratio_bp": 2617
+        "written_premium_kurus": 71098351271,
+        "policy_count": 100115,
+        "incurred_claims_kurus": 18783008148,
+        "loss_ratio_bp": 2642
       },
       "result": "PASS"
     },
@@ -27,18 +29,18 @@
       "from": "2025-10-27",
       "to": "2026-10-27",
       "http_ms": [
-        357.426,
-        229.244,
-        187.436
+        259.123,
+        271.282,
+        229.569
       ],
-      "median_ms": 229.244,
+      "median_ms": 259.123,
       "total": {
         "key": "total",
         "label": "Toplam",
-        "written_premium_kurus": 15852732138,
-        "policy_count": 19542,
-        "incurred_claims_kurus": 5335901030,
-        "loss_ratio_bp": 3366
+        "written_premium_kurus": 15861727630,
+        "policy_count": 19548,
+        "incurred_claims_kurus": 5516901030,
+        "loss_ratio_bp": 3478
       },
       "result": "PASS"
     },
@@ -47,11 +49,11 @@
       "from": "2026-09-26",
       "to": "2026-10-26",
       "http_ms": [
-        63.486,
-        32.228,
-        56.785
+        146.023,
+        176.15,
+        140.712
       ],
-      "median_ms": 56.785,
+      "median_ms": 146.023,
       "total": {
         "key": "total",
         "label": "Toplam",
@@ -63,7 +65,10 @@
       "result": "PASS"
     }
   ],
+  "token_saved": false,
+  "scope": "100k SIM plus current demo/verify records; run without concurrent business mutations",
+  "source_clean": true,
   "agent_parameter_isolation": "PASS",
   "expected_agent_id": "1",
-  "token_saved": false
+  "result": "PASS"
 }

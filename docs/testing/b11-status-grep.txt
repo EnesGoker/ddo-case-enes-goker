@@ -1,0 +1,17 @@
+tested_commit=c374d9b6f96dabd180a0d655f85dfb7452064e87
+measured_at=2026-10-26T14:28:38.851506+00:00
+tracked_files=323
+excluded_by_AGENTS=proje.md
+
+command: rg -n -i '(acente[\s-]+(performans\s+)?panosu|bonuspanosu)[^.\n]*(YAPILMADI|yapılmadı|henüz uygulanmadı)' -- <git ls-files paths except proje.md>
+exit_code=1
+No matches.
+
+positive command: rg -n 'acente performans panosu B1|Acente performans panosu B1' ROADMAP.md TESTING.md
+TESTING.md:549:Yukarıdaki “BEKLİYOR” notları ölçüm öncesi anlık kayıttır. Son durum: yeni100k, tazekurulum, CI/kapsam, verify, k6,kaos,ikiindeks veS5primkanıtı **PASS**; READMEkurulum/mimari/ölçümler tamam.173Testfonksiyonu. Kullanıcı isteğiyle READMEkişisel1/4soruları yer tutucu, sonpush/anket kullanıcıya ait. Repo public olarak saltokunur doğrulandı. Acente performans panosu B1’de eklendi (ADR-27).
+ROADMAP.md:110:**Bonus durumu:** acente performans panosu B1’de eklendi (ADR-27); ekspertiz notu mevcut.
+
+Final staged-tree scan at 2026-10-26T14:39:50.707672+00:00
+tracked_files=344
+exit_code=1
+No matches.
