@@ -56,6 +56,10 @@ Tazminat sırası **muafiyet → olay başı limit → teminat dönem limiti →
 
 Müşteri/acente hasarında iç durum UNDER_REVIEW olarak görünür; iç inceleme/sistem notları gizlenir, red gerekçesi müşteriye gösterilir. İç rollerin görünümü korunur. Sistem mali özeti muhasebe/UW'ye; diğer rollere yalnız sayısal canlılık verilir.
 
+### Ekran görüntüleri
+
+[Masaüstü](docs/testing/ui1/desktop.png) ve [375 px mobil](docs/testing/ui1/mobile.png) görüntüleri, altı rolün paylaştığı yeni arayüz dilini gösterir.
+
 ### Acente performansı (B1)
 
 Acente kendi satırını; underwriter ve muhasebe bütün acenteleri, varsa **Acentesiz** satırını ve toplamı görür. Dönem dışı/faaliyetsiz acenteler sıfırlarla listelenir. Prim sıfırsa oran “—”; genel oran toplamlardan hesaplanır. Menüde **Acente performansı**, iki tarih alanı ve sütun başlıklarıyla sıralama vardır. Varsayılan TRT bugün dahil son 12 ay; iki tarih boşaltılınca tüm zamanlar. Tarih aralığı yevmiye entry_date üzerinde [başlangıç, bitiş) şeklindedir; kazanılmış prim hesabı yoktur. Poliçe adedi ve ilk yazılan primin dönem tarihi ADR-18’deki gibi poliçe başlangıcıdır; bugün düzenlenip ileri tarihte başlayacak poliçe, başlangıç gününe kadar varsayılan panonun ilk üretimine girmez (zeyil/iptal ve hasar onayları kendi yevmiye entry_date tarihleriyle hesaba katılır).
@@ -70,6 +74,18 @@ Acente kendi satırını; underwriter ve muhasebe bütün acenteleri, varsa **Ac
 | §10 bonus: acente performans panosu | `TestAgentPerformanceGolden` hazır satırlarda toplam/oranı; `TestProductionReportGoldenLedgerPeriodsAndGroups` gerçek SQL ve zeyil/iptal/onay sonrası acente satırlarını; `TestAgentPerformanceAccessAndGoldenRows` rol/nakit iade/tarih sınırını doğrular; verify `B1 acente-panosu`; ayrıntılar [TESTING B1](TESTING.md#b1--acente-performans-panosu) |
 
 Yeni sorgu kaynakları acente bazında ayrı toplar; mevcut ADR-18 raporu değişmez. 100k SIM verisinde tüm zamanlar medyanı **501,841 ms**, son 12 ay **257,549 ms** (üçer EXPLAIN ölçümü, yeni indeks yok). İlk tüm-zamanlar örneği 2113,342 ms; medyan kapısı PASS olsa da her isteğin 1 sn altında olduğu iddia edilmez. [Ham ölçümler](docs/explain/b1-after.json), [sorgu](docs/explain/b1-after.sql), [üç dönem tutarlılığı](docs/testing/b1-consistency.json), [ADR-27](DECISIONS.md#adr-27--acente-performans-panosu-b1). B1.1 kod commit’i `c374d9b` üzerinde birim/lint/build ve entegrasyon PASS; verify **64 PASS / 0 FAIL, 116,196 sn**. Yenilenen gerçek HTTP tüm zamanlar/12 ay medyanı **461,028 / 259,123 ms**; [dört metrik eşitliği](docs/testing/b1-http-consistency.json), [100k koruması](docs/testing/b1-comparison.json) ve [tarayıcı kabulü](docs/testing/b1-ui.json) kayıtlıdır. HTTP kanıtını `python3 scripts/check-agent-performance.py` üretir; 100k ortamında AGENT kapsamlı sorgunun tüm zamanlar/12 ay medyanı **3,090 / 1,525 ms** ([planlar](docs/explain/b11-agent.json)).
+
+### Arayüz adayı (UI-1)
+
+Mevcut altı rolün ekranları ortak lacivert/turkuaz tasarım dili, erişilebilir mobil menü, durum rozetleri ve daha okunur form/tablo/detay düzeniyle yenilendi. API, hesaplar, yetki ve iş akışları korunur; yeni metrik veya filtre eklenmez. Çalışma `ui/premium-arayuz` dalındadır; main'e otomatik alınmaz ve çalışan Docker web'i değiştirmez.
+
+Mevcut frontend bağımlılıklarıyla ayrı adreste inceleme:
+
+```bash
+npm --prefix frontend run dev -- --host 127.0.0.1 --port 4173 --strictPort
+```
+
+[127.0.0.1:4173](http://127.0.0.1:4173) mevcut yerel API'ye bağlanır; demo hesapları yukarıdadır. Bu, bağımsız HTML önizlemesinden farklı olarak gerçek uygulamadır. Kaydetme/ödeme gibi işlemler gerçek demo kaydı üretir. UI kabulü ve sınırları [UI-1 raporunda](docs/testing/ui1/README.md) kaydedilir. Ana uygulamaya alma ve push ayrı kullanıcı kararıdır.
 
 ## Doğrulama
 
@@ -200,7 +216,7 @@ CI'nin ilk koşusu küçük havuzda gerçek bağlantı kilitlenmesini yakaladı.
 - Ödeme sağlayıcısı/banka entegrasyonu, mevzuat/tarife gerçekliği ve otomatik gün sonu zamanlayıcısı yok. Node 20 istenen teslim sürümüdür; bağımlılık yükseltme bu aşamanın kapsamı değildir.
 - Bonuslar: ekspertiz notu ve acente performans panosu mevcut; pano acente bazında poliçe adedi, yazılan net prim, tahakkuk eden tazminat ve yazılan prime göre hasar/prim oranını rol kapsamıyla gösterir.
 - Poliçe PDF'i ve fotoğraf yükleme **YAPILMADI**.
-- Repo public olarak salt okunur doğrulandı. Son belge push'u, adayın kişisel yanıtları ve anket teslimi Enes'e aittir; uygulama testleri teslim formunu tamamlanmış saymaz.
+- Repo public olarak salt okunur doğrulandı. Kişisel yanıtlar Enes'in metniyle A8.2/A8.3'te tamamlandı. Son push, güncel commit'in CI teyidi ve anket teslimi Enes'e aittir; uygulama testleri teslim formunu tamamlanmış saymaz.
 
 ## Şartnamenin beş sorusu
 

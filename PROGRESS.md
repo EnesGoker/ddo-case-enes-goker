@@ -1179,3 +1179,24 @@ K1 son sıra: make test lint build PASS9,339sn/20 testli paket; make test-integr
 100k korumasıPASS:100000poliçe/7780hasar/6727ekspertiz/495işaretli/46açıkinceleme/46açıkgörev aynı, anlıkSLA46→46; kayıtlıparmakizi/ekspertizMD5/DBkonteyneri/volume kimliği aynı, fingerprintyenidenhesaplanmadı. Ölçümzamanı/DBboyutu farkları b11-comparison.json'da. Simülasyon/migration/CI/k6 değişikliği yok. Test komut/süre/hash kayıtları b11-validation.json; grep b11-status-grep.txt; tam dosya manifesti ve kapanış [B1.1 raporunda](docs/testing/b11-report.md). Main4d27405 değişmedi; merge/push yok. Main'e dokunulmadı, push yapılmadı. 19:00TRT sınırından önce tamamlandı. Sonraki adım yalnız kullanıcının merge değerlendirmesi; başlanmadı.
 
 Son staging durum taraması yeni kanıtlar dahil 344 izlenen dosyada da eşleşme vermedi.
+
+## UI-1 — Premium React arayüz adayı (26 Ekim 2026)
+
+**Durum: TAMAMLANDI (kullanıcı incelemesine hazır aday).** Kullanıcı ayrıntılı yol haritasını ve başlamayı onayladı. Temiz `2fd6ffe` tabanından yalnız `ui/premium-arayuz` açıldı; mevcut main korunur. Ortak lacivert/turkuaz CSS, sistem fontu ve SVG ikonlar; shell/login/mobil menü; poliçe/teklif/hasar listesi ve detay; görev/ödemeler/mizan/rapor/pano/Sistem görünümü yenilendi. API, handler, idempotans ve iş kuralları değiştirilmedi; yeni özellik, metrik veya filtre yok. Kardeş HTML önizlemesi salt okunur referans, üç dosyanın hash'i aynı.
+
+Aday `127.0.0.1:4173`, mevcut Vite/node_modules ile çalışır. Çalışan 3000 web/API/DB'nin ID+imajları ve görev öncesi StartedAt değerleri korundu. Docker build/restart/down/reset/simülasyon/prune/volume işlemi yok; yalnız onaylı entegrasyon kendi geçici PostgreSQL'ini kurup kaldırdı. Paket kurulmadı. 100k başlangıç/son READ ONLY kabulü aynı: 100000 poliçe, 7780 hasar, 6727 ekspertiz, 495 işaretli, 46 açık inceleme, 46 açık görev; SLA 46→46. Fingerprint, ekspertiz MD5 ve volume aynı. Parmak izi yeniden hesaplanmadı; verify olağan demo kabul kayıtları ekledi.
+
+Son kod **4290dd85ef384ddffd39d963447c45dc96e96cf7**:
+
+- `make test lint build`: PASS, 10,947 sn, 20 testli paket.
+- `make test-integration`: PASS, 98,737 sn, 21 paket (app 92,300 sn).
+- `WEB_URL=http://127.0.0.1:4173 make verify`: 64 PASS / 0 FAIL, 107,206 sn.
+- Kaynak kontrolü: 17 eski TSX'te 115 API/hook, 287 event/key/validasyon/rol niteliği, 146 initializer ve 10 SSR sunum kontrolü PASS; genel davranış eşdeğerliği testi değildir.
+
+Gerçek tarayıcı: 40 rol/menü × 1440/1024/768/375 = 160 ölçüm; ayrıca 20 detay/giriş ve 1 mobil menü ölçümü PASS. Kasko/CAM 15.774,80 TL tekrar aynı; Konut 1.950 TL, Trafik 9.315 TL. B1'de AGENT tek/toplamsız, UW/muhasebe tümü; tarihler/sort/empty/error; mahremiyet ve ekspertiz pasifliği; poliçe Enter; CAM 7 adım/10.000 TL; login/menü/Escape/odak çalışır. Document375=viewport375, yalnız pano kabı341/780 kayar. Seçili 9 renk çifti ≥4,5.
+
+Gerçek cihaz/ekran okuyucu/%200 metin büyütme ve eksik canlı SLA örneği üretilmedi. Yeni CI/k6/kaos/simülasyon yok. İlk kontrol aracı, browser ve belge helper denemelerinin yanlış FAIL'leri ve giderilen Escape inceleme bulgusu raporda; uygulama test/verify sonuçları PASS.
+
+README/ROADMAP/TESTING'in A8.2/A8.3 kişisel cevap durumları düzeltildi; README beş cevap bölümü byte eşit (kanıt özeti docs/testing/ui1/README.md). Commit'ler: e8d405c başlangıç dokümanı; 4c133cf ortak stiller; 7db7925 shell/mobil menü; cf726c7 temel akış görünümleri; 4290dd8 diğer ekranlar/kaynak kontrolü. Son docs commit hash'i final yanıtta. [UI-1 kabul özeti](docs/testing/ui1/README.md), [UI-1 özeti ve seçili kanıtlar](docs/testing/ui1/README.md) sonuçları içerir.
+
+**Main'e dokunulmadı, push yapılmadı.** Sonraki adım yalnız kullanıcı incelemesi; merge veya çalışan web'i yenileme için ayrı talimat beklenir.

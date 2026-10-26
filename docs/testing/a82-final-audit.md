@@ -52,7 +52,7 @@ FAIL'deki ara test sürümü ayrı commit değildi. Aşağıdaki diff önceki ot
 
 Başlangıç HEAD'inin 273 UTF-8 metin dosyası tarandı; binary dosyalar kapsam dışında. Token/Authorization literal değerleri, parola atamaları, özel anahtar/API anahtarı kalıpları ve yerel .env'deki hassas ayar değerleriyle eşleşmeler kontrol edildi. Ham aday değerleri çıktıya veya bu kayda yazılmadı.
 
-Gerçek görünümlü kullanılabilir sır/JWT bulunmadı; `<redacted>` uygulanan dosya yok. Özellikle docs/testing kayıtlarında sır adayı bulunmadı. Yerel .env'nin örnek dosyadaki demo ayarlarıyla eşleşmesi aşağıda açıkça sınıflandırıldı; .env ve örnek yapılandırma değiştirilmedi. README'nin değerlendirici için bilerek verilen demo bilgileri korundu.
+Gerçek görünümlü kullanılabilir sır/JWT bulunmadı; maskeleme uygulanan dosya yok. Özellikle docs/testing kayıtlarında sır adayı bulunmadı. Yerel .env'nin örnek dosyadaki demo ayarlarıyla eşleşmesi aşağıda açıkça sınıflandırıldı; .env ve örnek yapılandırma değiştirilmedi. README'nin değerlendirici için bilerek verilen demo bilgileri korundu.
 
 | Dosya:satır | Eşleşme ve karar |
 |---|---|

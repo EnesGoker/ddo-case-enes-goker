@@ -103,7 +103,7 @@ A7 uygulaması ve altı rol375px kabulü tamamlandı. Önceki v1/v2 ölçümleri
 - [x] İki indeks ham EXPLAIN+3JSONmedyanı: refund178,767→0,171ms; rapor382,542→34,020ms. Atölye adayı da saklandı.
 - [x] DECISIONS25ADR, TESTING her madde/rol/komut ve başarısız ilk koşuları içerir.
 - [x] Aynı pushlanmışSHA ile tazeclone/boş özelbuilder/ayrıvolume:77,505sn; tazeverify62/0. PaylaşılanPGtabanimajcacheistisnası README'de; ana100k korunup sonverify geçti.
-- [ ] README1/4kişisel soruları Enes'in kendi metniyle doldurulacak; diğer üç soru/ölçümler hazır.
+- [x] README 1/4 kişisel cevapları Enes'in kendi metniyle A8.2'de tamamlandı; A8.3 iki ifadeyi netleştirdi.
 - [x] Public repo ve anlamlı çoklu commit geçmişi salt okunur doğrulandı; ajan push/publicayarı yapmadı.
 - [ ] Son belge commit'leri kullanıcı tarafından push edilecek; repoURL'si26Ekim23.59TRT'den önce ankete yüklenecek.
 
@@ -111,7 +111,7 @@ A7 uygulaması ve altı rol375px kabulü tamamlandı. Önceki v1/v2 ölçümleri
 
 Poliçe PDF’i ve fotoğraf yükleme yok. Genel okunabilirlik turu YAPILMADI. Yeni roadmap aşamasına başlanmadı.
 
-**Kapanış:** teknik kapı PASS; kişisel README ve anket teslimi kullanıcıya ait.
+**Kapanış:** teknik kapı PASS; kişisel README cevapları A8.2/A8.3'te tamamlandı. Anket teslimi ve son push/CI teyidi kullanıcıya ait.
 
 ## Zaman daralınca karar kuralları
 
@@ -140,7 +140,7 @@ Poliçe PDF’i ve fotoğraf yükleme yok. Genel okunabilirlik turu YAPILMADI. Y
 
 ## Teslim kontrolü
 
-- [x] Aday adı ve kurulum bilgileri README başında; kişisel1/4metni bekliyor.
+- [x] Aday adı, kurulum ve Enes'in kişisel 1/4 cevapları README'de tamamlandı (A8.2/A8.3).
 - [ ] Ajan çıktıları manuel olarak incelendi, kritik kararlar açıklanabiliyor.
 - [x] `.env`/derleme çıktıları ignore; Git remote ve branch doğrulandı.
 - [x] Çoklu anlamlı commit; ajan push/force-push yapmadı.

@@ -494,10 +494,10 @@ Opus'un e457cf5 üzerinden çıkardığı salt okunur tablo, A8'de uygulanmış 
 | İki indeks EXPLAIN | refund178,767→0,171ms;report382,542→34,020ms; rollback | PASS |
 | En az5ADR | DECISIONS ADR-1…23, A8 ADR-10/14/17/22 güncel | TAMAM |
 | §8 aday/kurulum/mimari/demo hesapları | README | TAMAM |
-| README S1 en zor görev | Enes kendi metnini yazacak | KULLANICI BEKLİYOR |
+| README S1 en zor görev | Enes'in metni A8.2'de eklendi; iki ifade A8.3'te netleştirildi | TAMAM |
 | README S2 gerçek sınır | Mutlak atölye eşiği, ağır rapor süresi ve idempotans çökme aralığı | TAMAM |
 | README S3 iki indeks ölçümü | docs/explain ve READMEgerçekmedyanlar | PASS |
-| README S4 reddedilen AI çıktısı | Enes kendi somut örneğini yazacak | KULLANICI BEKLİYOR |
+| README S4 reddedilen AI çıktısı | Enes'in somut önce/sonra örnekleri A8.2'de eklendi | TAMAM |
 | README S5 prim altın komut/çıktı | docs/testing/pricing-golden.log ve sonverify T-1 | PASS |
 | §9 anlamlı commit geçmişi | Küçük testli aşama commitleri, push kullanıcıya ait | TAMAM |
 | Public repo/kullanıcı hesabı/anket23.59 | Public doğrulandı; sonpush/anket Enes'in | KULLANICIYA AİT |
@@ -546,7 +546,7 @@ Muhasebe/UW100000/100000 ve46/9maliözetini görüyor; müşteriSistem yalnızca
 
 ### İzlenebilirlik tablosunun kapanışı
 
-Yukarıdaki “BEKLİYOR” notları ölçüm öncesi anlık kayıttır. Son durum: yeni100k, tazekurulum, CI/kapsam, verify, k6,kaos,ikiindeks veS5primkanıtı **PASS**; READMEkurulum/mimari/ölçümler tamam.173Testfonksiyonu. Kullanıcı isteğiyle READMEkişisel1/4soruları yer tutucu, sonpush/anket kullanıcıya ait. Repo public olarak saltokunur doğrulandı. Acente performans panosu B1’de eklendi (ADR-27).
+Yukarıdaki “BEKLİYOR” notları ölçüm öncesi anlık kayıttır. Son durum: yeni100k, tazekurulum, CI/kapsam, verify, k6,kaos,ikiindeks veS5primkanıtı **PASS**; READMEkurulum/mimari/ölçümler tamam.173Testfonksiyonu. README kişisel 1/4 cevapları A8.2/A8.3'te tamamlandı; son push/CI teyidi ve anket kullanıcıya ait. Repo public olarak saltokunur doğrulandı. Acente performans panosu B1’de eklendi (ADR-27).
 
 Poliçe PDF’i ve fotoğraf yükleme yok. Kesilebilir genel okunabilirlik turu **YAPILMADI**. Önceki başarısız koşular silinmedi.
 
@@ -633,3 +633,23 @@ AGENT kapsamlı SQL, 100000 SIM poliçe bulunan aynı DB'de ve eşzamanlı test/
 100k karşılaştırması PASS: 100000 poliçe /7780 hasar /6727 ekspertiz /495 işaretli /46 açık inceleme /46 açık görev değişmedi. Anlık SLA46→46, kayıtlı parmak izi ve ekspertiz MD5’i aynı (parmak izi yeniden hesaplanmadı); DB konteyneri ve volume kimliği aynı. measured_at ve database_bytes farkları yalnız raporlandı. [b11-comparison.json](docs/testing/b11-comparison.json) ve ham b11-acceptance-before/after, b11-preservation-before/after dosyaları kayıtlıdır. Bu görevde test veya verify FAIL olmadı; paket kurulmadı, simülasyon/migration/CI/k6/main/merge/push işlemi yapılmadı.
 
 Son staging taramasında yeni kanıtlarla birlikte 344 izlenen dosyada da eşleşme yok; çıktı b11-status-grep.txt içinde korunur.
+
+## UI-1 — Premium arayüz adayı (26 Ekim 2026)
+
+Yalnız `ui/premium-arayuz`; taban/main `2fd6ffe`, test edilen uygulama kodu **4290dd85ef384ddffd39d963447c45dc96e96cf7**. Backend, API/auth/hooks/roles/format, şema, compose, CI, k6 ve simülatör kaynakları aynı. Mevcut altı rolün ekranlarında ortak CSS, navigasyon/login, form/tablo/detay ve durum sunumu yenilendi. Yeni iş özelliği, metrik veya filtre yok. Çalışan Docker web/API yeniden derlenmedi veya başlatılmadı; aday mevcut bağımlılıklarla `http://127.0.0.1:4173` adresindeki Vite sunucusudur.
+
+| Komut / kabul | Sonuç | Süre |
+|---|---|---:|
+| `make test lint build` | PASS; 20 testli Go paket + frontend/vet | 10,947 sn |
+| `make test-integration` | PASS; 21 testli paket, app 92,300 sn; ayrı geçici PostgreSQL | 98,737 sn |
+| `WEB_URL=http://127.0.0.1:4173 make verify` | **64 PASS / 0 FAIL** | 107,206 sn |
+| [Önceki kaynak kontrolü özeti](docs/testing/ui1/README.md) | PASS; 115 API/hook, 287 olay/key/validasyon/rol niteliği, 146 initializer; 10 SSR kontrolü | Ayrı süre ölçülmedi |
+| Gerçek tarayıcı | 40 rol/menü × 4 genişlik = 160; ek 20 detay/giriş + 1 mobil menü ölçümü; taşma yok | Performans ölçümü değildir |
+
+Kasko/CAM preview 15.774,80 TL ve aynı girdilerle tekrar aynı; Konut 1.950,00 TL, Trafik 9.315,00 TL. Teklif kaydedilmedi. AGENT 1 satır/toplamsız; UW/muhasebe 21 satır/toplamlı. Panoda boş tarih, sıralama, sıfır primde “—”, ters tarihte hata ve toparlanma doğrulandı. Poliçe Enter/detay; müşteri/acente hasar mahremiyeti; iç rolde sinyal/görev ve ekspertizsiz ADJUSTMENT pasifliği; gerçek 7 adım/10.000 TL CAM; login hata/toparlanma ve mobil Escape/odak geçişi çalıştı. 375 px document=375; pano kabı 341/780. Seçili 9 metin renk çifti ≥4,5:1; tam WCAG denetimi değil.
+
+100k önce/sonra kabulü PASS: 100000 poliçe, 7780 hasar, 6727 ekspertiz, 495 işaretli, 46 açık inceleme ve 46 açık görev aynı; anlık SLA 46→46. İş alanları, kayıtlı fingerprint ve ekspertiz eski alan MD5'i aynı; fingerprint yeniden hesaplanmadı. Volume, db/api/web ID+imajları aynı; başlama anları görev öncesi. Kardeş HTML önizlemesinin üç dosya hash'i aynı. Verify olağan demo kabul verisi ekler; SIM korunur. Main `2fd6ffe` aynı; merge/push yok.
+
+İlk kaynak kontrolü FAIL'i (ikon name prop'u), browser bekleme/seçici denemeleri ve belge helper'ının strip kaynaklı yanlış FAIL'i saklandı ve açıklandı. Uygulama testleri ve verify PASS. Kaynak kontrolleri genel davranış/RBAC eşdeğerliği veya CSS kanıtı değildir; gerçek tarayıcı ve backend testleri ayrı kanıttır. Gerçek cihaz, ekran okuyucu, %200 metin büyütme, sarı SLA için yeni canlı veri, yeni CI/k6/kaos/simülasyon/temiz kurulum ÇALIŞTIRILMADI. İş yazma formlarının tamamı tarayıcıdan yeniden gönderilmedi; API yazma kabulü verify'dadır. Kullanıcı incelemesi ve ana uygulamaya alma ayrı adım.
+
+Tam komut/SHA/loglar: [Doğrulama özeti ve loglar](docs/testing/ui1/README.md). [Tarayıcı kabulü](docs/testing/ui1/README.md), [koruma karşılaştırması](docs/testing/ui1/README.md), [konteynerler](docs/testing/ui1/README.md), [kontrast](docs/testing/ui1/README.md), [AGENTS §6 raporu ve tam dosya envanteri](docs/testing/ui1/README.md).
