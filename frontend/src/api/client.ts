@@ -95,6 +95,22 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return parse<T>(res)
 }
 
+// Binary downloads share the existing in-memory token and single refresh flow.
+export async function apiBlob(path: string): Promise<Blob> {
+  let res = await send(path, { method: 'GET' })
+  if (res.status === 401 && accessToken) {
+    try {
+      await refreshSession()
+    } catch {
+      setAccessToken(null)
+      return parse<Blob>(res)
+    }
+    res = await send(path, { method: 'GET' })
+  }
+  if (!res.ok) return parse<Blob>(res)
+  return res.blob()
+}
+
 export async function login(email: string, password: string): Promise<Session> {
   const res = await send('/api/v1/auth/login', {
     method: 'POST',

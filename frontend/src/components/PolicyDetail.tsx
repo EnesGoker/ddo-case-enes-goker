@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { api, ApiError } from '../api/client'
+import { api, apiBlob, ApiError } from '../api/client'
 import type { Role } from '../api/client'
 import type { CoverageOnDate, PolicyDetail } from '../api/types'
 import { cancelReasonLabels, errorText, formatTL, policyStatusLabel, todayISO } from '../format'
@@ -48,13 +48,38 @@ export function PolicyDetailLoader({ id, role, onChanged }: { id: number; role: 
 
 function PolicyDetailView({ policy, role, reload }: { policy: PolicyDetail; role: Role; reload: () => void }) {
   const [action, setAction] = useState<'none' | 'vehicle' | 'cancel' | 'claim'>('none')
+  const [pdfBusy, setPDFBusy] = useState(false)
+  const [pdfError, setPDFError] = useState<string | null>(null)
   const canChange = (role === 'AGENT' || role === 'UNDERWRITER') && policy.status === 'ACTIVE'
   const isVehicle = policy.product !== 'KONUT'
   const current = policy.versions[policy.versions.length - 1]
 
+  async function downloadPDF() {
+    setPDFBusy(true)
+    setPDFError(null)
+    try {
+      const blob = await apiBlob(`/api/v1/policies/${policy.id}/pdf`)
+      if (blob.type.split(';')[0] !== 'application/pdf') throw new Error('Sunucu PDF yanıtı döndürmedi.')
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `police-${policy.id}.pdf`
+      document.body.append(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (e: unknown) {
+      setPDFError(errorText(e))
+    } finally {
+      setPDFBusy(false)
+    }
+  }
+
   return (
     <section className="panel policy-detail">
       <div className="section-heading"><div><div className="eyebrow">Poliçe detayı · {policy.product}</div><h3>{policy.policy_no}</h3></div><StatusBadge status={policy.status} label={policyStatusLabel(policy.status, policy.end_date)} /></div>
+      <div className="actions"><button type="button" className="secondary" disabled={pdfBusy} aria-busy={pdfBusy} onClick={downloadPDF}>{pdfBusy ? 'PDF hazırlanıyor…' : 'PDF indir'}</button></div>
+      {pdfError && <ErrorBox message={pdfError} />}
       <dl className="profile">
         <dt>Sigortalı</dt><dd>{policy.customer_name}</dd>
         <dt>Dönem</dt><dd>{policy.start_date} → {policy.end_date} ({policy.period_days} gün)</dd>
