@@ -12,7 +12,7 @@ export function ClaimsPage({ role }: { role: Role }) {
   const [selected, setSelected] = useState<number | null>(null)
   const { state, reload, loadMore } = usePaged<ClaimItem>(`/api/v1/claims?limit=20&status=${status}`)
   return <section>
-    <label>Durum filtresi<select value={status} onChange={(e) => { setStatus(e.target.value); setSelected(null) }}><option value="">Tümü</option>{statuses.map((s) => <option key={s} value={s}>{statusLabels[s]}</option>)}</select></label>
+    <label>Durum filtresi<select value={status} onChange={(e) => { setStatus(e.target.value); setSelected(null) }}><option value="">Tümü</option>{statuses.map((value) => role === 'CUSTOMER' || role === 'AGENT' ? value === 'FRAUD_REVIEW' ? 'UNDER_REVIEW' : value : value).map((s) => <option key={s} value={s}>{statusLabels[s]}</option>)}</select></label>
     <button className="secondary" onClick={reload}>Listeyi yenile</button>
     {state.kind === 'loading' && <Loading />}
     {state.kind === 'error' && <ErrorBox message={state.message} onRetry={reload} />}

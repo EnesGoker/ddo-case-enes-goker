@@ -528,6 +528,7 @@ paths:
       - "$ref": "#/components/parameters/Limit"
       - "$ref": "#/components/parameters/Cursor"
       - name: status
+        description: CUSTOMER/AGENT UNDER_REVIEW; iç roller FRAUD_REVIEW kullanır.
         in: query
         schema:
           type: string
@@ -537,6 +538,7 @@ paths:
           - APPRAISAL
           - ADJUSTMENT
           - FRAUD_REVIEW
+          - UNDER_REVIEW
           - APPROVED
           - REJECTED
           - PAID
@@ -1546,6 +1548,7 @@ components:
           - APPRAISAL
           - ADJUSTMENT
           - FRAUD_REVIEW
+          - UNDER_REVIEW
           - APPROVED
           - REJECTED
           - PAID
@@ -1558,7 +1561,7 @@ components:
         - history
         - appraisals
         - settlement
-        description: CLAIMS_ADJUSTER fraud/tasks/allowed_transitions; APPRAISER kendi tasks alanını görür. CUSTOMER/AGENT fraud alanı almaz. Boş opsiyonel diziler atlanabilir.
+        description: CLAIMS_ADJUSTER fraud/tasks/allowed_transitions; APPRAISER kendi tasks alanını görür. CUSTOMER/AGENT iç inceleme alanı almaz; durum/geçmiş FRAUD_REVIEW yerine UNDER_REVIEW döner. Sistem, incelemeye giriş ve temize çıkış notları gizlenir; REJECTED gerekçesi müşteriye gösterilir. Boş opsiyonel diziler atlanabilir.
         properties:
           fraud: { $ref: '#/components/schemas/FraudResult' }
           tasks: { type: array, items: { $ref: '#/components/schemas/ClaimTask' } }
@@ -1590,6 +1593,7 @@ components:
           - APPRAISAL
           - ADJUSTMENT
           - FRAUD_REVIEW
+          - UNDER_REVIEW
           - APPROVED
           - REJECTED
           - PAID
@@ -1603,6 +1607,7 @@ components:
           - APPRAISAL
           - ADJUSTMENT
           - FRAUD_REVIEW
+          - UNDER_REVIEW
           - APPROVED
           - REJECTED
           - PAID

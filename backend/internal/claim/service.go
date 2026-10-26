@@ -199,7 +199,7 @@ func (s *Service) Report(ctx context.Context, req ReportRequest) (Claim, error) 
 		}
 		return audit.Write(ctx, tx, audit.Entry{Action: "CLAIM_REPORTED", EntityType: "claim", EntityID: id, New: out})
 	})
-	return out, idempotency.Conflict(err)
+	return visibleClaim(out, p.Role), idempotency.Conflict(err)
 }
 
 func (s *Service) Get(ctx context.Context, id int64) (Detail, error) {
@@ -235,11 +235,14 @@ func (s *Service) Get(ctx context.Context, id int64) (Detail, error) {
 		}
 		d.Tasks, err = task.List(ctx, s.pool, page.Params{Limit: 100}, filter, s.now())
 	}
-	return d, err
+	return visibleDetail(d, actor.Role), err
 }
 
 func (s *Service) List(ctx context.Context, params page.Params, status string) ([]Claim, error) {
 	p, _ := auth.FromContext(ctx)
+	if externalRole(p.Role) && status == "UNDER_REVIEW" {
+		status = "FRAUD_REVIEW"
+	}
 	sc, err := access.Resolve(ctx, s.pool, p)
 	if err != nil {
 		return nil, access.AsHTTP(err)
@@ -251,7 +254,10 @@ func (s *Service) List(ctx context.Context, params page.Params, status string) (
 	if err != nil {
 		return nil, err
 	}
-	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (Claim, error) { return scanClaim(r) })
+	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (Claim, error) {
+		c, err := scanClaim(r)
+		return visibleClaim(c, p.Role), err
+	})
 }
 
 func (s *Service) ChangeStatus(ctx context.Context, id int64, req TransitionRequest) (Claim, error) {

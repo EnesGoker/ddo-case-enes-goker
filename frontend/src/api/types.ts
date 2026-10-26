@@ -224,7 +224,7 @@ export interface CancelPreview {
   calc_detail: CalcDetail
 }
 
-export type ClaimStatus = 'REPORTED' | 'TRIAGED' | 'APPRAISAL' | 'ADJUSTMENT' | 'FRAUD_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID' | 'CLOSED'
+export type ClaimStatus = 'REPORTED' | 'TRIAGED' | 'APPRAISAL' | 'ADJUSTMENT' | 'FRAUD_REVIEW' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID' | 'CLOSED'
 export interface ClaimItem {
   id: number
   claim_no: string

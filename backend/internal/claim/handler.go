@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/EnesGoker/guvenpolice/backend/internal/auth"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/httpx"
 	"github.com/EnesGoker/guvenpolice/backend/internal/platform/page"
 )
@@ -38,7 +39,12 @@ func (h *Handler) Report(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	params, bad := page.Parse(r)
 	status := strings.ToUpper(r.URL.Query().Get("status"))
-	if status != "" && !validStatuses[status] {
+	actor, _ := auth.FromContext(r.Context())
+	valid := validStatuses[status]
+	if externalRole(actor.Role) {
+		valid = (valid && status != "FRAUD_REVIEW") || status == "UNDER_REVIEW"
+	}
+	if status != "" && !valid {
 		if bad == nil {
 			bad = map[string]string{}
 		}

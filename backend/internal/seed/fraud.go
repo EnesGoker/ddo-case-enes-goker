@@ -93,7 +93,7 @@ func fraudScenario(ctx context.Context, pool *pgxpool.Pool, options Options) err
 	claims := claim.NewService(pool, options.Now, options.Fraud, options.Workflow)
 	report := func(p policy.Issued, loss time.Time, key string) (claim.Claim, error) {
 		amount := int64(100000)
-		return claims.Report(idempotency.WithKey(adjctx, key), claim.ReportRequest{PolicyID: p.ID, CoverageCode: "KASKO_ANA", LossDate: caldate.Format(loss), Description: "Kurgusal fraud ve SLA demo senaryosu", ClaimedAmountKurus: &amount})
+		return claims.Report(idempotency.WithKey(adjctx, key), claim.ReportRequest{PolicyID: p.ID, CoverageCode: "KASKO_ANA", LossDate: caldate.Format(loss), Description: "Kurgusal hasar demo senaryosu", ClaimedAmountKurus: &amount})
 	}
 	first, err := ensure("GP-DEMO-FP-1", 300)
 	if err != nil {

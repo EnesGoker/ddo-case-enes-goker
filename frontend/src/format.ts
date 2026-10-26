@@ -17,6 +17,7 @@ export const statusLabels: Record<string, string> = {
   APPRAISAL: 'Ekspertizde',
   ADJUSTMENT: 'Tazminat değerlendirmesinde',
   FRAUD_REVIEW: 'İncelemede',
+  UNDER_REVIEW: 'İncelemede',
   PAID: 'Ödendi',
   CLOSED: 'Kapandı',
   CALCULATED: 'Hesaplandı',
