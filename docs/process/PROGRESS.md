@@ -87,7 +87,7 @@ ok  	github.com/EnesGoker/guvenpolice/backend/internal/pricing	0.725s	coverage: 
 
 ## A4 (ajan: Codex)
 
-**Durum: TAMAMLANDI.** A1–A3 kalıpları ve çalışan testler korundu; 00001/00002/00003 değiştirilmedi. İlk commit yalnızca onaylı CURRENT_TASK.md oldu (`3a610bb`, `docs: A4 görev tanımı`). A5'e başlanmadı, push yapılmadı.
+**Durum: TAMAMLANDI.** A1–A3 kalıpları ve çalışan testler korundu; 00001/00002/00003 değiştirilmedi. İlk commit yalnızca onaylı docs/process/CURRENT_TASK.md oldu (`3a610bb`, `docs: A4 görev tanımı`). A5'e başlanmadı, push yapılmadı.
 
 ### Yapılanlar
 
@@ -122,10 +122,10 @@ ok  	github.com/EnesGoker/guvenpolice/backend/internal/pricing	0.725s	coverage: 
 
 | Dosya | Amaç |
 |---|---|
-| `/Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md` | Kullanıcının onaylı A4 görev tanımı; ilk commit. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/CURRENT_TASK.md` | Kullanıcının onaylı A4 görev tanımı; ilk commit. |
 | `/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md` | ADR-8 güncellemesi ve ADR-10/11 limit, kilit, mali kayıt kararları. |
-| `/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md` | A4 devir/teslim durumu, kanıtlar, tam dosya listesi ve sınırlamalar. |
-| `/Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md` | A4 kutuları ve F-4/F-5/F-6/T-3 kanıt matrisi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md` | A4 devir/teslim durumu, kanıtlar, tam dosya listesi ve sınırlamalar. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/ROADMAP.md` | A4 kutuları ve F-4/F-5/F-6/T-3 kanıt matrisi. |
 | `/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md` | A4 komutları, gerçek sonuçlar, rol senaryoları ve mutasyon kanıtı. |
 | `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/claim_integration_test.go` | Yedi gerçek PostgreSQL testi: akış, yarış, sürüm, koruma, RBAC, sıfır tutar, rollback. |
 | `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/integration_test.go` | 00004 dahil migration sürümü ve Up/Down/Up. |
@@ -223,10 +223,10 @@ Tarayıcı (375 px): acente yeni teklifi üç taksitle çevirdi: 1.481.480 kuru�
 | Dosya | Amaç |
 |---|---|
 | `/Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example` | Kurgusal günlük faiz env varsayılanı. |
-| `/Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md` | Kullanıcının onaylı A5 görev tanımı; ilk commit. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/CURRENT_TASK.md` | Kullanıcının onaylı A5 görev tanımı; ilk commit. |
 | `/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md` | ADR-12/13 kilit, tahsis, faiz ve muhasebe kararları. |
-| `/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md` | A5 teslim durumu, kanıtlar, riskler ve tam dosya listesi. |
-| `/Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md` | A5 çıkış kapısı ve F-3/T-4 kanıt matrisi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md` | A5 teslim durumu, kanıtlar, riskler ve tam dosya listesi. |
+| `/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/ROADMAP.md` | A5 çıkış kapısı ve F-3/T-4 kanıt matrisi. |
 | `/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md` | A5 komutları, hesap örnekleri, yarış/mutasyon ve UI kanıtları. |
 | `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/cmd/api/main.go` | Faiz oranını router bağımlılıklarına aktarır. |
 | `/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/integration_test.go` | 00005 migration sürümü ve Up/Down/Up doğrulaması. |
@@ -325,7 +325,7 @@ Mevcut tarihsel seed sürümleri/yevmiye kayıtları yerinde değiştirilmedi; d
 - `252ea30 docs(progress): geçmiş commit hashlerini mevcut mesajlarla eşleştir`
 
 
-### A6 teslim raporu — AGENTS.md §6
+### A6 teslim raporu — docs/process/AGENTS.md §6
 
 1. **Durum: TAMAMLANDI.** 0. bölüm kapısından sonra durulmadı; T-5 ve F-7 backend, seed, minimal frontend ve gerçek verify tamamlandı. Süre nedeniyle kapsam kesilmedi. A7'ye geçilmedi; push yapılmadı.
 2. **Değişen dosyalar:** tam yollar ve tek satırlık amaçlar aşağıdaki manifestte.
@@ -368,10 +368,10 @@ $ git diff cca6559 -- backend/internal/audit/audit.go db/migrations/0000[1-5]*
 | Tam yol | Amaç |
 |---|---|
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example](</Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example>) | Kurgusal fraud puan/eşik ve SLA env ayarları. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md>) | Kullanıcının onaylı A6 tanımı; ilk commit yalnız bu dosya. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/CURRENT_TASK.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/CURRENT_TASK.md>) | Kullanıcının onaylı A6 tanımı; ilk commit yalnız bu dosya. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md>) | ADR-14–18 kararları ve açık sınırlamalar. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md>) | Eski hash eşlemesi, 0. bölüm kapısı ve kanıta dayalı teslim raporu. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md>) | Yalnız A6 kutuları ve F-7/T-5 kanıt matrisi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md>) | Eski hash eşlemesi, 0. bölüm kapısı ve kanıta dayalı teslim raporu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/ROADMAP.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/ROADMAP.md>) | Yalnız A6 kutuları ve F-7/T-5 kanıt matrisi. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md>) | Kabul komutları/sonuçları, seed/UI ve mutasyon kanıtları. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/cmd/api/main.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/cmd/api/main.go>) | Doğrulanmış fraud/SLA ayarlarını router ve seed hizmetine taşır. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/claim_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/claim_integration_test.go>) | Mevcut hasar testlerinde bağımsız geçerli plaka fixture. |
@@ -650,11 +650,11 @@ Muhasebe rolü poliçe47'ye100000kuruş ödeme ve10000kuruş iade yaptı (935385
 | Dosya | Amaç |
 |---|---|
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example](</Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example>) | Simülatörün varsayılan SIM_* ayarları. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md>) | Kullanıcının onaylı A7 görev tanımı; ilk commit. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/CURRENT_TASK.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/CURRENT_TASK.md>) | Kullanıcının onaylı A7 görev tanımı; ilk commit. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md>) | ADR-19…22 ve mutlak fraud eşiği/üretici v2 kararı. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/Makefile](</Users/macair/Okulda yapılan çalışma/guvenpolice/Makefile>) | simulate hedefi. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md>) | Gerçek ölçüm, hata, geri alma ve teslim kanıtları. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md>) | A7 kabul durumu ve sabaha kalan v2 100k. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md>) | Gerçek ölçüm, hata, geri alma ve teslim kanıtları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/ROADMAP.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/ROADMAP.md>) | A7 kabul durumu ve sabaha kalan v2 100k. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md>) | Kurtarma, test komutları, ölçümler ve altı rol tablosu. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/Dockerfile](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/Dockerfile>) | Aynı nonroot imajda API ve simülatör binaryleri. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/cmd/simulator/main.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/cmd/simulator/main.go>) | Sinyal/parametre/DB ile simülatör giriş noktası. |
@@ -860,12 +860,12 @@ Kanıt loglarında yalnız satır sonu boşlukları temizlendi; sayılar, hata m
 |---|---|
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example](</Users/macair/Okulda yapılan çalışma/guvenpolice/.env.example>) | 48 saatlik açık pencere konfigürasyonu. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/.github/workflows/ci.yml](</Users/macair/Okulda yapılan çalışma/guvenpolice/.github/workflows/ci.yml>) | Beş CI işi, ayrı simülasyon ve domain kapsam kapısı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/CURRENT_TASK.md>) | Onaylı A8/Opus ekleri ve T-3 sırası. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/CURRENT_TASK.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/CURRENT_TASK.md>) | Onaylı A8/Opus ekleri ve T-3 sırası. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md>) | Olay limiti, görev/SLA, mahremiyet ve havuz kararları. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/Makefile](</Users/macair/Okulda yapılan çalışma/guvenpolice/Makefile>) | Ayrı simülasyon, kapsam, yük, kaos ve EXPLAIN hedefleri. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md>) | Gerçek koşular, başarısızlıklar, dosya ve commit raporu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md>) | Gerçek koşular, başarısızlıklar, dosya ve commit raporu. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/README.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/README.md>) | Kurulum, mimari, ölçümler, sınırlamalar ve kişisel yanıt yer tutucuları. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md>) | Teknik kapılar tamam; kullanıcı teslim adımları açık. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/ROADMAP.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/ROADMAP.md>) | Teknik kapılar tamam; kullanıcı teslim adımları açık. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md>) | 173 test, kabul yolları, madde–kanıt matrisi ve UI sonuçları. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/access/scope.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/access/scope.go>) | Profil sorgusunu mevcut DBTX bağlantısında tut. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/a8_review_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/a8_review_integration_test.go>) | Kabul kriteri, sınır veya yarış koşulu regresyonu. |
@@ -1096,7 +1096,7 @@ README S2 yalnız TESTING.md:411'deki gerçek koşulları kullanır: paralel10k 
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http](</Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http>) | Kimliksiz401 örneği, muhasebe scrape ve ekspertiz tekrar açıklaması. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/README.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/README.md>) | Onaylı sınırlamalar, üretim kaynağı, ölçüm koşulları ve S2 gerçek verisi. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md>) | ADR-14 kapsamı ve ADR-26 erişim gerekçesi. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md>) | A8.1 envanteri, gerçek sonuçları ve koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md>) | A8.1 envanteri, gerçek sonuçları ve koruma kanıtı. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-acceptance-after.json](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-acceptance-after.json>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-acceptance-before.json](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-acceptance-before.json>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-appraisal-after-canonical-time.log](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-appraisal-after-canonical-time.log>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
@@ -1135,9 +1135,9 @@ Durum: TAMAMLANDI. Başlangıç HEAD'i `4e71d8c`, çalışma ağacı temizdi. Ku
 - REQUIREMENTS genel okunabilirlik turu istemiyor; bonus satırından yalnız belirtilen iki cümle çıkarıldı, bonusların durumu korundu.
 - README 1/4 cevapları Enes'in verdiği metinle birebir eklendi. Teknik a–j iddiaları kaynak, ADR, kayıt ve commit geçmişine karşı doğrulandı. “Tek koşu” son kabul edilen v4 veri kümesidir; deterministik eşitlik aynı seed/anchor/iş parametrelerinde geçerlidir; sim profili ve SIM veri alanı ayrıdır, fiziksel DB ortaktır. Kullanıcının kapsam dışında bıraktığı kişisel gözlemler doğrulanmaya çalışılmadı. Eski %24 kaydı TESTING.md:365 ve DECISIONS.md:206'da bulunuyor.
 
-Kanıt ve dosya:satır tablosu: [A8.2 son belge kontrolü](docs/testing/a82-final-audit.md). Belge kontrolleri PASS: yazar metni hash'leri, elle girinti incelemesi, 1–5 numaralandırması, 2/3/5 cevaplarının ve bonus cümlesinin korunması, 31 yerel kanıt bağlantısı, yalnız izinli Markdown dosyaları ve `git diff --check`. Bu görevde uygulama testleri ÇALIŞTIRILMADI; belge işi sınırı gereği önceki sonuçlar yeniden üretilmedi.
+Kanıt ve dosya:satır tablosu: [A8.2 son belge kontrolü](../testing/a82-final-audit.md). Belge kontrolleri PASS: yazar metni hash'leri, elle girinti incelemesi, 1–5 numaralandırması, 2/3/5 cevaplarının ve bonus cümlesinin korunması, 31 yerel kanıt bağlantısı, yalnız izinli Markdown dosyaları ve `git diff --check`. Bu görevde uygulama testleri ÇALIŞTIRILMADI; belge işi sınırı gereği önceki sonuçlar yeniden üretilmedi.
 
-Değişen dosyalar: README.md (kişisel cevaplar ve iki cümlenin çıkarılması), docs/testing/a82-final-audit.md (zaman diff'i, sır taraması ve a–j kanıtları), PROGRESS.md (bu kayıt). Tek yerel commit mesajı `docs: README kişisel cevapları ve son belge kontrolleri`; kendi hash'i final raporda verilir. Push yapılmadı. Sonraki adım yalnız kullanıcının push ve teslim değerlendirmesidir; başlanmadı.
+Değişen dosyalar: README.md (kişisel cevaplar ve iki cümlenin çıkarılması), docs/testing/a82-final-audit.md (zaman diff'i, sır taraması ve a–j kanıtları), docs/process/PROGRESS.md (bu kayıt). Tek yerel commit mesajı `docs: README kişisel cevapları ve son belge kontrolleri`; kendi hash'i final raporda verilir. Push yapılmadı. Sonraki adım yalnız kullanıcının push ve teslim değerlendirmesidir; başlanmadı.
 
 
 ## B1 — Acente performans panosu: performans kapısında durdu (26 Ekim 2026)
@@ -1146,7 +1146,7 @@ Durum: ENGELLENDİ. Kullanıcının onaylı bonus görevi için `4d27405` taban�
 
 Kodlamadan önce yeniden kullanılması planlanan mevcut ADR-18 hareket sorgusu acente kırılımıyla `EXPLAIN (ANALYZE, BUFFERS)` üzerinden, `BEGIN READ ONLY` içinde ölçüldü. Varsayılan from/to NULL yani sınırsız; bu yüzden varsayılan ve en geniş aralık aynıdır. Ana DB'de SIM poliçe sayısı 100000 ve koşu durumu COMPLETED salt okunur doğrulandı. Tek örnekte Execution Time **3972,337 ms**, Planning Time **109,486 ms**. Bu yeni bir HTTP ucu ölçümü veya medyan değildir; o ilk ölçüm anında yeni uç henüz yazılmamıştı; sonraki B1 kapsamında eklendi. Yeni indeks/migration eklenmedi, hiçbir indeks kaldırılmadı.
 
-Kullanıcının “Sorgu mevcut indekslerle 100k veride 1 saniyenin altında çalışmıyorsa dur ve EXPLAIN çıktısıyla raporla” kapısı FAIL olduğu için uygulamaya, alternatif sorgu geliştirmeye veya test aşamasına geçilmedi. [Tam SQL](docs/explain/b1-baseline.sql), [ham EXPLAIN](docs/explain/b1-baseline.txt), [ölçüm ve veri kümesi kaydı](docs/explain/b1-baseline.json) saklandı. 17:30 TRT sınırına ulaşılmadan performans kapısında duruldu.
+Kullanıcının “Sorgu mevcut indekslerle 100k veride 1 saniyenin altında çalışmıyorsa dur ve EXPLAIN çıktısıyla raporla” kapısı FAIL olduğu için uygulamaya, alternatif sorgu geliştirmeye veya test aşamasına geçilmedi. [Tam SQL](../explain/b1-baseline.sql), [ham EXPLAIN](../explain/b1-baseline.txt), [ölçüm ve veri kümesi kaydı](../explain/b1-baseline.json) saklandı. 17:30 TRT sınırına ulaşılmadan performans kapısında duruldu.
 
 Değişiklikler yalnız bu PROGRESS kaydı ve üç EXPLAIN kanıtıdır. Backend/frontend, testler, verify, OpenAPI, requests, ADR ve README bonus durumu değiştirilmedi; tamamlanmayan panonun yapıldığı iddia edilmedi. `make test lint build`, `make test-integration`, servis derleme ve `make verify` ÇALIŞTIRILMADI: performans kapısı önce durdurdu. Docker yalnız mevcut servisin durumunu görmek ve DB'de salt okunur sorgu çalıştırmak için kullanıldı; servis/volume/simülasyon değişikliği yapılmadı. Bir kod uygulayıcısı dışında yalnız salt okunur inceleme kullanıldı. Main'e merge/rebase/reset, push, veri üretimi veya silme yok.
 
@@ -1163,7 +1163,7 @@ Test sırası iki kez geçti; ilk başarılı verify 64/0 ve 112,608 sn. Tarayı
 
 100k koruması PASS: 100000 poliçe/7780 hasar/6727 ekspertiz/495 işaretli/46 açık inceleme/46 açık görev aynı. Anlık SLA46→46, düşüş yok. Kayıtlı parmak izi ve ekspertiz MD5'i aynı; fingerprint yeniden hesaplanmadı. Volume kimliği ve DB konteyneri 2a7827096972 korundu. Ölçüm zamanı/DB boyutu farkları b1-comparison.json'da. Verify olağan demo verisi ekledi; SIM değişmedi. Simülatör, migration, CI, k6 ve compose kaynakları değişmedi; simülasyon/down -v/prune/volume silme yok.
 
-Uygulama commit'i: `53aceb4 feat(report): rol kapsamlı acente performans panosu ekle`. Belge/kanıt commit'inin hash'i final raporda verilir. Tam dosya manifesti, komutlar, ölçümler ve kanıt bağlantıları [B1 raporunda](docs/testing/b1-report.md). `main` ref'i hâlâ `4d27405`; merge/rebase/reset ve push yok. Kullanıcının istediği ifadeyle: main'e push dışında dokunulmadı; push da yapılmadı. Push çıktısı yok, git push çalıştırılmadı. 18:30 TRT kesme saatinden önce tamamlandı. Sonraki adım yalnız kullanıcının bonus dalını incelemesi ve teslim/merge kararıdır; main'e aktarılmadı.
+Uygulama commit'i: `53aceb4 feat(report): rol kapsamlı acente performans panosu ekle`. Belge/kanıt commit'inin hash'i final raporda verilir. Tam dosya manifesti, komutlar, ölçümler ve kanıt bağlantıları [B1 raporunda](../testing/b1-report.md). `main` ref'i hâlâ `4d27405`; merge/rebase/reset ve push yok. Kullanıcının istediği ifadeyle: main'e push dışında dokunulmadı; push da yapılmadı. Push çıktısı yok, git push çalıştırılmadı. 18:30 TRT kesme saatinden önce tamamlandı. Sonraki adım yalnız kullanıcının bonus dalını incelemesi ve teslim/merge kararıdır; main'e aktarılmadı.
 
 
 ## B1.1 — Bağımsız inceleme düzeltmeleri (26 Ekim 2026)
@@ -1176,7 +1176,7 @@ Durum: TAMAMLANDI. Yalnız bonus/acente-panosu dalı, başlangıç4c52c39. Kulla
 
 K1 son sıra: make test lint build PASS9,339sn/20 testli paket; make test-integration PASS96,582sn/21 paket (app88,465sn); yalnız api/web yeniden derleme PASS34,901sn; make verify64PASS/0FAIL116,196sn. BetikPASS5,487sn; HTTP üç dönem dört metrik/satır eşitliği ve AGENT izolasyonu doğru. HTTP medyanları461,028/259,123/146,023ms. AGENT SQL100k tümzamanlar örnekleri9,375/3,090/1,785ms, medyan3,090ms; son12ay1,650/1,471/1,525ms, medyan1,525ms. Bu görevde FAIL yok; eski başarısız B1 kayıtları korunur.
 
-100k korumasıPASS:100000poliçe/7780hasar/6727ekspertiz/495işaretli/46açıkinceleme/46açıkgörev aynı, anlıkSLA46→46; kayıtlıparmakizi/ekspertizMD5/DBkonteyneri/volume kimliği aynı, fingerprintyenidenhesaplanmadı. Ölçümzamanı/DBboyutu farkları b11-comparison.json'da. Simülasyon/migration/CI/k6 değişikliği yok. Test komut/süre/hash kayıtları b11-validation.json; grep b11-status-grep.txt; tam dosya manifesti ve kapanış [B1.1 raporunda](docs/testing/b11-report.md). Main4d27405 değişmedi; merge/push yok. Main'e dokunulmadı, push yapılmadı. 19:00TRT sınırından önce tamamlandı. Sonraki adım yalnız kullanıcının merge değerlendirmesi; başlanmadı.
+100k korumasıPASS:100000poliçe/7780hasar/6727ekspertiz/495işaretli/46açıkinceleme/46açıkgörev aynı, anlıkSLA46→46; kayıtlıparmakizi/ekspertizMD5/DBkonteyneri/volume kimliği aynı, fingerprintyenidenhesaplanmadı. Ölçümzamanı/DBboyutu farkları b11-comparison.json'da. Simülasyon/migration/CI/k6 değişikliği yok. Test komut/süre/hash kayıtları b11-validation.json; grep b11-status-grep.txt; tam dosya manifesti ve kapanış [B1.1 raporunda](../testing/b11-report.md). Main4d27405 değişmedi; merge/push yok. Main'e dokunulmadı, push yapılmadı. 19:00TRT sınırından önce tamamlandı. Sonraki adım yalnız kullanıcının merge değerlendirmesi; başlanmadı.
 
 Son staging durum taraması yeni kanıtlar dahil 344 izlenen dosyada da eşleşme vermedi.
 
@@ -1197,6 +1197,6 @@ Gerçek tarayıcı: 40 rol/menü × 1440/1024/768/375 = 160 ölçüm; ayrıca 20
 
 Gerçek cihaz/ekran okuyucu/%200 metin büyütme ve eksik canlı SLA örneği üretilmedi. Yeni CI/k6/kaos/simülasyon yok. İlk kontrol aracı, browser ve belge helper denemelerinin yanlış FAIL'leri ve giderilen Escape inceleme bulgusu raporda; uygulama test/verify sonuçları PASS.
 
-README/ROADMAP/TESTING'in A8.2/A8.3 kişisel cevap durumları düzeltildi; README beş cevap bölümü byte eşit (kanıt özeti docs/testing/ui1/README.md). Commit'ler: e8d405c başlangıç dokümanı; 4c133cf ortak stiller; 7db7925 shell/mobil menü; cf726c7 temel akış görünümleri; 4290dd8 diğer ekranlar/kaynak kontrolü. Son docs commit hash'i final yanıtta. [UI-1 kabul özeti](docs/testing/ui1/README.md), [UI-1 özeti ve seçili kanıtlar](docs/testing/ui1/README.md) sonuçları içerir.
+README/ROADMAP/TESTING'in A8.2/A8.3 kişisel cevap durumları düzeltildi; README beş cevap bölümü byte eşit (kanıt özeti docs/testing/ui1/README.md). Commit'ler: e8d405c başlangıç dokümanı; 4c133cf ortak stiller; 7db7925 shell/mobil menü; cf726c7 temel akış görünümleri; 4290dd8 diğer ekranlar/kaynak kontrolü. Son docs commit hash'i final yanıtta. [UI-1 kabul özeti](../testing/ui1/README.md), [UI-1 özeti ve seçili kanıtlar](../testing/ui1/README.md) sonuçları içerir.
 
 **Main'e dokunulmadı, push yapılmadı.** Sonraki adım yalnız kullanıcı incelemesi; merge veya çalışan web'i yenileme için ayrı talimat beklenir.

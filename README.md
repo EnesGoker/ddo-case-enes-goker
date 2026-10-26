@@ -196,7 +196,7 @@ A8 pencere düzeltmesinin gerçek örnekleri (üretici 3, olay limiti öncesi):
 
 İkisinde de dengeli defter, 1200 mutabakatı ve pencere dışında açık görev 0. Son 100k üretici 4 ile tamamlandı: **7.780 hasar / 495 işaretli (%6,36)**; 46 açık inceleme/46 açık görev/9 SLA ihlali (%19,57). Pencere dışı açık görev, DONE ekspertiz sahibi uyuşmazlığı, ekspertizsiz DONE ve CANCELLED karar görevi sıfır. Mali denge/1200 mutabakatı true. Batch süresi 1826,410 sn; DB 2174540823 bayt. Parmak izi `32fde797213b8904e5febc4c33cb8bd38f8cd883fdbe1489f02e521226a23b9b`. [Ham kabul](docs/testing/a8-100k-acceptance.json), [günlük](docs/testing/a8-100k.log). Verify/yük sonrası eklenen kabul işlemleri bu batch fotoğrafına dahil değildir. Açık görevlerin SLA durumu gerçek saat ilerledikçe yaşlanır; oran bu ölçüm anına aittir.
 
-100k `4155bae` commit'inde üretildi; sonraki bağlantı yönetimi, ekspertiz idempotansı ve `/metrics` erişim değişiklikleri üretilen iş verisini değiştirmiyor. Önce/sonra kabulü ve eşdeğerlik gerekçesi [PROGRESS.md A8.1](PROGRESS.md#a81-kapanışı) bölümündedir.
+100k `4155bae` commit'inde üretildi; sonraki bağlantı yönetimi, ekspertiz idempotansı ve `/metrics` erişim değişiklikleri üretilen iş verisini değiştirmiyor. Önce/sonra kabulü ve eşdeğerlik gerekçesi [docs/process/PROGRESS.md A8.1](docs/process/PROGRESS.md#a81-kapanışı) bölümündedir.
 
 İşaretli dosyaların birbirini dışlayan kural birleşimleri: EARLY+WORKSHOP 349; üç kural 84; REPEAT+WORKSHOP 46; EARLY+REPEAT 16. Toplam 495. Atölye sinyali 479 işaretli dosyada bulunur; tek başına 30 puanla 60 eşiğini aşmaz. [Ham kırılım](docs/testing/a8-fraud-combinations.json).
 
@@ -252,6 +252,8 @@ CI'nin ilk koşusu küçük havuzda gerçek bağlantı kilitlenmesini yakaladı.
 
 ## Yapay zekâ ve kanıt kaydı
 
-Codex uygulama/test/belge çalışmasını yürüttü; Opus A6/A7 için ayrı salt okunur inceleme yaptı. İnceleme önerileri kullanıcı tarafından seçilip onaylandı; kritik bulgular regresyon testine çevrildi. Mali kurallar ve kapsam kararları [DECISIONS](DECISIONS.md), başarı/başarısız gerçek koşular [PROGRESS](PROGRESS.md), rol denemeleri ve madde–kanıt matrisi [TESTING](TESTING.md), iş sırası [ROADMAP](ROADMAP.md) içindedir. Ölçümlerin çıktıları ve başarısız ilk koşular kanıt dosyalarında korunur.
+Codex uygulama/test/belge çalışmasını yürüttü; Opus A6/A7 için ayrı salt okunur inceleme yaptı. İnceleme önerileri kullanıcı tarafından seçilip onaylandı; kritik bulgular regresyon testine çevrildi. Mali kurallar ve kapsam kararları [DECISIONS](DECISIONS.md), başarı/başarısız gerçek koşular [PROGRESS](docs/process/PROGRESS.md), rol denemeleri ve madde–kanıt matrisi [TESTING](TESTING.md), iş sırası [ROADMAP](docs/process/ROADMAP.md) içindedir. Ölçümlerin çıktıları ve başarısız ilk koşular kanıt dosyalarında korunur.
 
 Tam şartname–kanıt tablosu [TESTING.md A8 izlenebilirliği](TESTING.md#a8-şartname-izlenebilirliği) içindedir.
+
+Geliştirme süreci ve yapay zekâ ajanlarıyla çalışma düzeni: [docs/process/](docs/process/)

@@ -5,8 +5,8 @@
 **Durum:** ONAYLI. Teslimden önceki son aşama.
 
 **Ajan notu:** A7'yi yapan ajan devam ediyor.
-- Kurallar aynı (`AGENTS.md` §8 dahil).
-- `PROGRESS.md`'ye "A8 (ajan: Codex)" başlığı aç.
+- Kurallar aynı (`docs/process/AGENTS.md` §8 dahil).
+- `docs/process/PROGRESS.md`'ye "A8 (ajan: Codex)" başlığı aç.
 - İlk commit: `docs: A8 görev tanımı`.
 - Push yok; push'u Enes yapar.
 - CI sonucunu `gh run list` / `gh run view` ile okuyabiliyorsan oku, okuyamıyorsan Enes'ten iste.
@@ -189,7 +189,7 @@ Davranış değişmez; ardından tam test turu.
   - 3. soru: 4. bölümün sonuçları.
   - 5. soru: prim motorunun doğruluğu için komut ve gerçek çıktı (T-1 altın testleri + verify'ın T-1 satırları).
 
-**Şartname izlenebilirliği:** `REQUIREMENTS.md`'deki her zorunlu madde için madde → kanıt → durum tablosu (TESTING'de ya da README ekinde). Opus'un çıkaracağı tablo doğrulanarak temel alınır.
+**Şartname izlenebilirliği:** `docs/process/REQUIREMENTS.md`'deki her zorunlu madde için madde → kanıt → durum tablosu (TESTING'de ya da README ekinde). Opus'un çıkaracağı tablo doğrulanarak temel alınır.
 
 **Son hale getirilecekler:**
 - TESTING,

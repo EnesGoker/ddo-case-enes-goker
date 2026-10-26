@@ -64,9 +64,9 @@ Kod/destek belgeleri commit'i:15 dosya,226 ekleme/31 silme. Kanıt/durum doküma
 | Tam yol | Amaç |
 |---|---|
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](<../../DECISIONS.md>) | Birim/entegrasyon ayrımı, standart adlandırma ve güncel ölçümler. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md](<../../PROGRESS.md>) | Tarihsel durum düzeltmesi ve B1.1 kapanışı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md](<../process/PROGRESS.md>) | Tarihsel durum düzeltmesi ve B1.1 kapanışı. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/README.md](<../../README.md>) | K2 tarih açıklaması, doğru test kapsamı ve güncel kanıtlar. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/ROADMAP.md](<../../ROADMAP.md>) | Açık kullanıcı izniyle bonusun B1/ADR-27 durumu. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/ROADMAP.md](<../process/ROADMAP.md>) | Açık kullanıcı izniyle bonusun B1/ADR-27 durumu. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md](<../../TESTING.md>) | Durum düzeltmesi, betik kullanımı, gerçek SHA/sonuç/performans. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/agent_performance_integration_test.go](<../../backend/internal/app/agent_performance_integration_test.go>) | Acentesiz/unassigned sözleşmesi ve kapsam testleri. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/report_integration_test.go](<../../backend/internal/app/report_integration_test.go>) | Dört dönemde acente satırı/toplam eşitliği ve ek sıfır satır testi. |

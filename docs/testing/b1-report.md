@@ -67,7 +67,7 @@ Tam yollar, fb25280 sonrası bu görevin dosyaları:
 | Tam yol | Amaç |
 |---|---|
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](<../../DECISIONS.md>) | ADR-27 metrik/dönem/yetki/sorgu kararı. |
-| [/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md](<../../PROGRESS.md>) | Görev sonucu ve yerel commit/kısıt kaydı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/process/PROGRESS.md](<../process/PROGRESS.md>) | Görev sonucu ve yerel commit/kısıt kaydı. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/README.md](<../../README.md>) | Bonus, uç listesi, izlenebilirlik ve gerçek ölçümler. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/TESTING.md](<../../TESTING.md>) | Performans, tutarlılık, son testler, UI ve koruma sonuçları. |
 | [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/agent_performance_integration_test.go](<../../backend/internal/app/agent_performance_integration_test.go>) | Gerçek DB/HTTP rol matrisi, kapsam, doğrudan/boş, nakit iade ve tarih sınırı. |

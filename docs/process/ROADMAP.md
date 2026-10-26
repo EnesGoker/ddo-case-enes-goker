@@ -7,8 +7,8 @@
 ## Çalışma yöntemi
 
 - Ajan **tek aşamada** çalışır; bir aşamanın alt görevleri küçük paketlere bölünür.
-- Başlamadan `CURRENT_TASK.md` onaylı hale gelir; bitince test + rapor + manuel kontrol yapılır.
-- `ROADMAP.md` checkbox'ları yalnızca gözlenen kanıtla tamamlandı yapılır.
+- Başlamadan `docs/process/CURRENT_TASK.md` onaylı hale gelir; bitince test + rapor + manuel kontrol yapılır.
+- `docs/process/ROADMAP.md` checkbox'ları yalnızca gözlenen kanıtla tamamlandı yapılır.
 - Yeni özellik yerine önce en kritik hata ve başarısız doğrulama giderilir.
 - **İlk çalışan dikey akış:** giriş → acente teklifi → faktörlü prim hesabı → poliçe → rol uygun ekranda listeleme.
 
@@ -119,7 +119,7 @@ Poliçe PDF’i ve fotoğraf yükleme yok. Genel okunabilirlik turu YAPILMADI. Y
 2. **A3–A6** içinde her çekirdeğin en az bir doğrulanabilir senaryosu önemli; yarım özelliği tamamlandı diye gösterme.
 3. **A7 tasarım cilası** ve bonuslar kesilebilir; gerçek veriyle çalışan, sade ekranlar öncelikli.
 4. A8 için **son 4–6 saatlik güvenlik payını koru**. CI, temiz kurulum, README, `make verify`, GitHub ve anket asla sona rastgele bırakılmamalı.
-5. Kalan zaman yetmezse `REQUIREMENTS.md` içindeki zorunlulukları silme; `TESTING.md`/README'de `PASS / FAIL / YAPILMADI` ile raporla.
+5. Kalan zaman yetmezse `docs/process/REQUIREMENTS.md` içindeki zorunlulukları silme; `TESTING.md`/README'de `PASS / FAIL / YAPILMADI` ile raporla.
 
 ## Kanıt takip matrisi (yalnızca gerçekten test edilirse işaretle)
 
