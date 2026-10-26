@@ -97,6 +97,26 @@ Content-Type: application/json
 GET {{api}}/api/v1/policies/1
 Authorization: Bearer {{login.response.body.access_token}}
 
+### B2 — poliçe PDF özeti → 200 application/pdf; attachment; Cache-Control: private, no-store
+# Detay ucunun verisiyle aynı; taksit, faktör dökümü ve TCKN yok.
+GET {{api}}/api/v1/policies/1/pdf
+Authorization: Bearer {{login.response.body.access_token}}
+Accept: application/pdf
+
+### B2 — kimliksiz PDF isteği → 401 UNAUTHENTICATED
+GET {{api}}/api/v1/policies/1/pdf
+
+### B2 — eksper girişi
+# @name pdfAppraiser
+POST {{api}}/api/v1/auth/login
+Content-Type: application/json
+
+{"email": "eksper@guvenpolice.test", "password": "{{password}}"}
+
+### B2 — eksper PDF isteği → 403 FORBIDDEN
+GET {{api}}/api/v1/policies/1/pdf
+Authorization: Bearer {{pdfAppraiser.response.body.access_token}}
+
 ### Tarihte geçerli teminat (dönem dışı veya iptal sonrası → 404 NO_COVERAGE_ON_DATE)
 GET {{api}}/api/v1/policies/1/coverage?date=2027-01-15
 Authorization: Bearer {{login.response.body.access_token}}

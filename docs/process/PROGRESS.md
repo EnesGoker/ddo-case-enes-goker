@@ -18,6 +18,7 @@
 | B1 | 26 Ekim 2026 | `fb25280`, `53aceb4`, `4c52c39` | TAMAMLANDI; ilk performans kapısı FAIL, yeni sorguyla PASS | [Rapor](../testing/b1-report.md), [ölçüm](../explain/b1-after.json) |
 | B1.1 | 26 Ekim 2026 | `c374d9b`, `2fd6ffe` | TAMAMLANDI | [Rapor](../testing/b11-report.md), [doğrulama](../testing/b11-validation.json) |
 | UI-1 | 26 Ekim 2026 | `f060fca`, `6339226`, `3664992`, `0c9bf1d` | TAMAMLANDI | [Arayüz kabulü](../testing/ui1/README.md) |
+| B2 | 26 Ekim 2026 | `9908260`, `9085640`, `90c8bbe`, `15e2971` | TAMAMLANDI; ilk görsel kontrolde iki glif hatası bulundu ve düzeltildi | [B2 kaydı](../testing/b2-pdf.md), ADR-28 |
 
 Tarihler ve commit kimlikleri Git geçmişinden; sonuçlar bağlantılı mevcut kayıtlardan alınmıştır. A8.3 için ayrı bir test kaydı yoktur; yalnız README metni değişmiştir. Açık görev yok. Repo teslimde public yapılır; anket bağlantısı aday tarafından gönderilir.
 

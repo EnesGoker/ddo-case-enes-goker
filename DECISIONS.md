@@ -277,3 +277,13 @@ B1.1 kod commit’i c374d9b üzerinde yenilenen gerçek HTTP ölçümü (üçer 
 
 
 B1.1 satır kanıtı: TestProductionReportGoldenLedgerPeriodsAndGroups her dönemde ADR-18 satırlarının etiketini ve dört metriğini panoyla birebir karşılaştırır; ek satırlar sıfır/null olmalıdır. Acente dışı satırın canlı adı/anahtarı mevcut raporla aynı Acentesiz/unassigned olarak eşitlendi. HTTP kanıtı scripts/check-agent-performance.py ile, gerçek test edilen HEAD ve kaynak temizliği kaydıyla tekrar üretilebilir; sırlar kaydedilmez. Aynı 100k ortamında AGENT SQL medyanı tüm zamanlarda 3,090 ms, son 12 ayda 1,525 ms (üçer örnek, salt okunur/mevcut indeksler); b11-agent.json ve ham planlarda c374d9b hash'i vardır. Eski ham B1 kayıtları tarihsel ölçüm olarak korunur.
+
+## ADR-28 — Poliçe PDF özeti (B2)
+
+`GET /api/v1/policies/{id}/pdf`, poliçe detay ucunun o role döndürdüğü verinin aynısını "son kayıtlı sürüm" etiketiyle basar: başlık, prim özeti, teminat/limit/muafiyet. Taksit planı, prim faktör dökümü ve TCKN detayda yoktur, PDF'e de girmez; belge yeni bir veri erişim yolu açmaz. Yetki detayla aynıdır: `access.Resolve`, `LoadHeader`, kapsam dışı veya olmayan kayıt 404, APPRAISER 403, kimliksiz 401.
+
+Yetki ve veri okumaları tek read-only repeatable-read transaction'dadır; açık transaction'da havuzdan ikinci bağlantı alınmaz (tek bağlantılı havuzla entegrasyon testi), PDF transaction kapandıktan sonra çizilir. Yanıt `application/pdf`, `attachment` ve `Cache-Control: private, no-store`'dur; kişisel belge tarayıcı ve ara önbellekte tutulmaz.
+
+Kütüphane signintech/gopdf v0.38.3 (MIT). Font statik NotoSans-Regular.ttf; OFL 1.1 metniyle birlikte `go:embed` ile gömülür. Görsel kontrolde iki hata çıktı: U+2212 eksi fontun cmap tablosunda yok, bu yüzden ASCII "-" kullanılır; GoPDF alt kümeye bileşik gliflerin yalnız ilk seviye bileşenlerini alır, Noto'nun iç içe kurduğu Ö/Ü/Ğ/İ işaretleri kayboluyordu. Gömülü font bellekte bir kez düzleştirilir (bileşik glifler doğrudan basit gliflere başvurur); font dosyası değişmez. Birim testi PDF'teki alt kümede eksik bileşen kalmadığını doğrular.
+
+PDF verify'a eklenmedi: `scripts/verify.sh` teslim edilen 64 kontrol olarak sabit kalır. Uç entegrasyon testleriyle (200/401/403/404, tek bağlantı) ve [B2 kaydındaki](docs/testing/b2-pdf.md) canlı ve görsel kontrolle doğrulanır.

@@ -20,11 +20,12 @@ Başlangıç 25 Ekim 2026; teslim tarihi 26 Ekim 2026 23.59 (Türkiye saati). Bu
 | A8.3 | TAMAMLANDI | README birinci cevaptaki iki ifade netleştirildi; commit `4d27405`. |
 | B1 / B1.1 | TAMAMLANDI | Acente performansı ve satır bazında rapor tutarlılığı; [B1.1 raporu](../testing/b11-report.md), ADR-27. İlk performans kapısı FAIL olarak korunur. |
 | UI-1 | TAMAMLANDI | Ortak arayüz, mobil menü ve erişilebilirlik düzeltmeleri; [kabul özeti](../testing/ui1/README.md). |
+| B2 | TAMAMLANDI | Poliçe PDF özeti, detay ucunun verisiyle; [B2 kaydı](../testing/b2-pdf.md), ADR-28. |
 
 ## Bonuslar ve yapılmayanlar
 
-- **TAMAMLANDI:** Acente performans panosu (B1/B1.1, ADR-27) ve ekspertiz notu.
-- **YAPILMADI:** Poliçe PDF'i ve hasar fotoğrafı yükleme; süre ve öncelik çekirdek işlevlerin doğruluğuna ve teslim kanıtlarına ayrıldı.
+- **TAMAMLANDI:** Acente performans panosu (B1/B1.1, ADR-27), poliçe PDF'i (B2, ADR-28) ve ekspertiz notu.
+- **YAPILMADI:** Hasar fotoğrafı yükleme; süre ve öncelik çekirdek işlevlerin doğruluğuna ve teslim kanıtlarına ayrıldı.
 - **YAPILMADI:** Genel okunabilirlik turu; üretim hatalarının giderilmesi ve doğrulama önceliklendirildi.
 - Gerçek cihaz, ekran okuyucu ve %200 metin büyütme kontrolü yapılmadı; arayüz kanıtının kapsamı kabul özetinde belirtilir.
 

@@ -122,7 +122,7 @@ Birim/lint için Go, frontend build/lint için Node 20 gerekir; yük testi host 
 
 [CI gerçek kapsam çıktısı](docs/testing/ci-domain-coverage.md). CI, her paketin %70 eşiğini ayrı uygular; `GITHUB_STEP_SUMMARY` tablosunu ve coverage artifact'ını üretir. Normal entegrasyon/simülasyon ayrı PostgreSQL16 işidir. Simülasyon yalnız main push veya elle tetiklemede koşar; Docker işi iki imajı build eder, push etmez.
 
-**Son ölçümler:** 100k kabulü, CI, verify/yük, kaos, EXPLAIN ve temiz kurulum geçti. 181 ayrı Test* fonksiyonu mevcut (`TestMain` hariç); normal ve simülasyon testleri ayrı işlerde koşar.
+**Son ölçümler:** 100k kabulü, CI, verify/yük, kaos, EXPLAIN ve temiz kurulum geçti. 189 ayrı Test* fonksiyonu mevcut (`TestMain` hariç); normal ve simülasyon testleri ayrı işlerde koşar.
 
 Aşağıdaki tablo A8'in tarihsel ölçümleridir: 100k üretimi `4155bae`, CI ve temiz kurulum `ec8fef8` koduyla yapılmıştır ([koşu kaydı](docs/testing/a8-runbook.md#L8), [temiz kurulum](docs/testing/clean-install.json)).
 
@@ -262,8 +262,8 @@ CI'nin ilk koşusu küçük havuzda gerçek bağlantı kilitlenmesini yakaladı.
 - İş anahtarıyla çökme kurtarması kanonik yanıt döndürür; zaman gösterimi ve JSON baytları ilk HTTP yanıtıyla birebir aynı olmayabilir (ADR-14).
 - Canlı simülasyon hatası tamamlanmış batch'i FAILED yapmaz; COMPLETED/LIVE_FAILED kalır. Canlı modda parmak izi batch sonunu temsil etmeyebilir; özet batch sonunun fotoğrafıdır.
 - Ödeme sağlayıcısı/banka entegrasyonu, mevzuat/tarife gerçekliği ve otomatik gün sonu zamanlayıcısı yok. Node 20 istenen teslim sürümüdür; bağımlılık yükseltme bu aşamanın kapsamı değildir.
-- Bonuslar: ekspertiz notu ve acente performans panosu mevcut; pano acente bazında poliçe adedi, yazılan net prim, tahakkuk eden tazminat ve yazılan prime göre hasar/prim oranını rol kapsamıyla gösterir.
-- Poliçe PDF'i ve fotoğraf yükleme **YAPILMADI**.
+- Bonuslar: ekspertiz notu, acente performans panosu ve poliçe PDF'i mevcut; pano acente bazında poliçe adedi, yazılan net prim, tahakkuk eden tazminat ve yazılan prime göre hasar/prim oranını rol kapsamıyla gösterir. Poliçe detayındaki "PDF indir", detay ucunun o role döndürdüğü verinin aynısını son kayıtlı sürüm olarak basar; taksit, faktör dökümü ve TCKN içermez ([ADR-28](DECISIONS.md#adr-28--poliçe-pdf-özeti-b2)).
+- Hasar fotoğrafı yükleme **YAPILMADI**.
 
 ## Doğrulama Soruları
 

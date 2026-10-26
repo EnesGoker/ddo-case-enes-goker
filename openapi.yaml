@@ -348,6 +348,31 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/v1/policies/{id}/pdf:
+    get:
+      summary: Son kayıtlı poliçe sürümünün kurgusal demo PDF özeti (B2 bonus)
+      description: |
+        Erişim poliçe detayıyla aynı (CUSTOMER/AGENT kendi; UNDERWRITER, CLAIMS_ADJUSTER, ACCOUNTING tümü; APPRAISER 403; kimliksiz 401). Kapsam dışı veya olmayan kayıt → 404.
+        Belge, detay ucunun o role döndürdüğü verinin aynısını basar: poliçe başlığı, prim özeti ve son kayıtlı sürümün teminat, limit ve muafiyetleri. Taksit planı, prim faktör dökümü ve TCKN yoktur.
+        Yetki ve veri tek salt okunur repeatable-read transaction'da okunur; PDF transaction kapandıktan sonra çizilir. Hatalar JSON hata biçimindedir.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200":
+          description: Gömülü Noto Sans fontlu PDF eki; tutarlar int64 kuruştan Türkçe TL biçimindedir.
+          headers:
+            Content-Disposition:
+              schema: { type: string, example: 'attachment; filename="police-1.pdf"' }
+            Cache-Control:
+              schema: { type: string, enum: ["private, no-store"] }
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/v1/policies/{id}/coverage:
     get:
       summary: Verilen tarihte geçerli sürüm ve teminatlar

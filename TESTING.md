@@ -37,6 +37,7 @@ Kanıt komutu mevcut demo sisteme karşı çalışır; iş kaydı oluşturur. So
 | HEALTH | GET `/health` | 200, `db=ok` | `make verify` | `HEALTH`:70 |
 | AUTH (yanlış parola) | Acente girişine yanlış parola gönder | 401 `INVALID_CREDENTIALS` | `make verify` | `AUTH-WRONG-PASSWORD`:100 |
 | RBAC (yetkisiz rol / yetki ihlali) | Müşteriyle `/customers`; acenteyle pano kapsamını `agent_id=unassigned&include_total=true` ile genişletmeyi dene | Müşteri 403 `FORBIDDEN`; acentede yalnız kendi satırı, genel toplam/Acentesiz yok | `make verify` | `RBAC-CUSTOMER-403`:130; `B1 acente-panosu`:597 |
+| B2 (bonus) | Müşteri: Poliçeler → poliçe detayı → PDF indir; eksper ve kimliksiz isteği dene | 200 `application/pdf`, `attachment`, `private, no-store`, `%PDF`; eksper 403, kimliksiz 401, başka müşterinin poliçesi 404; Türkçe harfler ve negatif tutar doğru görünür | `make test-integration` (`TestPolicyPDF*`), `go test ./internal/policypdf` | —, entegrasyon testi |
 
 ## Komutlar
 
@@ -73,6 +74,7 @@ make reset-demo         # demo verisini seed durumuna döndürür
 7. Müşteriyle Hasar Dosyaları → detay: iç inceleme notları/sinyalleri gösterilmez; inceleme durumu İncelemede (API: UNDER_REVIEW) görünür.
 8. Çıkış → yenileyince giriş ekranı (refresh iptal).
 9. Müşteri ile giriş → menüde "Müşteriler" yok; API'den de 403 (verify `RBAC-CUSTOMER-403`).
+10. Müşteri ile Poliçeler → bir poliçe → "PDF indir": `police-{id}.pdf` iner; Ü, İ, Ğ, ş gibi harfler doğru görünür, taksit ve TCKN bölümü yoktur ([B2 kaydı](docs/testing/b2-pdf.md)).
 
 ## F-1 — Teklif ve prim hesaplama
 
