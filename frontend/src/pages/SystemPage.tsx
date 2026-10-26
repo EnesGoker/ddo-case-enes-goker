@@ -13,7 +13,7 @@ export function SystemPage({ activity, error, reload }: { activity: Activity | n
       <figure className="panel"><figcaption>Son 30 dakika · olay sayıları (en çok {max})</figcaption>
         <div className="minute-bars" role="img" aria-label="Son 30 dakikanın olay sayıları">{activity.minutes.map((m) => <span key={m.at} style={{ height: `${Math.max(2, m.count * 100 / max)}%` }} title={`${new Date(m.at).toLocaleTimeString('tr-TR')}: ${m.count}`} />)}</div>
       </figure>
-      {!run ? <Empty text="Gösterilecek simülasyon ayrıntısı yok." /> : <section className="panel">
+      {!run ? <Empty text="Gösterilecek simülasyon ayrıntısı yok." /> : <section className="panel system-summary">
         <h3>Simülasyon · {run.status}</h3>
         {(['LIVE', 'LIVE_STOPPED', 'LIVE_FAILED'].includes(run.phase)) && <p>Özet toplu koşunun sonundandır; canlı işlemleri içermez.</p>}
         <p>Aşama: {run.phase} · {run.done.toLocaleString('tr-TR')} / {run.target.toLocaleString('tr-TR')}</p>

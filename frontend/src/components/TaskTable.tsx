@@ -1,5 +1,8 @@
 import type { ClaimTask } from '../api/types'
 import { statusLabels } from '../format'
+import { StatusBadge } from './StatusBadge'
+
+const taskLabels: Record<string, string> = { OPEN: 'Açık', IN_PROGRESS: 'İşleniyor', DONE: 'Tamamlandı', CANCELLED: 'İptal' }
 
 export function SLABadge({ task }: { task: ClaimTask }) {
   const duration = (Date.parse(task.sla_due_at) - Date.parse(task.created_at)) / 1000
@@ -14,7 +17,7 @@ export function TaskTable({ tasks, onSelect }: { tasks: ClaimTask[]; onSelect?: 
     <tbody>{tasks.map((t) => <tr key={t.id}>
       <td data-label="Dosya / görev"><div>{onSelect ? <button className="secondary" onClick={() => onSelect(t.claim_id)}>{t.claim_no}</button> : t.claim_no}<br />{statusLabels[t.task_type]}</div></td>
       <td data-label="Atanan">{t.assigned_to?.full_name ?? 'Atamasız'}</td>
-      <td data-label="Durum / SLA"><div>{t.status} · <SLABadge task={t} /><br /><small>Son: {new Date(t.sla_due_at).toLocaleString('tr-TR')}</small></div></td>
+      <td data-label="Durum / SLA"><div><StatusBadge status={t.status} label={taskLabels[t.status] ?? t.status} /> · <SLABadge task={t} /><br /><small>Son: {new Date(t.sla_due_at).toLocaleString('tr-TR')}</small></div></td>
       <td data-label="Skor / sinyaller">{t.fraud_score === undefined ? '—' : `${t.fraud_score} · ${t.signal_codes?.join(', ') ?? ''}`}</td>
     </tr>)}</tbody></table></div>
 }

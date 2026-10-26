@@ -242,6 +242,11 @@ details.endorsement[open] summary { margin-bottom: 16px; }
 .settlement-steps li::before { counter-increment: settlement; content: counter(settlement, decimal-leading-zero); color: var(--muted); font-size: 10px; }
 .settlement-steps strong { margin-left: auto; font-variant-numeric: tabular-nums; }
 
+/* Existing counts are displayed without creating new aggregates. */
+.workload-list, .system-summary ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
+.workload-list li, .system-summary li { padding: 14px 16px; background: #f6f9fb; border: 1px solid var(--border); border-radius: 9px; font-size: 12px; overflow-wrap: anywhere; }
+.financial-summary + .muted { margin-top: 14px; }
+
 /* Existing live activity and B1 table behavior. */
 .activity-indicator { font-size: 11px; display: inline-flex; align-items: center; gap: 7px; }
 .activity-indicator.connected { color: var(--success-text); }

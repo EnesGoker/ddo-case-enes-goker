@@ -26,8 +26,8 @@ export function CustomersPage() {
             {state.items.map((c) => (
               <tr key={c.id}>
                 <td data-label="No">{c.id}</td>
-                <td data-label="Ad Soyad">{c.full_name}</td>
-                <td data-label="TCKN">{c.national_id_masked}</td>
+                <td data-label="Ad Soyad" className="table-id">{c.full_name}</td>
+                <td data-label="TCKN" className="table-subtle">{c.national_id_masked}</td>
                 <td data-label="Doğum tarihi">{c.birth_date}</td>
                 <td data-label="Bölge">{c.region_code}</td>
               </tr>

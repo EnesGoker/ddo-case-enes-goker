@@ -59,7 +59,7 @@ export function AccountingPage() {
 
   return <section>
     <p>Tahsilat ve iade için Poliçeler menüsünden poliçeyi açın.</p>
-    <form className="inline-form" onSubmit={(e) => void runBilling(e)}>
+    <form className="inline-form panel filter-panel" onSubmit={(e) => void runBilling(e)}>
       <label>Gün sonu tarihi<input type="date" required max={todayISO()} value={asOf} onChange={(e) => setAsOf(e.target.value)} disabled={busy} /></label>
       <button disabled={busy}>{busy ? 'Çalışıyor…' : 'Gün sonu çalıştır'}</button>
     </form>
@@ -68,12 +68,12 @@ export function AccountingPage() {
     {error && <ErrorBox message={error} onRetry={reload} />}
     {!trial && !error && <Loading text="Mizan yükleniyor…" />}
     {trial && <section className="panel">
-      <h3>Mizan ve mutabakat</h3>
+      <div className="section-heading"><div><div className="eyebrow">Muhasebe</div><h3>Mizan ve mutabakat</h3></div></div>
       <div className={`notice ${trial.balanced && trial.receivable_reconciliation.matches ? 'success' : 'error'}`}>
         Defter {trial.balanced ? 'dengede' : 'dengesiz'} · Mutabakat {trial.receivable_reconciliation.matches ? 'sağlandı' : 'sağlanamadı'} · Satırsız: {trial.empty_entries}, dengesiz: {trial.unbalanced_entries}
       </div>
-      <div className="table-wrap"><table><thead><tr><th>Hesap</th><th>Borç</th><th>Alacak</th><th>Bakiye</th></tr></thead><tbody>{trial.accounts.map((a) => <tr key={a.code}>
-        <td data-label="Hesap">{a.code} {a.name}</td><td data-label="Borç">{formatTL(a.debit_kurus)}</td><td data-label="Alacak">{formatTL(a.credit_kurus)}</td><td data-label="Bakiye">{formatTL(a.balance_kurus)}</td>
+      <div className="table-wrap"><table><thead><tr><th>Hesap</th><th className="num">Borç</th><th className="num">Alacak</th><th className="num">Bakiye</th></tr></thead><tbody>{trial.accounts.map((a) => <tr key={a.code}>
+        <td data-label="Hesap">{a.code} {a.name}</td><td data-label="Borç" className="num">{formatTL(a.debit_kurus)}</td><td data-label="Alacak" className="num">{formatTL(a.credit_kurus)}</td><td data-label="Bakiye" className="num">{formatTL(a.balance_kurus)}</td>
       </tr>)}</tbody></table></div>
       <p>Toplam borç {formatTL(trial.total_debit_kurus)} = toplam alacak {formatTL(trial.total_credit_kurus)}</p>
       <p>1200: {formatTL(trial.receivable_reconciliation.ledger_1200)} · Açık anapara {formatTL(trial.receivable_reconciliation.open_installments)} + faiz {formatTL(trial.receivable_reconciliation.open_interest)}</p>
@@ -85,8 +85,8 @@ export function AccountingPage() {
     {journal.state.kind === 'ready' && (journal.state.items.length === 0 ? <Empty text="Yevmiye kaydı yok." /> : <>
       {journal.state.items.map((e) => <details key={e.id} className="endorsement"><summary>#{e.id} · {e.entry_date} · {e.description}</summary>
         <p>{e.ref_type} / #{e.ref_id}</p>
-        <div className="table-wrap"><table><thead><tr><th>Hesap</th><th>Borç</th><th>Alacak</th></tr></thead><tbody>{e.lines.map((l) => <tr key={l.id}>
-          <td data-label="Hesap">{l.account_code}</td><td data-label="Borç">{formatTL(l.debit_kurus)}</td><td data-label="Alacak">{formatTL(l.credit_kurus)}</td>
+        <div className="table-wrap"><table><thead><tr><th>Hesap</th><th className="num">Borç</th><th className="num">Alacak</th></tr></thead><tbody>{e.lines.map((l) => <tr key={l.id}>
+          <td data-label="Hesap">{l.account_code}</td><td data-label="Borç" className="num">{formatTL(l.debit_kurus)}</td><td data-label="Alacak" className="num">{formatTL(l.credit_kurus)}</td>
         </tr>)}</tbody></table></div>
       </details>)}
       {journal.state.next && <button className="secondary" disabled={journal.state.loadingMore} onClick={journal.loadMore}>{journal.state.loadingMore ? 'Yükleniyor…' : 'Daha fazla kayıt'}</button>}

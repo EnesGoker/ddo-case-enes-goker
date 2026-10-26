@@ -22,7 +22,7 @@ export function ReportsPage() {
     return () => { cancelled = true }
   }, [query, attempt])
   return <section>
-    <form className="form-grid" onSubmit={(e) => { e.preventDefault(); setReport(null); setError(null); setQuery(new URLSearchParams({ from, to, group_by: group }).toString()); setAttempt((a) => a + 1) }}>
+    <form className="form-grid panel filter-panel" onSubmit={(e) => { e.preventDefault(); setReport(null); setError(null); setQuery(new URLSearchParams({ from, to, group_by: group }).toString()); setAttempt((a) => a + 1) }}>
       <label>Başlangıç (dahil)<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
       <label>Bitiş (hariç)<input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
       <label>Gruplama<select value={group} onChange={(e) => setGroup(e.target.value)}><option value="month">Ay</option><option value="product">Ürün</option><option value="agent">Acente</option></select></label>

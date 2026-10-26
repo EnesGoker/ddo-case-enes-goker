@@ -63,7 +63,7 @@ export function AgentPerformancePage() {
 
   return <section className="agent-performance">
     <p>Yazılan prim bazlı acente performansı. Kazanılmış prim hesabı içermez.</p>
-    <form className="form-grid" onSubmit={(event) => {
+    <form className="form-grid panel filter-panel" onSubmit={(event) => {
       event.preventDefault()
       const fields = new FormData(event.currentTarget)
       const nextFrom = String(fields.get('from') ?? '')

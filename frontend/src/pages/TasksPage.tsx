@@ -15,7 +15,7 @@ export function TasksPage({ role, fraudQueue = false }: { role: Role; fraudQueue
   const query = new URLSearchParams({ limit: '20', status, task_type: type, breached: String(breached) })
   const { state, reload, loadMore } = usePaged<ClaimTask>(`/api/v1/claim-tasks?${query}`)
   return <section>
-    <div className="form-grid">
+    <div className="form-grid panel filter-panel">
       {!fraudQueue && <><label>Durum<select value={status} onChange={(e) => { setStatus(e.target.value); setSelected(null) }}><option value="open">Açık</option><option value="done">Kapanmış</option><option value="all">Tümü</option></select></label>
         <label>Görev tipi<select value={type} onChange={(e) => { setType(e.target.value); setSelected(null) }}><option value="">Tümü</option>{['APPRAISAL', 'ADJUSTMENT', 'FRAUD_REVIEW'].map((t) => <option key={t} value={t}>{statusLabels[t]}</option>)}</select></label></>}
       <label className="check"><input type="checkbox" checked={breached} onChange={(e) => { setBreached(e.target.checked); setSelected(null) }} />Yalnızca SLA ihlali</label>
@@ -43,6 +43,6 @@ function Workload() {
     return () => { cancelled = true }
   }, [attempt])
   return <section className="panel"><h3>Uzman iş yükü</h3><button className="secondary" onClick={() => setAttempt((a) => a + 1)}>İş yükünü yenile</button>
-    {error ? <ErrorBox message={error} onRetry={() => setAttempt((a) => a + 1)} /> : !items ? <Loading /> : items.length === 0 ? <Empty text="Aktif uzman yok." /> : <ul>{items.map((u) => <li key={u.id}>{u.full_name} · {u.role === 'APPRAISER' ? 'Eksper' : 'Hasar uzmanı'} · {u.open_tasks} açık görev</li>)}</ul>}
+    {error ? <ErrorBox message={error} onRetry={() => setAttempt((a) => a + 1)} /> : !items ? <Loading /> : items.length === 0 ? <Empty text="Aktif uzman yok." /> : <ul className="workload-list">{items.map((u) => <li key={u.id}>{u.full_name} · {u.role === 'APPRAISER' ? 'Eksper' : 'Hasar uzmanı'} · {u.open_tasks} açık görev</li>)}</ul>}
   </section>
 }

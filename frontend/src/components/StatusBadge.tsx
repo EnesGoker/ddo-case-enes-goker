@@ -2,6 +2,7 @@ import { statusLabels } from '../format'
 
 // Presentation only: the existing server status and caller-provided label are preserved.
 const tones: Record<string, string> = {
+  DONE: 'success', OPEN: 'accent', IN_PROGRESS: 'accent', PARTIAL: 'warning', PENDING: 'warning',
   ACTIVE: 'success', PAID: 'success', APPROVED: 'success', CONVERTED: 'success',
   REJECTED: 'critical', FRAUD_REVIEW: 'warning', UNDER_REVIEW: 'warning', UW_REVIEW: 'warning',
   APPRAISAL: 'accent', ADJUSTMENT: 'accent', TRIAGED: 'accent', CALCULATED: 'accent',

@@ -3,6 +3,7 @@ import { api, type Role } from '../api/client'
 import type { BillingPlan } from '../api/types'
 import { errorText, formatTL, newIdempotencyKey, todayISO } from '../format'
 import { Empty, ErrorBox, Loading } from './States'
+import { StatusBadge } from './StatusBadge'
 
 const labels: Record<string, string> = { PENDING: 'Bekliyor', PARTIAL: 'Kısmen ödendi', PAID: 'Ödendi', CANCELLED: 'İptal' }
 
@@ -26,14 +27,14 @@ export function BillingPanel({ policyID, role }: { policyID: number; role: Role 
     {error && <ErrorBox message={error} onRetry={reload} />}
     {!error && !plan && <Loading />}
     {plan && <>
-      <p>Plan toplamı: {formatTL(plan.total_kurus)} · Açık bakiye: <strong>{formatTL(plan.open_balance_kurus)}</strong></p>
+      <div className="financial-summary"><p>Plan toplamı: {formatTL(plan.total_kurus)}<br />Açık bakiye</p><strong>{formatTL(plan.open_balance_kurus)}</strong></div>
       <p className="muted">Günlük basit faiz: {plan.daily_rate_ppm} ppm (kurgusal). Açık bakiye son tahakkuka göredir; ödeme sırasında faiz güncellenir.</p>
-      <div className="table-wrap"><table><thead><tr><th>Taksit / vade</th><th>Tutar</th><th>Ödenen</th><th>Durum / gecikme</th></tr></thead><tbody>
+      <div className="table-wrap"><table><thead><tr><th>Taksit / vade</th><th className="num">Tutar</th><th className="num">Ödenen</th><th>Durum / gecikme</th></tr></thead><tbody>
         {plan.installments.map((i) => <tr key={i.id}>
           <td data-label="Taksit / vade">#{i.seq} · {i.due_date}</td>
-          <td data-label="Tutar">{formatTL(i.amount_kurus)}</td>
-          <td data-label="Ödenen">{formatTL(i.paid_kurus)}</td>
-          <td data-label="Durum / gecikme">{labels[i.status] ?? i.status} · {i.overdue_days} gün</td>
+          <td data-label="Tutar" className="num">{formatTL(i.amount_kurus)}</td>
+          <td data-label="Ödenen" className="num">{formatTL(i.paid_kurus)}</td>
+          <td data-label="Durum / gecikme"><StatusBadge status={i.status} label={labels[i.status] ?? i.status} /> · {i.overdue_days} gün</td>
         </tr>)}
       </tbody></table></div>
       <h4>Faiz kayıtları</h4>
