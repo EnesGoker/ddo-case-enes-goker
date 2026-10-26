@@ -1,0 +1,11 @@
+{
+  "sim_appraisals": 6727,
+  "sim_appraisal_rows_md5": "d41e554969cf9f11d9219dde7e732df0",
+  "query": "SELECT json_build_object('sim_appraisals',count(*),'sim_appraisal_rows_md5',md5(coalesce(json_agg(json_build_array(a.id,a.claim_id,a.appraiser_id,a.inspected_at,a.damage_amount_kurus,a.is_total_loss,a.notes,a.created_at) ORDER BY a.id)::text,'[]'))) FROM appraisals a JOIN claims c ON c.id=a.claim_id JOIN policies p ON p.id=c.policy_id WHERE p.policy_no LIKE 'SIM-%';",
+  "volume": {
+    "Name": "guvenpolice_pgdata",
+    "Driver": "local",
+    "Mountpoint": "/var/lib/docker/volumes/guvenpolice_pgdata/_data",
+    "CreatedAt": "2026-10-25T12:55:20Z"
+  }
+}

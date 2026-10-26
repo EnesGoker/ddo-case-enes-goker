@@ -1,0 +1,9 @@
+PASS OpenAPI YAML, 271 iç ref, metrics erişimi ve ekspertiz anahtarı
+PASS bash -n scripts/verify.sh
+PASS simülatör/seed/fraud/billing/task/hesap ve 00001–00012 değişmedi
+PASS git diff --check kaynak/belgeler (ham loglar kapsam dışı)
+PASS README soru 1 ve 4 aynen korundu
+PASS README sınırlamalar, ölçüm koşulu, SLA notu ve k6 boşlukları
+PASS requests.http kimliksiz ve yetkili metrics örnekleri
+PASS 7 A8.1 JSON kanıtı ayrıştırıldı
+PASS 57 yerel belge bağlantısı mevcut

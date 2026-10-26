@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "business_field_changes": {},
+  "appraisal_or_volume_changes": {},
+  "sim_policies": 100000,
+  "claims": 7780,
+  "sim_appraisals": 6727,
+  "flagged": 495,
+  "open_fraud_review": 46,
+  "open_tasks": 46,
+  "balanced": true,
+  "receivable_matches": true,
+  "fingerprint": "32fde797213b8904e5febc4c33cb8bd38f8cd883fdbe1489f02e521226a23b9b",
+  "fingerprint_equal": true,
+  "fingerprint_recalculation": "yeniden hesaplama aracı yok",
+  "sim_appraisal_rows_md5_equal": true,
+  "sim_request_keys_nonnull": 0,
+  "measurement_fields": {
+    "breached_at_measurement": {
+      "before": 9,
+      "after": 9
+    },
+    "database_bytes": {
+      "before": 2184485911,
+      "after": 2184715287
+    },
+    "measured_at": {
+      "before": "2026-10-26T10:55:29.099134+00:00",
+      "after": "2026-10-26T11:27:50.811552+00:00"
+    }
+  },
+  "volume_identity_equal": true
+}

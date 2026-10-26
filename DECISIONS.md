@@ -143,18 +143,23 @@ A4'ün 2000/5000 kayıtları aynen korunur. `ledger.Post` her olayda satırlı v
 
 ## ADR-14 — İdempotans çökme penceresi (A6)
 
-`payments`, `endorsements` ve `claims` üzerinde aktör + `request_key` kısmi UNIQUE indeksi vardır (00006). Middleware anahtarı context'e taşır. Servis, poliçe kilidinden hemen sonra, sürüm/durum/bakiye/tarih iş kontrollerinden önce bu anahtarla mevcut kaynağı arar. Otomatik nakit iadede anahtar NULL'dır. Beklenmeyen UNIQUE ihlali 409 IDEMPOTENCY_CONFLICT olur.
+`payments`, `endorsements` ve `claims` üzerinde aktör + `request_key` kısmi UNIQUE indeksi vardır (00006). A8.1/00013 aynı deseni `appraisals(appraiser_id,request_key) WHERE request_key IS NOT NULL` ile ekspertize taşır. Middleware HTTP anahtarını context'e aktarır. Servis, poliçe veya hasar kilidinden hemen sonra, sürüm/durum/bakiye/tarih iş kontrollerinden önce bu anahtarla mevcut kaynağı arar. Otomatik nakit iadede ve anahtarsız simülatör/servis yolunda anahtar NULL'dır. Eski ekspertizler NULL kalır; backfill yapılmaz. Beklenmeyen UNIQUE ihlali 409 IDEMPOTENCY_CONFLICT olur.
 
-Normal tekrarın yanıtı bytea olarak saklanır ve aynı baytlarla döner. Önceden JSONB saklanmış yanıtlar migrasyonda JSONB text biçiminden dönüştürülür; geçmiş ilk HTTP yanıtının özgün baytları geri kazanılamaz. İş commit'i sonrası, yanıt saklanmadan çökülürse bayat IN_PROGRESS devralınır: gövde hash'i önce karşılaştırılır (farklı gövde 422), aynı kaynak ve özgün HTTP durumuyla kanonik güncel yanıt döner; bu kurtarma yanıtı bayt eşitliği vaat etmez. Bildirim kurtarması fraud değerlendirmesini ve görev açmayı tekrar etmez.
+Normal tekrarın yanıtı bytea olarak saklanır ve aynı baytlarla döner. Önceden JSONB saklanmış yanıtlar migrasyonda JSONB text biçiminden dönüştürülür; geçmiş ilk HTTP yanıtının özgün baytları geri kazanılamaz. İş commit'i sonrası, yanıt saklanmadan çökülürse bayat IN_PROGRESS devralınır. İş anahtarıyla kurtarma kapsamı yalnız tahsilat, manuel iade, zeyil, iptal, hasar bildirimi ve anahtarlı ekspertizdir: aynı kaynak ve özgün HTTP durumuyla kanonik güncel yanıt döner. Bu kurtarma bayt eşitliği vaat etmez; zaman dilimi gösterimi ve PostgreSQL'in mikrosaniye hassasiyeti farklı olabilir. Middleware'de gövde hash'i, iş kaydında ilgili tür/tutar veya ekspertiz içeriği karşılaştırılır; uyuşmazlık 422'dir. Bildirim kurtarması fraud değerlendirmesini ve görev açmayı, ekspertiz kurtarması kayıt/görev kapatma/audit'i tekrar etmez. Teklif çevirme ve tazminat onayı/ödemesinde request_key kurtarması yoktur; kilitli kaynak durumu ve UNIQUE kısıtları ikinci etkiyi engeller, yanıt kaydı kayıpsa tekrar 409 alabilir.
 
 | Uç | İş transaction'ındaki koruma |
 |---|---|
-| Poliçe ödemesi, manuel iade | Poliçe kilidi → payments(created_by,request_key); kind/refund_of ve tutar aynı olmalı, farklıysa422 |
-| Zeyil, iptal | Poliçe kilidi → endorsements(created_by,request_key); tür aynı olmalı, farklıysa422 |
-| Hasar bildirimi | Poliçe kilidi → claims(created_by,request_key) |
-| Teklif çevirme | Teklif kilidi + durum + policies.quote_id UNIQUE |
-| Tazminat onayı / ödemesi | Hasar kilidi + durum + claim_settlements.claim_id UNIQUE / durum |
-| Ekspertiz ekleme | Idempotency-Key middleware; aynı gövde/anahtar aynı yanıt. Ayrı iş request_key koruması yok; iş commit'i–yanıt saklama çökme penceresi sürer. |
+| Poliçe tahsilatı | Poliçe kilidi → payments(created_by,request_key) UNIQUE; kind/tutar kontrolü; kurtarma 201 |
+| Manuel iade | Poliçe kilidi → payments(created_by,request_key) UNIQUE; kind/refund_of/tutar kontrolü; kurtarma 201 |
+| Araç değişikliği zeyli | Poliçe kilidi → endorsements(created_by,request_key) UNIQUE; tür kontrolü; kurtarma 201 |
+| Poliçe iptali | Poliçe kilidi → endorsements(created_by,request_key) UNIQUE; tür kontrolü; kurtarma 201 |
+| Hasar bildirimi | Poliçe kilidi → claims(created_by,request_key) UNIQUE; kurtarma 201 |
+| Ekspertiz ekleme | Hasar kilidi → appraisals(appraiser_id,request_key) UNIQUE; içerik kontrolü; kurtarma aynı ekspertizle 201 |
+| Teklif çevirme | Teklif kilidi + durum + policies.quote_id UNIQUE; yanıt kaydı kayıpsa tekrar 409 QUOTE_NOT_CONVERTIBLE |
+| Tazminat onayı | Hasar kilidi + ADJUSTMENT durumu + claim_settlements_one_active_uq; yanıt kaydı kayıpsa tekrar 409 INVALID_CLAIM_STATUS |
+| Tazminat ödemesi | Hasar kilidi + APPROVED durumu + journal_entries_one_per_event_uq; yanıt kaydı kayıpsa tekrar 409 INVALID_CLAIM_STATUS |
+
+A8.1 regresyonu `TestAppraisalBusinessKeyRecovery`, yanıt kaydını silme ve bayat IN_PROGRESS bırakma senaryolarında aynı ekspertiz ID'si/201, tek ekspertiz ve tek CLAIM_APPRAISED audit'i doğrular. `TestAppraisalDistinctKeysAndUnkeyedServicePreserveAppend`, farklı anahtarla yeni ekspertizi, anahtarsız NULL yolunu, durum ilerledikten sonra kurtarmayı ve en son ekspertizin hesapta korunmasını sınar. `TestAppraisalRequestKeyMigrationUpDownUp` eski satırın değişmeden/NULL kalmasını ve kısmi UNIQUE kısıtını doğrular. A8.1 öncesi çökme denemesi iki kayıt/audit üretiyordu; önce/sonra gerçek çıktılar docs/testing/a81-appraisal-*.log altındadır.
 
 ## ADR-15 — Faturalama düzeltmeleri (A6)
 
@@ -246,3 +251,9 @@ Temiz kurulum ana100k volume'unu korur. Farklı proje adı/yeni volume ve boş, 
 İkiCPU'lu CI'nin dört bağlantılı pgxpool'unda paralel zeyiller kilitlendi. İşlemler transaction bağlantılarını tutarken access.Resolve pool'dan ikinci bağlantı istedi; aktif işlem boş bağlantı beklerken diğerleri onun poliçe satırını bekledi. Kullanıcı bu üretim hatasının tüm servislerde taranmasını onayladı. Çözüm kapasite/timeout artırmak değil, mevcut db.DBTX ile yetki sorgusunu aynı transaction'a bağlamaktır. Policy target/replay, payment target ve claim visible bu bağı taşır; transaction dışındaki çağrılar pool kullanabilir. Beş bağ ve diğer servislerin neden güvenli olduğu docs/testing/transaction-pool-audit.md'dedir. Dört bağlantıyı aynı anda tutan bariyerli regresyon eski kodda deadlineFAIL, yeni kodda altı senaryodaPASS verdi. API/RBAC/para/kilit sırası değişmez; yeni migration ve100k tekrarına gerek yok.
 
 Sonv4/100k işaretli oranı495/7780=%6,36; atölye sinyali479işaretli dosyada, kombinasyonlar349EARLY+WORKSHOP/84üçlü/46REPEAT+WORKSHOP/16EARLY+REPEAT.300atölye kabul hedefini karşılar; eşik hâlâ atölyenin kendi taban hacmine göre değil mutlak önceki dosya adedidir. İstatistik doğrulaması kural/eşik değiştirmek için kullanılmadı.
+
+## ADR-26 — Metriklerde mali rol erişimi (A8.1)
+
+`GET /metrics` artık Authenticate + RequireRoles(ACCOUNTING, UNDERWRITER) kullanır; kimliksiz 401, diğer dört rol 403 alır. Gerekçe: ham FRAUD_REVIEW görev tipi ve toplu sayıları dış kullanıcılara yan kanal oluşturuyordu. Metrik adları/etiketleri iç kullanıcılar için korunur. Sağlık denetimi `/health` kullanmaya devam eder; bu uç kimliksiz erişilebilir. Gerçek scraper ve requests.http çağrıları geçerli bir muhasebe/underwriter Bearer token'ı göndermelidir.
+
+Compose healthcheck, CI, kaos, k6 ve frontend metrik ucunu çağırmıyor; bunların davranışı değiştirilmedi. Verify ve uygulama entegrasyon testlerinin gerçek scrape çağrıları yetkili token ile güncellendi. `TestMetricsRequiresFinancialRole` kimliksiz isteği ve altı rolün tamamını sınar; reddedilen yanıtlarda FRAUD_REVIEW/görev metrikleri bulunmadığını kontrol eder. Verify'daki METRICS-RBAC satırı kimliksiz/dış rol engelini ve underwriter erişimini gerçek HTTP yanıtlarıyla doğrular.

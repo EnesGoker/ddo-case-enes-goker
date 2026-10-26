@@ -1022,3 +1022,104 @@ Son belge commit'inin hash'i final yanıtta ayrıca verilir. Ajan push yapmadı;
 7. **Sonraki görev önerisi:** Enes README1/4kendi metnini eklesin, soncommitleri pushlasın ve publicrepoURL'sini26Ekim23.59TRTöncesi ankete teslim etsin. Yeni aşama/bonus başlatılmadı.
 
 Sonbelgekontrolü: bütün docsJSON'ları parse edildi; README/TESTING/PROGRESS yerelbağlantıları mevcut; OpenAPI/compose/CIYAMLPASS; bash-nscriptsPASS;gitdiff--checkPASS. ec8fef8'den beri backend/frontend/migrationkaynakfarkı0; sonraki farklar kabulbetikleri ve teslim kanıtlarıdır. Soncommitçalışmaağacınıtemizbırakır; kullanıcıteslimadımlarınabaşlanmaz.
+
+## A8.1 kapanışı
+
+Kullanıcının A8.1 görev/onayı önceki salt okunur kapanış görevinin yerine geçti. Başlangıç git durumu temiz/495ce67 idi. Koddan önce docs/testing/a8-acceptance.sql salt okunur oturumda çalıştırıldı (2,449 sn); ham çıktı a81-acceptance-before.json'dadır. Ek kullanıcı onayıyla yalnız measured_at/database_bytes ayrı raporlanır; gerçek saate bağlı SLA ihlali azalırsa veya sabit iş alanları değişirse durulur. Ekspertiz sayısı ve satır özeti ayrıca kaydedildi.
+
+### A — Idempotency middleware envanteri
+
+Router'daki dokuz uç kod değişikliğinden önce incelendi. Normal, saklanmış yanıt tekrarında hepsi middleware replay'i kullanır. Aşağıdaki sonuçlar iş commit'i ile yanıt saklama arasında çökme ve middleware devralması içindir. Ekspertiz dışında ikinci iş/yan etki üreten aynı açık bulunmadı.
+
+| POST ucu | request_key kurtarması | İş kısıtı ve çökme sonrası sonuç |
+|---|---|---|
+| /api/v1/quotes/{id}/convert | Yok | Teklif FOR UPDATE/durum + policies.quote_id UNIQUE; ikinci poliçe yok, 409 QUOTE_NOT_CONVERTIBLE |
+| /api/v1/claims | Var | claims(created_by,request_key) kısmi UNIQUE; poliçe kilidinde aynı hasar/201, yeni fraud/görev yok |
+| /api/v1/claims/{id}/appraisals | Önce yok; A8.1 ile var | Önce ikinci ekspertiz/CLAIM_APPRAISED mümkündü. 00013 sonrası appraisals(appraiser_id,request_key) kısmi UNIQUE + hasar kilidinde aynı kayıt/201 |
+| /api/v1/claims/{id}/settlement/approve | Yok | Hasar kilidi/durum + claim_settlements_one_active_uq + yevmiye kısıtı; ikinci onay/tüketim yok, 409 INVALID_CLAIM_STATUS |
+| /api/v1/claims/{id}/pay | Yok | Hasar kilidi/durum + journal_entries_one_per_event_uq; ikinci ödeme yok, 409 INVALID_CLAIM_STATUS |
+| /api/v1/payments/{id}/refund | Var | payments(created_by,request_key) kısmi UNIQUE; kind/refund_of/tutar kontrolü, aynı iade/201 |
+| /api/v1/policies/{id}/payments | Var | payments(created_by,request_key) kısmi UNIQUE; kind/tutar kontrolü, aynı tahsilat/201 |
+| /api/v1/policies/{id}/endorsements | Var | endorsements(created_by,request_key) kısmi UNIQUE; tür kontrolü, aynı zeyil/201 |
+| /api/v1/policies/{id}/cancel | Var | endorsements(created_by,request_key) kısmi UNIQUE; tür kontrolü, aynı iptal/201 |
+
+### B/C — Uygulanan düzeltmeler ve önce/sonra kanıtı
+
+00013 yalnız nullable request_key ve dolu değerler için aktör+anahtar UNIQUE indeksi ekler; mevcut ekspertizlere UPDATE/backfill yok. HTTP middleware'inin context anahtarı kullanılır; simülatör/anahtarsız servis NULL yazar. Aynı hasar kilidi altında mevcut kayıt durum kontrolünden önce bulunur; kurtarma görev/audit eklemez. Farklı anahtarla yeni ekspertiz davranışı korunur. API yanıt alanları değişmedi; anahtar dışarı verilmez.
+
+İlk gerçek regresyon eski kodda FAIL/19,331 sn: hem silinmiş yanıt kaydı hem bayat IN_PROGRESS ikinci ekspertiz ve ikinci audit üretti (a81-appraisal-before.log). İlk düzeltme koşusu FAIL/18,610 sn: ID/sayı/audit doğruydu, test aynı inceleme anının Z/+03:00 gösterimini farklı saydı (a81-appraisal-after.log). Test timestamp alanını PostgreSQL mikrosaniye hassasiyetinde karşılaştırır; diğer alanlar aynı kalmak zorundadır. Nanosecond girişi de kapsanır. Son hedefli koşu PASS/18,981 sn; kurtarma, farklı anahtar, NULL servis yolu, durum ilerledikten sonra kurtarma, en son ekspertizin hesapta korunması, iş anahtarı regresyonları ve migration Up/Down/Up geçti (a81-appraisal-after-canonical-time.log).
+
+Eski ikinci ekspertiz id DESC seçimini değiştirebilirdi: aynı tutarlı kopya tek başına tutarı değiştirmez; araya daha yeni ekspertiz girdiyse eski tutarı yeniden en sona taşıyıp değerlendirme/onay hesabını etkileyebilirdi (claim/settlement.go calculate).
+
+/metrics kullanan yerler tarandı: compose healthcheck, CI, kaos, k6 ve frontend bu ucu çağırmıyor; k6/metrics importu k6'nın yerel ölçüm API'sidir. Verify, üç uygulama entegrasyon testi kullanımı, requests.http ve OpenAPI güncellendi. Formatter'ın bağımsız unit testleri HTTP uygulamasının yetki kuralını test etmediğinden değiştirilmedi. Yeni TestMetricsRequiresFinancialRole: kimliksiz401, CUSTOMER/AGENT/APPRAISER/CLAIMS_ADJUSTER403, ACCOUNTING/UNDERWRITER200; reddedilen gövdelerde ham inceleme etiketi/görev metriği yok. Healthcheck /health üzerinde kaldı.
+
+### D — Sıralı doğrulama
+
+| Adım | Gerçek komut | Sonuç | Toplam süre (sn) |
+|---|---|---|---:|
+| D1 | `make test lint build` | PASS | 9.239 |
+| D2 | `make test-integration` | PASS | 102.531 |
+| D3 | `make test-simulation` | PASS | 710.540 |
+| D4-services | `docker compose up --build -d --wait --no-deps api web` | PASS | 45.387 |
+| D4-verify | `make verify` | 63 PASS / 0 FAIL | 113.737 |
+| D5 | `a8-acceptance.sql + saved read-only appraisal query + volume identity comparison` | PASS | 0.736 |
+
+Komut/başlangıç/süre/exit kodları docs/testing/a81-validation.json; ham çıktılar a81-d1/d2/d3/d4*.log içindedir. Ana API olağan açılış migrasyonu 13'ü uyguladı; indeks tanımı ve üç healthy servis a81-main-migration.json'da. DB konteyneri 2a7827096972 olarak korundu; yalnız api/web yeniden oluşturuldu. Verify METRICS-RBAC dahil 63/0.
+
+100k önce/sonra: 100000 poliçe, 7780 hasar, 6727 ekspertiz, 495 işaretli, 46 açık inceleme ve 46 açık görev; balanced/receivable_matches true. Bütün sabit kabul alanları birebir aynı; SLA ihlali9→9, düşüş yok. Kayıtlı parmak izi her iki okumada 32fde797213b8904e5febc4c33cb8bd38f8cd883fdbe1489f02e521226a23b9b. Yeniden hesaplama aracı yok: mevcut fingerprint metodu simülatörün dışarı açılmamış iç metodudur; simülatör çalıştırılmadı/değiştirilmedi. Bu kayıtlı parmak izi okuması yeniden hesaplama olarak sunulmaz.
+
+SIM ekspertizlerinin eski kolonlarından hesaplanan ek MD5 d41e554969cf9f11d9219dde7e732df0 iki okumada aynı; SIM request_key dolu satır sayısı0. guvenpolice_pgdata Name/Driver/Mountpoint/CreatedAt aynı. measured_at 2026-10-26T10:55:29.099134+00:00→2026-10-26T11:27:50.811552+00:00; database_bytes2184485911→2184715287. Bu iki ölçüm alanı ham dosyalarda korunur, eşitlik iddiasına katılmaz. Karşılaştırma a81-comparison.json; ham çıktılar a81-acceptance-before/after.json ve a81-preservation-before/after.json.
+
+100k4155bae'de üretildi. Sonraki bağlantı düzeltmesi yalnız mevcut profil sorgusunun bağlantısını değiştirir; yeni ekspertiz dalı anahtar NULL iken arama yapmaz ve eski alanları aynı değerlerle yazar; anahtarsız yeni kolonu NULL'dır. /metrics yalnız HTTP okuma erişimidir. Simülatör/seed/fraud/billing/task/hesap kaynakları ve00001–00012 değişmedi. Bu nedenle üretilen SIM iş verisi değişmiyor; sayım, ekspertiz satır özeti ve volume kimliği karşılaştırması bunu destekliyor. Ana100k üretimi/reseti veya volume silme/prune yok; simülasyon testlerindeki küçük veri/reset senaryoları geçici test DB'lerindedir. neonsoc_*, macair_esdata ve bağımsız UI önizlemesine müdahale edilmedi.
+
+### E — Belge kapsamı ve sınırlar
+
+ADR-14 request_key kurtarmasını altı uçla sınırlar; diğer üç uçta çökme sonrası409 ile ikinci etki engellenir. ADR-26 metrics yetkisini ve toplu FRAUD_REVIEW sayılarının yan kanal gerekçesini kaydeder. README eksik beş sınırlamayı ekler: kazanılmış prim/UPR/muallak/IBNR, geçmiş faizin geri alınmaması, access token varsayılan15dk iptal edilememesi, giriş hız sınırı olmaması ve kozmetik modül yolu. Mevcut mutlak fraud eşiği ve ağır uç yaklaşık2,7sn maddeleri değişmedi. Eski ekspertiz çift kayıt sınırlaması düzeltildi; kanonik kurtarma yanıtının bayt eşitliği sınırı belirtildi.
+
+README S2 yalnız TESTING.md:411'deki gerçek koşulları kullanır: paralel10k entegrasyon üretimi, mizan10sn/HTTP000, verify279,62sn/58PASS3FAIL. Eşzamanlı HTTP istek sayısı için kayıtlı sayı yok; bu sayıya ilişkin metin eklenmedi. Temiz kurulumun özel0B builder/PGcache koşulu vardı; yalnız ilk PostgreSQL imaj indirmesinin ağ hızına bağlı ve ölçüm dışında olduğu açıklaması eklendi. SLA oranının ölçüm anına bağlı olduğu100k paragrafında zaten yazıyordu; çoğaltılmadı. K6 eşiklerinde yalnız iki noktalı virgül sonrası boşluk düzeltildi. README1/4 metni değişmedi; iki satır SHA256 f6843d0765af77b2b2fdbe6b46f6896602cfed91442cbb9d880de6634f01c0a8 korunur. OpenAPI ve requests.http yeni erişim/kurtarma sözleşmesine bağlandı. Yeni CI/yük/kaos/100k/temizkurulum ölçümü yapılmadı; önceki kayıtlar yeni ölçüm diye sunulmadı.
+
+### Değişen dosyalar
+
+| Tam yol | Amaç |
+|---|---|
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/repo.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/repo.go>) | İş anahtarıyla aynı ekspertizi bul. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/service.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/claim/service.go>) | Hasar kilidi altında durumdan önce kurtar; anahtarlı INSERT ve içerik kontrolü. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/idempotency/context.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/idempotency/context.go>) | Yeni UNIQUE çakışmasını mevcut409 desenine bağla. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00013_appraisal_request_key.sql](</Users/macair/Okulda yapılan çalışma/guvenpolice/db/migrations/00013_appraisal_request_key.sql>) | Nullable anahtar ve aktör kapsamlı kısmi UNIQUE; eski veri UPDATE edilmez. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/appraisal_recovery_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/appraisal_recovery_integration_test.go>) | Çökme, farklı/NULL anahtar, son ekspertiz ve migration regresyonları. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/integration_test.go>) | Migration13 beklentisi ve yetkili metrics testi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/router.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/router.go>) | Metrics Authenticate + mali rol sınırı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/metrics_access_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/metrics_access_integration_test.go>) | Kimliksiz ve altı rolün metrics erişimi/yanıt gizliliği. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/workflow_integration_test.go](</Users/macair/Okulda yapılan çalışma/guvenpolice/backend/internal/app/workflow_integration_test.go>) | SLA ve DB hatası scrape testlerinde muhasebe tokenı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/verify.sh](</Users/macair/Okulda yapılan çalışma/guvenpolice/scripts/verify.sh>) | Yetkili scrape ve tek METRICS-RBAC kabul satırı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/openapi.yaml](</Users/macair/Okulda yapılan çalışma/guvenpolice/openapi.yaml>) | Metrics401/403/rol ve ekspertiz kurtarma sözleşmesi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http](</Users/macair/Okulda yapılan çalışma/guvenpolice/requests.http>) | Kimliksiz401 örneği, muhasebe scrape ve ekspertiz tekrar açıklaması. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/README.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/README.md>) | Onaylı sınırlamalar, üretim kaynağı, ölçüm koşulları ve S2 gerçek verisi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/DECISIONS.md>) | ADR-14 kapsamı ve ADR-26 erişim gerekçesi. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md](</Users/macair/Okulda yapılan çalışma/guvenpolice/PROGRESS.md>) | A8.1 envanteri, gerçek sonuçları ve koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-acceptance-after.json](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-acceptance-after.json>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-acceptance-before.json](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-acceptance-before.json>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-appraisal-after-canonical-time.log](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-appraisal-after-canonical-time.log>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-appraisal-after.log](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-appraisal-after.log>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-appraisal-before.log](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-appraisal-before.log>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-comparison.json](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-comparison.json>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-d1-test-lint-build.log](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-d1-test-lint-build.log>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-d2-integration.log](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-d2-integration.log>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-d3-simulation-tests.log](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-d3-simulation-tests.log>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-d4-services.log](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-d4-services.log>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-d4-verify.log](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-d4-verify.log>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-main-migration.json](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-main-migration.json>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-preservation-after.json](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-preservation-after.json>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-preservation-before.json](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-preservation-before.json>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-validation.json](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-validation.json>) | A8.1 gerçek önce/sonra, hata/başarı veya süre/koruma kanıtı. |
+| [/Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-doc-check.log](</Users/macair/Okulda yapılan çalışma/guvenpolice/docs/testing/a81-doc-check.log>) | OpenAPI/iç ref, belge koruması ve yerel bağlantı kontrolü. |
+
+Belge kontrolleri PASS: OpenAPI YAML/271 iç ref ve metrics güvenlik sözleşmesi, bash syntax, README1/4 koruması, yedi sınırlama/ölçüm/SLA metni, requests örnekleri,7JSON ve yerel bağlantılar. Sonuç docs/testing/a81-doc-check.log'dadır. Ham test/build logları satır sonu boşlukları dahil değiştirilmeden saklandı; kaynak/belge whitespace kontrolü bu ham çıktıları kapsam dışı bırakır.
+
+### Yerel commitler ve kapanış
+
+- `ce84b1b fix(claim): ekspertiz idempotansını request_key ile iş kaydına bağla`
+- `77aa41d fix(api): /metrics erişimini sistem özetiyle aynı rollere sınırla`
+- Belge/kanıt commit'inin kendi hash'i final raporda verilir: `docs: A8.1 kapanışı, ADR-14 kapsamı ve sınırlamalar`.
+
+Durum: TAMAMLANDI. D1–D5 PASS; verify63/0. Push yapılmadı. Sonraki öneri yalnız kullanıcının kişisel README1/4 metni ve push/CI/teslim kontrolüdür; bu adımlara başlanmadı.

@@ -1,0 +1,28 @@
+{
+  "latest_migration": 13,
+  "request_key_nullable": true,
+  "unique_index": "CREATE UNIQUE INDEX appraisals_request_key_uq ON public.appraisals USING btree (appraiser_id, request_key) WHERE (request_key IS NOT NULL)",
+  "services": [
+    {
+      "ID": "1f912032574f",
+      "Name": "guvenpolice-api-1",
+      "Service": "api",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "ID": "2a7827096972",
+      "Name": "guvenpolice-db-1",
+      "Service": "db",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "ID": "7ed9d649bfd6",
+      "Name": "guvenpolice-web-1",
+      "Service": "web",
+      "State": "running",
+      "Health": "healthy"
+    }
+  ]
+}

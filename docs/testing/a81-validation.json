@@ -1,0 +1,52 @@
+[
+  {
+    "step": "D1",
+    "command": "make test lint build",
+    "started_at_utc": "2026-10-26T11:07:43.577977+00:00",
+    "elapsed_seconds": 9.239,
+    "exit_code": 0,
+    "log": "docs/testing/a81-d1-test-lint-build.log"
+  },
+  {
+    "step": "D2",
+    "command": "make test-integration",
+    "started_at_utc": "2026-10-26T11:09:49.645000+00:00",
+    "elapsed_seconds": 102.531,
+    "exit_code": 0,
+    "log": "docs/testing/a81-d2-integration.log"
+  },
+  {
+    "step": "D3",
+    "command": "make test-simulation",
+    "started_at_utc": "2026-10-26T11:11:43.722887+00:00",
+    "elapsed_seconds": 710.54,
+    "exit_code": 0,
+    "log": "docs/testing/a81-d3-simulation-tests.log"
+  },
+  {
+    "step": "D4-services",
+    "command": "docker compose up --build -d --wait --no-deps api web",
+    "started_at_utc": "2026-10-26T11:24:04.493027+00:00",
+    "elapsed_seconds": 45.387,
+    "exit_code": 0,
+    "log": "docs/testing/a81-d4-services.log"
+  },
+  {
+    "step": "D4-verify",
+    "command": "make verify",
+    "started_at_utc": "2026-10-26T11:25:09.048040+00:00",
+    "elapsed_seconds": 113.737,
+    "exit_code": 0,
+    "pass_lines": 63,
+    "fail_lines": 0,
+    "log": "docs/testing/a81-d4-verify.log"
+  },
+  {
+    "step": "D5",
+    "command": "a8-acceptance.sql + saved read-only appraisal query + volume identity comparison",
+    "started_at_utc": "2026-10-26T11:27:50.561979+00:00",
+    "elapsed_seconds": 0.736,
+    "exit_code": 0,
+    "evidence": "docs/testing/a81-comparison.json"
+  }
+]
