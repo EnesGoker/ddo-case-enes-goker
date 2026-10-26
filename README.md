@@ -195,7 +195,7 @@ CI'nin ilk koşusu küçük havuzda gerçek bağlantı kilitlenmesini yakaladı.
    - **SQL ile toplu (set tabanlı) üretim, elendi.** Dakikalar içinde biterdi ama kayıtlar uygulamanın kurallarından geçmezdi: prim hesabı, durum geçişleri, muhasebe kayıtları, fraud puanı ve görev ataması kodda bir yerde, veri başka bir yerde üretilmiş olurdu. Raporlar ve mutabakat da sistemin hiçbir zaman üretmeyeceği bir veriyi ölçerdi.
    - **Servis katmanı üzerinden üretim, seçildi (ADR-19/20).** Her poliçe ve hasar, API'nin kullandığı servis kodundan geçiyor. Yavaş ama veri gerçekten sistemin ürettiği veri.
 
-   Bedeli süre oldu: 8 GB RAM'li bir dizüstünde 100 bin poliçe yaklaşık 30 dakika sürüyor. Bunu çalışma düzenine yansıttım; 100k'yı tek sefer ürettim, koşu sırasında derleme ve test çalıştırmadım. Üretim deterministik: aynı tohum aynı parmak izini veriyor, yani sonuç tekrarlanabilir. Simülasyon verisi demo verisinden ayrı bir profilde duruyor.
+   Bedeli süre oldu: 8 GB RAM'li bir dizüstünde 100 bin poliçe yaklaşık 30 dakika sürüyor. Bunu çalışma düzenine yansıttım; son veri kümesini tek koşuda ürettim, koşu sırasında derleme ve test çalıştırmadım. Üretim deterministik: aynı tohum ve parametrelerle aynı parmak izi çıkıyor, yani sonuç tekrarlanabilir. Simülasyon verisi demo verisinden ayrı bir profilde duruyor.
 
    Karşılığında veri gerçekten sınandı: 100 bin poliçeden 7.780 hasar çıktı ve mali mutabakat tutuyor. 4. maddedeki fraud oranı sorunu da bu veriyi incelerken ortaya çıktı.
 
